@@ -3,7 +3,7 @@
 import React from "react";
 import WrapButton from "@/components/ui/wrap-button"; 
 import { CardCarousel } from "@/components/ui/card-carousel";
-import { BookOpen, Globe } from "lucide-react";
+import { BookOpen, Globe, LayoutDashboard } from "lucide-react";
 
 export default function HeroSection() {
   const images = [
@@ -42,9 +42,9 @@ export default function HeroSection() {
               <Globe className="mr-2 h-5 w-5 transition-transform duration-300 group-hover:rotate-[360deg]" />
               Get Started
             </WrapButton>
-            <WrapButton href="#how-it-works" className="group">
-              <BookOpen className="mr-2 w-5 h-5 transition-transform duration-300 group-hover:rotate-6" />
-              How It Works
+            <WrapButton href="/dashboard" className="group">
+              <LayoutDashboard className="mr-2 w-5 h-5 transition-transform duration-300 group-hover:rotate-6" />
+              Dashboard
             </WrapButton>
           </div>
         </div>
