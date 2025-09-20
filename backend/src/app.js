@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const passport = require('passport');
 const userRoutes = require('./routes/userRoutes');
+const credentialRoutes = require('./routes/credentialRoutes');
 
 const app = express();
 
@@ -35,6 +36,7 @@ require('./config/passport');
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/credentials', credentialRoutes);
 
 app.get('/', (req, res) => res.send('API is running'));
 
