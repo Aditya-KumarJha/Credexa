@@ -25,9 +25,31 @@ export default function SidebarComponent() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      // Get the auth token
+      const token = localStorage.getItem("authToken");
+      
+      if (token) {
+        // Call backend logout endpoint
+        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({}) // Can include sessionId if needed
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if backend call fails
+    } finally {
+      // Always clear local storage and redirect
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("sessionId"); // Remove session ID if stored
+      router.push("/login");
+    }
   };
 
   const handleNavigate = (path: string) => {

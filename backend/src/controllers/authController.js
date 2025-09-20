@@ -5,8 +5,7 @@ const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/emailService");
 const { ethers } = require("ethers");
 const crypto = require("crypto");
-const challenges = require("../utils/challengeStore"); 
-
+const challenges = require("../utils/challengeStore");
 const generateToken = (user) => {
   const payload = { id: user._id };
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -17,6 +16,68 @@ const generateToken = (user) => {
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const OTP_RESEND_INTERVAL = 30 * 1000;
+
+// Helper function to create session and send login notification
+const createSessionAndNotify = async (user, req) => {
+  try {
+    const ipAddress = getClientIP(req);
+    const userAgent = req.headers['user-agent'];
+    const deviceInfo = parseDeviceInfo(userAgent);
+    const location = await getLocationFromIP(ipAddress);
+    
+    // Check if this is a new device
+    const isNew = await isNewDevice(user._id, deviceInfo, ipAddress);
+    
+    // Create new session
+    const sessionId = generateSessionId();
+    const session = new Session({
+      userId: user._id,
+      sessionId,
+      deviceInfo,
+      ipAddress,
+      location,
+      isActive: true
+    });
+    
+    await session.save();
+    
+    // Send email notification for new device login
+    if (isNew) {
+      const deviceForEmail = formatDeviceForEmail(deviceInfo, location);
+      const emailSubject = 'New Device Login - Credexa';
+      const emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">New Device Login Detected</h2>
+          <p>Hello ${user.fullName?.firstName || 'User'},</p>
+          <p>We detected a new login to your Credexa account from a new device:</p>
+          
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <strong>Device Details:</strong><br>
+            <strong>Device:</strong> ${deviceForEmail.device}<br>
+            <strong>Browser:</strong> ${deviceForEmail.browser}<br>
+            <strong>Operating System:</strong> ${deviceForEmail.os}<br>
+            <strong>Location:</strong> ${deviceForEmail.location}<br>
+            <strong>Time:</strong> ${deviceForEmail.timestamp}
+          </div>
+          
+          <p>If this was you, you can safely ignore this email. If you don't recognize this login, please secure your account immediately by changing your password.</p>
+          
+          <p>Stay secure,<br>The Credexa Team</p>
+        </div>
+      `;
+      
+      // Send email notification (don't await to avoid blocking the response)
+      sendEmail(user.email, emailBody, emailSubject).catch((err) =>
+        console.error("Login notification email failed:", err)
+      );
+    }
+    
+    return sessionId;
+  } catch (error) {
+    console.error("Session creation error:", error);
+    throw error;
+  }
+};
 
 const register = async (req, res) => {
   try {
@@ -114,6 +175,7 @@ const verifyOtp = async (req, res) => {
 
     let user;
     let token;
+    let sessionId;
 
     if (context === "signup") {
       const pendingUser = await PendingUser.findOne({ email });
@@ -133,6 +195,7 @@ const verifyOtp = async (req, res) => {
       ]);
       user = newUser;
       token = generateToken(user);
+      sessionId = await createSessionAndNotify(user, req);
     } else if (context === "login") {
       const foundUser = await User.findOne({ email });
       if (!foundUser || !foundUser.otp || foundUser.otp.code !== otp || foundUser.otp.expiresAt < new Date()) {
@@ -142,6 +205,7 @@ const verifyOtp = async (req, res) => {
       await foundUser.save();
       user = foundUser;
       token = generateToken(user);
+      sessionId = await createSessionAndNotify(user, req);
     } else if (context === "forgot") {
       const userToReset = await User.findOne({ email });
       if (!userToReset || userToReset.resetPasswordToken !== otp || userToReset.resetPasswordExpires < new Date()) {
@@ -155,6 +219,7 @@ const verifyOtp = async (req, res) => {
     return res.status(context === 'signup' ? 201 : 200).json({
       message: `OTP verified successfully for ${context}`,
       token,
+      sessionId,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -385,6 +450,38 @@ const verifyWeb3Signature = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    if (sessionId) {
+      // Delete specific session completely
+      const deletedSession = await Session.findOneAndDelete(
+        { sessionId, userId, isActive: true }
+      );
+      
+      if (!deletedSession) {
+        return res.status(404).json({ message: "Session not found or already logged out" });
+      }
+    } else {
+      // Delete all active sessions for the user
+      await Session.deleteMany(
+        { userId, isActive: true }
+      );
+    }
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Server error during logout" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -394,5 +491,6 @@ module.exports = {
   resendOtp,
   generateWeb3Challenge,
   verifyWeb3Signature,
+  logout,
 };
 
