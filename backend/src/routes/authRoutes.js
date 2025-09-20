@@ -11,7 +11,6 @@ const {
   resendOtp,
   generateWeb3Challenge,
   verifyWeb3Signature,
-  debugOtpVerification,
 } = require("../controllers/authController");
 
 const router = express.Router();
@@ -27,9 +26,6 @@ router.post("/resend-otp", resendOtp);
 
 router.post("/web3/challenge", generateWeb3Challenge);
 router.post("/web3/verify", verifyWeb3Signature);
-
-// Debug endpoint for production troubleshooting
-router.post("/debug-otp", debugOtpVerification);
 
 const socialAuthCallback = (strategy) => (req, res, next) => {
   passport.authenticate(strategy, { session: false }, (err, user, info) => {
