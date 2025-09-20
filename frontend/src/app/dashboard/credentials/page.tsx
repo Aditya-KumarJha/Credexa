@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/dashboard/Sidebar";
+import dynamic from "next/dynamic";
+const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar"), { ssr: false });
 import api from "@/utils/axios";
 import {
   Button,
@@ -64,9 +65,11 @@ interface Credential {
   createdAt?: string;
 }
 
-const { Option } = Select;
+// AntD v5: use Select options prop instead of Select.Option
 
 export default function CredentialsPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { theme: mode } = useTheme();
   const isDark = (mode ?? "light") === "dark";
   const router = useRouter();
@@ -245,6 +248,7 @@ export default function CredentialsPage() {
     );
   };
 
+  if (!mounted) return null;
   return (
     <ConfigProvider
       theme={{
@@ -412,23 +416,27 @@ export default function CredentialsPage() {
               </Row>
               <Row gutter={12}>
                 <Col span={8}>
-                  <Form.Item name="type" label="Type" rules={[{ required: true }]}>
-                    <Select>
-                      <Option value="certificate">Certificate</Option>
-                      <Option value="course">Course</Option>
-                      <Option value="degree">Degree</Option>
-                      <Option value="license">License</Option>
-                      <Option value="badge">Badge</Option>
-                    </Select>
+                  <Form.Item name="type" label="Type" rules={[{ required: true }]}> 
+                    <Select
+                      options={[
+                        { value: "certificate", label: "Certificate" },
+                        { value: "course", label: "Course" },
+                        { value: "degree", label: "Degree" },
+                        { value: "license", label: "License" },
+                        { value: "badge", label: "Badge" },
+                      ]}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
-                  <Form.Item name="status" label="Status" rules={[{ required: true }]}>
-                    <Select>
-                      <Option value="verified">Verified</Option>
-                      <Option value="pending">Pending</Option>
-                      <Option value="expired">Expired</Option>
-                    </Select>
+                  <Form.Item name="status" label="Status" rules={[{ required: true }]}> 
+                    <Select
+                      options={[
+                        { value: "verified", label: "Verified" },
+                        { value: "pending", label: "Pending" },
+                        { value: "expired", label: "Expired" },
+                      ]}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
