@@ -34,9 +34,11 @@ app.use(passport.initialize());
 require('./config/passport');
 
 const authRoutes = require('./routes/authRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/credentials', credentialRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.get('/', (req, res) => res.send('API is running'));
 

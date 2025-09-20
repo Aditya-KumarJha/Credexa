@@ -46,6 +46,43 @@ const userSchema = new mongoose.Schema(
     },
 
     refreshToken: { type: String },
+    
+    // Settings fields
+    settings: {
+      preferences: {
+        theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
+        language: { type: String, default: "en" },
+        notifications: {
+          email: { type: Boolean, default: true },
+          push: { type: Boolean, default: true },
+          marketing: { type: Boolean, default: false },
+          security: { type: Boolean, default: true },
+        },
+        timezone: { type: String, default: "UTC" },
+      },
+      security: {
+        twoFactorEnabled: { type: Boolean, default: false },
+        twoFactorSecret: { type: String },
+        sessionTimeout: { type: Number, default: 30 }, // minutes
+        loginNotifications: { type: Boolean, default: true },
+        passwordLastChanged: { type: Date },
+        activeSessions: [
+          {
+            sessionId: { type: String },
+            deviceInfo: { type: String },
+            ipAddress: { type: String },
+            lastActive: { type: Date },
+            createdAt: { type: Date, default: Date.now },
+          }
+        ],
+      },
+      privacy: {
+        profileVisibility: { type: String, enum: ["public", "private", "connections"], default: "public" },
+        showEmail: { type: Boolean, default: false },
+        showCredentials: { type: Boolean, default: true },
+        allowProfileIndexing: { type: Boolean, default: true },
+      },
+    },
   },
   { timestamps: true }
 );
