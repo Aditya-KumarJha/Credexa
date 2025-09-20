@@ -9,6 +9,7 @@ import {
   BarChart2,
   Trophy,
   Settings,
+  Home,
 } from "lucide-react";
 import { Layout, Menu } from "antd";
 import { useState } from "react";
@@ -31,13 +32,13 @@ export default function Sidebar() {
   };
 
   const getSelectedKey = () => {
-    if (!pathname) return "dashboard";
+    if (!pathname) return "home";
+    if (pathname === "/") return "home";
     if (pathname.startsWith("/dashboard/profile")) return "profile";
     if (pathname.startsWith("/dashboard/credentials")) return "credentials";
     if (pathname.startsWith("/dashboard/skills")) return "skills";
     if (pathname.startsWith("/dashboard/learning-path")) return "learning-path";
     if (pathname.startsWith("/dashboard/leaderboard")) return "leaderboard";
-    if (pathname.startsWith("/dashboard/analytics")) return "analytics";
     if (pathname.startsWith("/dashboard/settings")) return "settings";
     return "dashboard";
   };
@@ -81,13 +82,13 @@ export default function Sidebar() {
           [&_.ant-menu-title-content]:!ml-4
         `}
         items={[
+          { key: "home", icon: <Home size={18} />, label: "Home", onClick: () => handleNavigate("/") },
           { key: "dashboard", icon: <LayoutDashboard size={18} />, label: "Dashboard", onClick: () => handleNavigate("/dashboard") },
           { key: "profile", icon: <UserRound size={18} />, label: "Update Profile", onClick: () => handleNavigate("/dashboard/profile") },
           { key: "credentials", icon: <Award size={18} />, label: "My Credentials", onClick: () => handleNavigate("/dashboard/credentials") },
           { key: "skills", icon: <Activity size={18} />, label: "Skill Tracker", onClick: () => handleNavigate("/dashboard/skills") },
           { key: "learning-path", icon: <BarChart2 size={18} />, label: "Learning Path", onClick: () => handleNavigate("/dashboard/learning-path") },
           { key: "leaderboard", icon: <Trophy size={18} />, label: "Leaderboard", onClick: () => handleNavigate("/dashboard/leaderboard") },
-          { key: "analytics", icon: <BarChart2 size={18} />, label: "Analytics", onClick: () => handleNavigate("/dashboard/analytics") },
           { key: "settings", icon: <Settings size={18} />, label: "Settings", onClick: () => handleNavigate("/dashboard/settings") },
         ]}
       />

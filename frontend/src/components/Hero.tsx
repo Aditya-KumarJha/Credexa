@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import WrapButton from "@/components/ui/wrap-button"; 
 import { CardCarousel } from "@/components/ui/card-carousel";
-import { BookOpen, Globe, LayoutDashboard } from "lucide-react";
+import { Globe, LayoutDashboard, LogOut, LogOutIcon } from "lucide-react";
 
 export default function HeroSection() {
   const images = [
@@ -12,6 +12,19 @@ export default function HeroSection() {
     { src: "/images/card/Card-3.png", alt: "Verifiable Credential Badge" },
     { src: "/images/card/Card-4.png", alt: "Public Verification Page" },
   ];
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    setIsLoggedIn(!!token); 
+  }, []);
+  const handleLogout = () => {
+    localStorage.clear();
+    setIsLoggedIn(false);
+    window.location.href = "/";
+  };
+
 
   return (
     <section className="relative overflow-hidden pt-0 md:pt-10">
@@ -38,10 +51,17 @@ export default function HeroSection() {
             className="flex gap-4 flex-col sm:flex-row mt-4 animate-[fadeInUp_0.8s_ease-out_forwards]"
             style={{ animationDelay: '0.6s', animationFillMode: 'backwards' }}
           >
-            <WrapButton href="/signup" className="group">
-              <Globe className="mr-2 h-5 w-5 transition-transform duration-300 group-hover:rotate-[360deg]" />
-              Get Started
-            </WrapButton>
+            {!isLoggedIn ? (
+              <WrapButton href="/signup" className="group">
+               <Globe className="mr-2 h-5 w-5 transition-transform duration-300 group-hover:rotate-[360deg]" />
+                Get Started
+              </WrapButton>
+              ) : (
+              <WrapButton onClick={handleLogout} className="group">
+                Logout
+              </WrapButton>
+            )}
+
             <WrapButton href="/dashboard" className="group">
               <LayoutDashboard className="mr-2 w-5 h-5 transition-transform duration-300 group-hover:rotate-6" />
               Dashboard
