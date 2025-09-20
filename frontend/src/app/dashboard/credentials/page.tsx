@@ -70,9 +70,10 @@ interface Credential {
 export default function CredentialsPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const { theme: mode } = useTheme();
-  const isDark = (mode ?? "light") === "dark";
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [items, setItems] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -97,7 +98,7 @@ export default function CredentialsPage() {
         localStorage.removeItem("authToken");
         return router.replace("/login?error=session_expired");
       }
-      message.error("Failed to load credentials");
+  messageApi.error("Failed to load credentials");
     } finally {
       setLoading(false);
     }
@@ -126,9 +127,9 @@ export default function CredentialsPage() {
     try {
       await api.delete(`/api/credentials/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       setItems((prev) => prev.filter((x) => x._id !== id));
-      message.success("Deleted");
+      messageApi.success("Deleted");
     } catch {
-      message.error("Delete failed");
+      messageApi.error("Delete failed");
     }
   };
 
@@ -215,17 +216,17 @@ export default function CredentialsPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setItems((prev) => prev.map((x) => (x._id === res.data._id ? res.data : x)));
-        message.success("Updated");
+        messageApi.success("Updated");
       } else {
         const res = await api.post(`/api/credentials`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setItems((prev) => [res.data, ...prev]);
-        message.success("Created");
+        messageApi.success("Created");
       }
       setIsModalOpen(false);
     } catch (e) {
-      message.error("Save failed");
+      messageApi.error("Save failed");
     }
   };
 
@@ -260,10 +261,14 @@ export default function CredentialsPage() {
           colorBorder: "var(--color-border)",
           colorPrimary: "var(--color-primary)",
           colorBgContainer: "var(--color-card)",
+          colorBgElevated: "var(--color-card)",
+          zIndexPopupBase: 2000,
           borderRadius: 12,
         },
       }}
+      getPopupContainer={() => document.body}
     >
+      {contextHolder}
       <div className="min-h-screen bg-background text-foreground flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
@@ -275,7 +280,7 @@ export default function CredentialsPage() {
               <p className="text-sm text-muted-foreground">Manage and showcase your verified achievements</p>
           </div>
           <Space>
-            <Button variant="outline" className="bg-transparent" onClick={() => message.info("Share coming soon")}> 
+            <Button variant="outline" className="bg-transparent" onClick={() => messageApi.info("Share coming soon")}> 
               <Share2 className="w-4 h-4 mr-2" /> Share Profile
             </Button>
             <Button onClick={openCreate} className="shadow"> 
@@ -293,22 +298,34 @@ export default function CredentialsPage() {
               <Input placeholder="Search by title, issuer, or skill" value={search} onChange={(e) => setSearch(e.target.value)} allowClear />
             </Col>
             <Col xs={12} md={7}>
-              <Select value={typeFilter} onChange={setTypeFilter} className="w-full" options={[
+              <Select
+                value={typeFilter}
+                onChange={setTypeFilter}
+                className="w-full"
+                styles={{ popup: { root: { background: "var(--color-card)", color: "var(--color-foreground)" } } }}
+                options={[
                 { value: "all", label: "All Types" },
                 { value: "certificate", label: "Certificate" },
                 { value: "course", label: "Course" },
                 { value: "degree", label: "Degree" },
                 { value: "license", label: "License" },
                 { value: "badge", label: "Badge" },
-              ]} />
+              ]}
+              />
             </Col>
             <Col xs={12} md={7}>
-              <Select value={statusFilter} onChange={setStatusFilter} className="w-full" options={[
+              <Select
+                value={statusFilter}
+                onChange={setStatusFilter}
+                className="w-full"
+                styles={{ popup: { root: { background: "var(--color-card)", color: "var(--color-foreground)" } } }}
+                options={[
                 { value: "all", label: "All Status" },
                 { value: "verified", label: "Verified" },
                 { value: "pending", label: "Pending" },
                 { value: "expired", label: "Expired" },
-              ]} />
+              ]}
+              />
             </Col>
           </Row>
         </AntCard>
