@@ -47,6 +47,17 @@ const userSchema = new mongoose.Schema(
 
     refreshToken: { type: String },
     
+    // Institute/College information
+    institute: {
+      aishe_code: { type: String, trim: true },
+      name: { type: String, trim: true },
+      state: { type: String, trim: true },
+      district: { type: String, trim: true },
+      university_name: { type: String, trim: true },
+      addedAt: { type: Date },
+      isVerified: { type: Boolean, default: true }, // false if manually added, pending admin approval
+    },
+    
     // Settings fields
     settings: {
       preferences: {

@@ -6,6 +6,7 @@ import api from "@/utils/axios";
 import toast from "react-hot-toast";
 import { Camera, Mail, Loader2, ShieldAlert, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import InstituteSelector from "@/components/InstituteSelector";
 
 interface UserProfile {
   _id: string;
@@ -246,6 +247,11 @@ export default function ProfilePage() {
                    <input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} disabled={isSubmitting || isEmailLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                    {isEmailLocked && <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1"><ShieldAlert size={12}/>Your email is managed by your social provider.</p>}
                 </div>
+            </div>
+            
+            {/* Institute/College Selection */}
+            <div className="mb-8">
+              <InstituteSelector />
             </div>
             <div className="flex justify-end">
               <button type="submit" disabled={!isFormDirty || isSubmitting} className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg shadow-md transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center">
