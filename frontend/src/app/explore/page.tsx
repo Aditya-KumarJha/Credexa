@@ -246,7 +246,6 @@ const App: React.FC = () => {
               </button>
             </div>
           </motion.section>
-
           <motion.section className="bg-white dark:bg-zinc-800 p-6 rounded-3xl shadow-lg border border-gray-200 dark:border-zinc-700" variants={containerVariants} initial="hidden" animate="visible">
             <SectionHeader title="Top Learners in Your Region" icon={Star} />
             <div className="space-y-4">
