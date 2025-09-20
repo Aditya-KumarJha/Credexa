@@ -32,12 +32,12 @@ const Navbar = () => {
   }, [mobileOpen]);
 
   const navItems = [
-    { href: "/verify", label: "Verify", icon: ShieldCheck },
-    { href: "/analytics", label: "Analytics", icon: BarChart2 },
-    { href: "/explore", label: "Explore", icon: Search },
-    { href: "/community", label: "Community", icon: UsersIcon },
-    { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/#contact", label: "Contact Us", icon: Phone },
+  { href: "/verify", label: "Verify", icon: ShieldCheck },
+  { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/explore", label: "Explore", icon: Search },
+  { href: "/community", label: "Community", icon: UsersIcon },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/#contact", label: "Contact Us", icon: Phone },
   ];
 
   const menuPanelVariants = {
