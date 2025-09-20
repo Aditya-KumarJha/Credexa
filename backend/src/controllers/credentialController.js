@@ -1,5 +1,10 @@
 const Credential = require('../models/credentialModel');
 const uploadFile = require('../services/storageService');
+// 1. IMPORT YOUR NEW BLOCKCHAIN SERVICE
+const { anchorNewCredential, verifyCredential } = require('../services/blockchainService');
+
+
+// --- EXISTING DATABASE FUNCTIONS (UNCHANGED) ---
 
 const listCredentials = async (req, res) => {
   try {
@@ -94,10 +99,53 @@ const deleteCredential = async (req, res) => {
   }
 };
 
+
+// --- NEW BLOCKCHAIN FUNCTIONS ---
+
+const anchorCredentialController = async (req, res) => {
+    try {
+        const { hash } = req.body;
+        if (!hash || !hash.startsWith('0x') || hash.length !== 66) {
+            return res.status(400).json({ error: 'A valid 32-byte hash (0x...) is required.' });
+        }
+
+        const receipt = await anchorNewCredential(hash);
+        res.status(201).json({ message: 'Credential anchored successfully!', transactionHash: receipt.hash });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to anchor credential.', details: error.message });
+    }
+};
+
+const verifyCredentialController = async (req, res) => {
+    try {
+        const { hash } = req.params;
+        const credentialData = await verifyCredential(hash);
+
+        if (!credentialData) {
+            return res.status(404).json({ error: 'Credential not found on the blockchain.' });
+        }
+        
+        const responseData = {
+            issuer: credentialData.issuer,
+            timestamp: Number(credentialData.timestamp)
+        };
+        
+        res.status(200).json(responseData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to verify credential.', details: error.message });
+    }
+};
+
+
+// --- 2. UPDATE MODULE EXPORTS ---
+
 module.exports = {
   listCredentials,
   createCredential,
   updateCredential,
   deleteCredential,
+  anchorCredentialController, // <-- New function added
+  verifyCredentialController,   // <-- New function added
 };
- 
