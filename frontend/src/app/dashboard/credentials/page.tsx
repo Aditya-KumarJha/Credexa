@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 import { useTheme } from "next-themes";
+import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 
 type CredentialType = "certificate" | "course" | "degree" | "license" | "badge";
 type CredentialStatus = "verified" | "pending" | "expired";
@@ -275,6 +276,7 @@ export default function CredentialsPage() {
               <p className="text-sm text-muted-foreground">Manage and showcase your verified achievements</p>
           </div>
           <Space>
+            <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
             <Button variant="outline" className="bg-transparent" onClick={() => message.info("Share coming soon")}> 
               <Share2 className="w-4 h-4 mr-2" /> Share Profile
             </Button>
