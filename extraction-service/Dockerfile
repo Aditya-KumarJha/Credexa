@@ -20,9 +20,10 @@ COPY . .
 ENV FLASK_APP=cert_extractor_api.py
 ENV FLASK_ENV=production
 ENV TESSERACT_CMD=/usr/bin/tesseract
+ENV PORT=10000
 
 # Expose port
-EXPOSE 5000
+EXPOSE 10000
 
 # Run the application
 CMD ["python", "cert_extractor_api.py"]
