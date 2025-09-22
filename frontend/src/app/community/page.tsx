@@ -54,7 +54,7 @@ function EventRow({ date, name, type }: EventRowProps) {
   const [rsvp, setRsvp] = useState<boolean>(false);
   const [reminder, setReminder] = useState<boolean>(false);
   return (
-    <tr className="border-b">
+  <tr className="border-b border-gray-100 dark:border-gray-100/30">
       <td className="p-2">{date}</td>
       <td className="p-2 font-semibold">{name}</td>
       <td className="p-2">{type}</td>
@@ -218,13 +218,13 @@ export default function CommunityPage() {
             </h2>
             <div className="flex flex-col gap-2 mb-4">
               <textarea
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
+                className="w-full p-2 border border-gray-800 dark:border-white rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
                 rows={2}
                 placeholder="Share your thoughts..."
                 value={text}
                 onChange={e => setText(e.target.value)}
               />
-              <input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
+                <input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
               <button
                 className="bg-blue-600 text-white px-4 py-1 rounded font-bold shadow hover:bg-blue-700 transition"
                 onClick={handlePost}
@@ -475,13 +475,13 @@ export default function CommunityPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b">
+                  <tr className="border-b border-gray-50 dark:border-gray-100/15">
                     <td className="p-2 font-bold">1</td>
                     <td className="p-2">Alice</td>
                     <td className="p-2">1200</td>
                     <td className="p-2">🏅 Top Contributor</td>
                   </tr>
-                  <tr className="border-b">
+                  <tr className="border-b border-gray-50 dark:border-gray-100/15">
                     <td className="p-2 font-bold">2</td>
                     <td className="p-2">Bob</td>
                     <td className="p-2">950</td>
