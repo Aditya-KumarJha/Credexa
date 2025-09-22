@@ -106,7 +106,7 @@ export default function CommunityPage() {
       {
         id: Date.now(),
         name: user?.fullName ? `${user.fullName.firstName} ${user.fullName.lastName}` : "Anonymous",
-        profilePic: user?.profilePic || `/images/default-profile.png`,
+        profilePic: user?.profilePic || "/images/default-profile.png",
         text,
         image,
         likes: 0,
@@ -143,19 +143,21 @@ export default function CommunityPage() {
   interface Field {
     name: string;
     img: string;
+    members: number;
   }
-  const fields: Field[] = [
-    { name: "Cybersecurity", img: "/images/cybersecurity.png" },
-    { name: "Blockchain", img: "/images/blockchain.png" },
-    { name: "AI", img: "/images/ai.png" },
-    { name: "Web Development", img: "/images/webdev.png" },
-    { name: "Data Science", img: "/images/datascience.png" },
-    { name: "Cloud Computing", img: "/images/cloud.png" },
-    { name: "IoT", img: "/images/iot.png" },
-    { name: "DevOps", img: "/images/devops.png" },
-    { name: "UI/UX Design", img: "/images/uiux.png" },
-    { name: "Mobile Development", img: "/images/mobile.png" },
+  const initialFields: Field[] = [
+    { name: "Cybersecurity", img: "/images/cybersecurity.png", members: 12 },
+    { name: "Blockchain", img: "/images/blockchain.png", members: 8 },
+    { name: "AI", img: "/images/ai.png", members: 15 },
+    { name: "Web Development", img: "/images/webdev.png", members: 20 },
+    { name: "Data Science", img: "/images/datascience.png", members: 10 },
+    { name: "Cloud Computing", img: "/images/cloud.png", members: 7 },
+    { name: "IoT", img: "/images/iot.png", members: 5 },
+    { name: "DevOps", img: "/images/devops.png", members: 9 },
+    { name: "UI/UX Design", img: "/images/uiux.png", members: 6 },
+    { name: "Mobile Development", img: "/images/mobile.png", members: 11 },
   ];
+  const [fields, setFields] = useState<Field[]>(initialFields);
   const [joinedGroup, setJoinedGroup] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
@@ -168,13 +170,13 @@ export default function CommunityPage() {
     ]);
     setInput("");
   };
-
   return (
-    <main className="p-4 bg-white min-h-screen">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">Community</h1>
-        <nav className="mb-6 flex justify-center gap-2 border-b pb-2">
-          {[
+    <div className="bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 min-h-screen">
+      <div className="max-w-3xl mx-auto py-8 px-4">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105">Community</h1>
+        {/* Removed extra navbar for Credexa and Community */}
+        <nav className="mb-8 flex justify-center gap-3 border-b pb-3 bg-gray-200/50 dark:bg-gray-800/50 p-2 rounded-full">
+          {[ 
             { key: "discussion", label: "Discussion" },
             { key: "peer-groups", label: "Peer Groups" },
             { key: "events", label: "Events" },
@@ -183,8 +185,10 @@ export default function CommunityPage() {
             <button
               key={tab.key}
               onClick={() => setSection(tab.key)}
-              className={`px-4 py-1 rounded font-medium transition-all duration-150 ${
-                section === tab.key ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+              className={`px-5 py-2 rounded-full font-semibold transition-all duration-150 ${
+                section === tab.key
+                  ? "bg-white text-blue-600 shadow"
+                  : "text-gray-700 dark:text-gray-200 hover:bg-white hover:text-black dark:hover:bg-white dark:hover:text-black"
               }`}
             >
               {tab.label}
@@ -192,8 +196,12 @@ export default function CommunityPage() {
           ))}
         </nav>
         {section === "discussion" && (
-          <div className="mb-10 bg-white rounded-xl shadow p-4 border border-blue-100">
-            <h2 className="text-xl font-bold mb-4 text-blue-600">Discussion</h2>
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100">
+            <h2
+              className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
+            >
+              Discussion
+            </h2>
             <div className="flex flex-col gap-2 mb-4">
               <textarea
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
@@ -215,7 +223,7 @@ export default function CommunityPage() {
                 <p className="text-gray-400 text-center">No posts yet.</p>
               ) : (
                 posts.map(post => (
-                  <div key={post.id} className="mb-4 bg-white rounded-lg p-3 border border-gray-200 shadow flex gap-3">
+                  <div key={post.id} className="mb-4 bg-white dark:bg-zinc-900 rounded-lg p-3 border border-gray-200 shadow flex gap-3">
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center border">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="8" r="4" fill="#bdbdbd" />
@@ -297,64 +305,114 @@ export default function CommunityPage() {
           </div>
         )}
         {section === "peer-groups" && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-blue-100">
-            <h2 className="text-2xl font-bold mb-4 text-blue-600">Peer Groups</h2>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100">
+            <h2
+              className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
+            >
+              Peer Groups
+            </h2>
+            {/* Search bar for groups */}
             {!joinedGroup && (
-              <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-center">
-                {fields.map((field) => (
-                  <button
-                    key={field.name}
-                    className="flex flex-col items-center justify-center w-40 h-40 rounded-xl border-2 font-semibold transition-colors shadow-lg bg-white hover:bg-blue-50 border-gray-200"
-                    onClick={() => setJoinedGroup(field.name)}
-                  >
-                    <img src={field.img} alt={field.name} className="w-16 h-16 mb-3 object-contain" />
-                    <span className="text-lg font-bold text-blue-700">{field.name}</span>
-                  </button>
+              <div className="mb-6 flex justify-center">
+                <input
+                  type="text"
+                  className="w-full max-w-md border rounded px-4 py-2 text-md focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-gray-100"
+                  placeholder="Search for a group..."
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                />
+              </div>
+            )}
+            {/* Filter groups by search input */}
+            {!joinedGroup && (
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-center">
+                {fields.filter(field => field.name.toLowerCase().includes(input.toLowerCase())).map((field, idx) => (
+                  <div key={field.name} className="flex flex-col items-center justify-center w-full h-56 rounded-xl border-2 font-semibold transition-colors shadow-lg bg-white hover:bg-blue-50 border-gray-200 p-4">
+                    <img src={field.img} alt={field.name} className="w-16 h-16 mb-2 object-contain" />
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{field.name}</span>
+                    <button
+                      className="px-6 py-2 rounded-full bg-gray-300 text-gray-700 font-semibold shadow hover:bg-white hover:text-black transition text-base mt-2 cursor-pointer"
+                      onClick={() => {
+                        setJoinedGroup(field.name);
+                        setFields(fields.map(f => f.name === field.name ? { ...f, members: f.members + 1 } : f));
+                      }}
+                    >
+                      Join
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
+            {/* Show member count only inside group chat */}
             {joinedGroup && (
-              <div className="bg-white rounded-xl shadow p-4 border border-blue-100">
-                <button
-                  className="mb-3 px-3 py-1 bg-blue-100 text-blue-700 rounded font-medium shadow hover:bg-blue-200 transition"
-                  onClick={() => setJoinedGroup(null)}
-                >
-                  ← Back
-                </button>
-                <h3 className="text-lg font-semibold mb-2 text-blue-700">{joinedGroup} Group Chat</h3>
-                <div className="mb-4 max-h-56 overflow-y-auto flex flex-col gap-2">
-                  {messages.filter(m => m.group === joinedGroup).length === 0 ? (
-                    <p className="text-gray-400 text-center">No messages yet. Start the conversation!</p>
-                  ) : (
-                    messages.filter(m => m.group === joinedGroup).map(m => (
-                      <div key={m.id} className="self-start max-w-xs bg-blue-50 rounded-lg px-4 py-2 border border-blue-200 text-gray-800 shadow-sm">
-                        {m.text}
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="flex gap-2 items-center mt-2">
-                  <input
-                    className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    type="text"
-                    placeholder="Type your message..."
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                  />
-                  <button
-                    className="px-4 py-2 rounded bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
-                    onClick={handleSend}
+              <div className="flex gap-6">
+                {/* Sidebar with remaining groups */}
+                <div className="hidden md:flex flex-col w-48 bg-gray-50 dark:bg-zinc-900 rounded-xl shadow p-4 border border-blue-100 mr-4">
+                  <h4
+                    className="text-md font-bold mb-3 text-blue-600 dark:text-blue-300 cursor-pointer"
+                    onClick={() => setJoinedGroup(null)}
                   >
-                    Send
-                  </button>
+                    Peer Groups
+                  </h4>
+                  {fields.filter(f => f.name !== joinedGroup).map(f => (
+                    <div key={f.name} className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{f.name}</span>
+                      <button
+                        className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-medium hover:bg-white hover:text-black transition cursor-pointer"
+                        onClick={() => {
+                          setJoinedGroup(f.name);
+                          setFields(fields.map(field => field.name === f.name ? { ...field, members: field.members + 1 } : field));
+                        }}
+                      >
+                        Join
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {/* Main group chat area */}
+                <div className="flex-1 bg-white rounded-xl shadow p-4 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-2 flex-col items-start">
+                    <h3 className="text-lg font-semibold text-black dark:text-white mb-1">{joinedGroup}</h3>
+                    <span className="text-sm text-gray-500 mb-2">{fields.find(f => f.name === joinedGroup)?.members} members</span>
+                  </div>
+                  <div className="mb-4 max-h-56 overflow-y-auto flex flex-col gap-2">
+                    {messages.filter(m => m.group === joinedGroup).length === 0 ? (
+                      <p className="text-gray-400 text-center">No messages yet. Start the conversation!</p>
+                    ) : (
+                      messages.filter(m => m.group === joinedGroup).map(m => (
+                        <div key={m.id} className="self-start max-w-xs bg-blue-50 dark:bg-zinc-800 rounded-lg px-4 py-2 border border-blue-200 text-gray-800 dark:text-gray-100 shadow-sm">
+                          {m.text}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex gap-2 items-center mt-2">
+                    <input
+                      className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      type="text"
+                      placeholder="Type your message..."
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                    />
+                    <button
+                      className="px-4 py-2 rounded bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
+                      onClick={handleSend}
+                    >
+                      Send
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
         {section === "events" && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-blue-100">
-            <h2 className="text-2xl font-bold mb-4 text-blue-600">Events</h2>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100">
+            <h2
+              className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
+            >
+              Events
+            </h2>
             <div className="mb-6">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -375,9 +433,13 @@ export default function CommunityPage() {
           </div>
         )}
         {section === "gamification" && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-purple-200">
-            <h2 className="text-2xl font-bold mb-4 text-purple-700">Gamification & Recognition</h2>
-            <div className="mb-8 flex flex-wrap gap-6 justify-center">
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100">
+            <h2
+              className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
+            >
+              Gamification & Recognition
+            </h2>
+            <div className="flex flex-col gap-4 mb-4">
               <div className="flex flex-col items-center">
                 <span className="inline-block bg-yellow-400 text-white px-4 py-2 rounded-full font-bold mb-2 shadow">🏅 Top Contributor</span>
                 <span className="text-gray-700">Awarded for most posts & likes</span>
@@ -387,11 +449,11 @@ export default function CommunityPage() {
                 <span className="text-gray-700">Awarded for helping others</span>
               </div>
             </div>
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2 text-purple-700">Leaderboard</h3>
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2 text-blue-600 dark:text-blue-400">Leaderboard</h3>
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-purple-100">
+                  <tr className="bg-blue-100">
                     <th className="p-2">Rank</th>
                     <th className="p-2">User</th>
                     <th className="p-2">Points</th>
@@ -424,6 +486,6 @@ export default function CommunityPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

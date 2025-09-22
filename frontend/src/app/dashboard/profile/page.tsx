@@ -6,6 +6,7 @@ import api from "@/utils/axios";
 import toast from "react-hot-toast";
 import { Camera, Mail, Loader2, ShieldAlert, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import InstituteSelector from "@/components/InstituteSelector";
 
 interface UserProfile {
@@ -194,7 +195,10 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 flex">
       <Sidebar />
       <main className="flex-1 p-6 md:p-10">
-        <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Your Profile</h1>
+          <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+        </div>
 
         {emailVerificationRequired && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">

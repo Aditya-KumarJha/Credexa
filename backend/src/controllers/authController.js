@@ -5,7 +5,8 @@ const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/emailService");
 const { ethers } = require("ethers");
 const crypto = require("crypto");
-const challenges = require("../utils/challengeStore"); 
+const challenges = require("../utils/challengeStore");
+const { nanoid } = require('nanoid'); 
 
 const generateToken = (user) => {
   const payload = { id: user._id };
@@ -114,6 +115,7 @@ const verifyOtp = async (req, res) => {
 
     let user;
     let token;
+    let sessionId; // Store sessionId for response
 
     if (context === "signup") {
       const pendingUser = await PendingUser.findOne({ email });
@@ -138,10 +140,109 @@ const verifyOtp = async (req, res) => {
       if (!foundUser || !foundUser.otp || foundUser.otp.code !== otp || foundUser.otp.expiresAt < new Date()) {
         return res.status(400).json({ message: "Invalid or expired OTP" });
       }
+
+      // Create session for login
+      sessionId = nanoid(32);
+      const userAgent = req.headers['user-agent'] || '';
+      
+      // Parse device info (simplified)
+      const deviceInfo = {
+        userAgent: userAgent,
+        browser: userAgent.includes('Chrome') ? 'Chrome' : userAgent.includes('Firefox') ? 'Firefox' : 'Unknown',
+        os: userAgent.includes('Windows') ? 'Windows' : userAgent.includes('Mac') ? 'macOS' : userAgent.includes('Linux') ? 'Linux' : 'Unknown',
+        device: userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+      };
+
+      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'Unknown';
+
+      // Initialize settings structure if it doesn't exist
+      if (!foundUser.settings) {
+        foundUser.settings = {
+          preferences: {
+            theme: "system",
+            language: "en",
+            notifications: { email: true, push: true, marketing: false, security: true },
+            timezone: "UTC"
+          },
+          security: {
+            twoFactorEnabled: false,
+            sessionTimeout: 30,
+            loginNotifications: true,
+            activeSessions: []
+          },
+          privacy: {
+            profileVisibility: "public",
+            showEmail: false,
+            showCredentials: true,
+            allowProfileIndexing: true
+          }
+        };
+      }
+
+      if (!foundUser.settings.security) {
+        foundUser.settings.security = {
+          twoFactorEnabled: false,
+          sessionTimeout: 30,
+          loginNotifications: true,
+          activeSessions: []
+        };
+      }
+
+      if (!foundUser.settings.security.activeSessions) {
+        foundUser.settings.security.activeSessions = [];
+      }
+
+      // Create new session
+      const newSession = {
+        sessionId: sessionId,
+        deviceInfo: JSON.stringify(deviceInfo),
+        ipAddress: ipAddress,
+        lastActive: new Date(),
+        createdAt: new Date()
+      };
+
+      // Add session to user
+      foundUser.settings.security.activeSessions.push(newSession);
+      
+      // Clear OTP and save
       foundUser.otp = undefined;
       await foundUser.save();
+      
       user = foundUser;
       token = generateToken(user);
+
+      // Send login notification email if enabled
+      if (user.settings?.security?.loginNotifications) {
+        const loginTime = new Date().toLocaleString();
+        const loginNotificationSubject = "New Login to Your Credexa Account";
+        const loginNotificationMessage = `
+          Dear ${user.fullName?.firstName || 'User'},
+          
+          We detected a new login to your Credexa account.
+          
+          Login Details:
+          • Time: ${loginTime}
+          • Device: ${deviceInfo.device} (${deviceInfo.os})
+          • Browser: ${deviceInfo.browser}
+          • IP Address: ${ipAddress}
+          • Session ID: ${sessionId}
+          
+          If this was you, no further action is needed.
+          
+          If you don't recognize this login, please:
+          1. Change your password immediately
+          2. Contact our support team
+          3. Review your account security settings
+          
+          Stay secure,
+          The Credexa Team
+        `;
+        
+        // Send login notification asynchronously (don't wait for it)
+        sendEmail(user.email, loginNotificationMessage, loginNotificationSubject)
+          .then(() => console.log(`Login notification sent to ${user.email}`))
+          .catch((err) => console.error("Login notification failed:", err));
+      }
     } else if (context === "forgot") {
       const userToReset = await User.findOne({ email });
       if (!userToReset || userToReset.resetPasswordToken !== otp || userToReset.resetPasswordExpires < new Date()) {
@@ -155,6 +256,7 @@ const verifyOtp = async (req, res) => {
     return res.status(context === 'signup' ? 201 : 200).json({
       message: `OTP verified successfully for ${context}`,
       token,
+      ...(sessionId && { sessionId }), // Only include sessionId if it exists (for login)
       user: {
         id: user._id,
         fullName: user.fullName,

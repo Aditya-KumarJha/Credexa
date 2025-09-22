@@ -2,6 +2,7 @@
 
 import { Wallet } from "lucide-react";
 import ThemeToggleButton from "../ui/theme-toggle-button";
+import { Cover } from "@/components/ui/cover";
 
 interface HeaderProps {
   user: any;
@@ -16,9 +17,11 @@ export default function Header({ user, onConnectWallet }: HeaderProps) {
 
   return (
     <header className="flex justify-between items-center mb-10">
-      <h1 className="text-3xl font-bold">
-        Welcome back, {user?.fullName?.firstName || "User"}!
-      </h1>
+      <div>
+               <h1 className="text-3xl font-bold">
+                Welcome back, <Cover>{user?.fullName?.firstName || "User"}</Cover>
+               </h1>
+      </div>
 
       <div className="flex items-center gap-4">
         <ThemeToggleButton
