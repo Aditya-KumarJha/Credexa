@@ -175,19 +175,20 @@ export default function CommunityPage() {
   return (
     <div className="bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 min-h-screen">
       <div className="max-w-3xl mx-auto py-8 px-4">
-        <header className="bg-white dark:bg-zinc-800 p-4 flex items-center shadow-md rounded-xl mb-6 border-b border-gray-200 dark:border-zinc-700">
-          <ArrowRight
-            className="h-6 w-6 text-blue-500 dark:text-blue-400 mr-3 rotate-180 cursor-pointer"
-            onClick={() => window.history.back()}
-          />
-          <span className="text-2xl font-bold text-black dark:text-gray-100 mr-0">C</span><span className="text-2xl font-bold text-gray-900 dark:text-gray-100 ml-0">redexa</span>
-          <div className="ml-auto">
-            <ThemeToggleButton />
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105">Community</h1>
+        <div className="flex items-center justify-between mb-8 w-full max-w-6xl mx-auto">
+          <div className="flex items-center">
+            <ArrowRight
+              className="h-6 w-6 text-blue-500 dark:text-blue-400 mr-3 rotate-180 cursor-pointer"
+              onClick={() => window.history.back()}
+            />
+            <span className="text-2xl font-bold text-black dark:text-gray-100 mr-0">C</span>
+            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 ml-0">redexa</span>
           </div>
-        </header>
-        <div className="flex flex-col items-center mb-8">
-          <h1 className="text-4xl font-extrabold text-center text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105">Community</h1>
-          <nav className="mt-4 flex justify-center gap-3 border-b pb-3 bg-gray-200/50 dark:bg-gray-800/50 p-2 rounded-full w-full">
+          <ThemeToggleButton />
+        </div>
+        <nav className="bg-white dark:bg-zinc-800 px-12 py-2 flex items-center justify-center shadow-md rounded-xl mb-8 border-b border-gray-200 dark:border-zinc-700 w-full max-w-6xl mx-auto">
+          <div className="flex gap-8">
             {[ 
               { key: "discussion", label: "Discussion" },
               { key: "peer-groups", label: "Peer Groups" },
@@ -199,15 +200,15 @@ export default function CommunityPage() {
                 onClick={() => setSection(tab.key)}
                 className={`px-5 py-2 rounded-full font-semibold transition-all duration-150 ${
                   section === tab.key
-                    ? "bg-white text-blue-600 shadow"
-                    : "text-gray-700 dark:text-gray-200 hover:bg-white hover:text-black dark:hover:bg-white dark:hover:text-black"
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 shadow"
+                    : "text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:text-black dark:hover:bg-blue-800 dark:hover:text-white"
                 }`}
               >
                 {tab.label}
               </button>
             ))}
-          </nav>
-        </div>
+          </div>
+        </nav>
         {section === "discussion" && (
           <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100">
             <h2
@@ -245,9 +246,9 @@ export default function CommunityPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white dark:text-white text-sm">{post.name}</span>
+                        <span className="font-semibold text-black dark:text-white text-sm">{post.name}</span>
                       </div>
-                      <p className="mb-2 text-white dark:text-white text-sm">{post.text}</p>
+                      <p className="mb-2 text-black dark:text-white text-sm">{post.text}</p>
                       {post.image && (
                         <img src={post.image} alt="Post" className="max-w-xs mb-2 rounded-lg border" />
                       )}
@@ -269,7 +270,7 @@ export default function CommunityPage() {
                             />
                           </svg>
                         </button>
-                        <span className="ml-1 text-xs font-semibold text-white dark:text-white">{post.likes}</span>
+                        <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.likes}</span>
                         <span className="ml-3"></span>
                         <button
                           className="w-6 h-6 flex items-center justify-center rounded transition bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300 shadow-sm"
@@ -284,7 +285,7 @@ export default function CommunityPage() {
                             <rect x="2" y="4" width="12" height="8" rx="2" stroke="#222" strokeWidth="1.2" fill="white" />
                           </svg>
                         </button>
-                        <span className="ml-1 text-xs font-semibold text-white dark:text-white">{post.comments.length}</span>
+                        <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.comments.length}</span>
                       </div>
                       {activeCommentId === post.id && (
                         <div className="flex flex-col gap-2 mt-2 p-2 rounded" style={{ maxHeight: '120px', overflowY: 'auto', background: '#f6f6f6' }}>
@@ -305,7 +306,7 @@ export default function CommunityPage() {
                           </div>
                           <div className="mt-2 ml-2" style={{ maxHeight: '70px', overflowY: 'auto' }}>
                             {post.comments.length > 0 ? post.comments.map((c, idx) => (
-                              <div key={idx} className="text-black dark:text-black text-xs mb-1">{c.text}</div>
+                              <div key={idx} className="text-black dark:text-white text-xs mb-1">{c.text}</div>
                             )) : <span className="text-gray-400 text-xs">No comments yet.</span>}
                           </div>
                         </div>
