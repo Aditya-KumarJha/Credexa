@@ -207,6 +207,25 @@ export default function LeaderboardPage() {
           zIndexPopupBase: 2000,
           borderRadius: 12,
         },
+        // Fine-tune Table appearance specifically for light theme
+        components: isDark
+          ? undefined
+          : {
+              Table: {
+                headerBg: "#F8F9FA", // Very Light Gray / Off-White
+                headerColor: "#212529", // Primary Text
+                colorText: "#212529",
+                colorTextSecondary: "#6C757D",
+                borderColor: "#E9ECEF",
+                rowHoverBg: "#F1F3F5",
+                rowSelectedBg: "#E9ECEF",
+                rowSelectedHoverBg: "#E9ECEF",
+                // Light backgrounds for sorting states
+                headerSortActiveBg: "#F1F3F5",
+                headerSortHoverBg: "#F1F3F5",
+                bodySortBg: "#F8F9FA",
+              },
+            },
       }}
       getPopupContainer={() => document.body}
     >
@@ -420,7 +439,12 @@ export default function LeaderboardPage() {
                             render: (_: any, rec: LeaderItem) => (
                               <Space>
                                 <Tooltip title="View Profile">
-                                  <AntButton type="default" size="small" onClick={() => router.push(`/dashboard/profile?user=${rec.id}`)}>
+                                  <AntButton
+                                    type="link"
+                                    size="small"
+                                    style={{ color: isDark ? undefined : "#007BFF" }}
+                                    onClick={() => router.push(`/dashboard/profile?user=${rec.id}`)}
+                                  >
                                     View
                                   </AntButton>
                                 </Tooltip>
