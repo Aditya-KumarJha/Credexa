@@ -9,7 +9,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract Credexa is Ownable {
     // Struct to hold the core on-chain data for a credential
-    struct Credential {
+struct Credential {
         bytes32 credentialHash; // The unique hash of the credential data
         address issuer;         // The address of the issuing authority
         uint256 timestamp;      // When it was anchored

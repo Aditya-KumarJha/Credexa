@@ -2,6 +2,7 @@ const Credential = require('../models/credentialModel');
 const uploadFile = require('../services/storageService');
 // 1. IMPORT YOUR NEW BLOCKCHAIN SERVICE
 const { anchorNewCredential, verifyCredential } = require('../services/blockchainService');
+const crypto = require('crypto'); // <-- ADD THIS LINE
 
 
 // --- EXISTING DATABASE FUNCTIONS (UNCHANGED) ---
@@ -138,6 +139,35 @@ const verifyCredentialController = async (req, res) => {
     }
 };
 
+const generateCredentialHashController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Find the credential ensuring it belongs to the logged-in user
+        const cred = await Credential.findOne({ _id: id, user: req.user._id });
+
+        if (!cred) {
+            return res.status(404).json({ message: 'Credential not found' });
+        }
+
+        // Create a deterministic string from unique credential data
+        const dataToHash = cred._id.toString() + cred.issuer + cred.issueDate.toISOString();
+
+        // Create a SHA-256 hash
+        const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
+
+        // Prepend '0x' to make it a valid bytes32 hex string for the blockchain
+        const finalHash = '0x' + hash;
+
+        // Optionally, you could save this hash to your database here
+        // cred.blockchainHash = finalHash;
+        // await cred.save();
+
+        res.status(200).json({ hash: finalHash });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to generate credential hash.' });
+    }
+};
 
 // --- 2. UPDATE MODULE EXPORTS ---
 
@@ -146,6 +176,7 @@ module.exports = {
   createCredential,
   updateCredential,
   deleteCredential,
-  anchorCredentialController, // <-- New function added
-  verifyCredentialController,   // <-- New function added
+  anchorCredentialController, 
+  verifyCredentialController, 
+  generateCredentialHashController,  
 };

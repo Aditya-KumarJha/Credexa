@@ -5,9 +5,9 @@ const {
   listCredentials,
   updateCredential,
   deleteCredential,
-  // 1. IMPORT YOUR NEW CONTROLLER FUNCTIONS
   anchorCredentialController,
   verifyCredentialController,
+  generateCredentialHashController,
 } = require('../controllers/credentialController');
 
 const router = express.Router();
@@ -21,11 +21,13 @@ router.get('/verify/:hash', verifyCredentialController);
 router.use(protect);
 
 // --- EXISTING DATABASE ROUTES (UNCHANGED) ---
-router.get('/', listCredentials);
-router.post('/', createCredential);
+router.get('/', protect, listCredentials);
+router.post('/',protect,  createCredential);
 router.put('/:id', updateCredential);
 router.delete('/:id', deleteCredential);
 
 router.post('/anchor', anchorCredentialController);
+
+router.post('/:id/generate-hash', generateCredentialHashController);
 
 module.exports = router;
