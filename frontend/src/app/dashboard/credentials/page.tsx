@@ -28,6 +28,7 @@ import {
   Radio,
   ConfigProvider,
   theme as antdTheme,
+  App,
 } from "antd";
 import {
   Award,
@@ -121,6 +122,42 @@ export default function CredentialsPage() {
       message.error("Failed to load credentials");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Certificate extraction function
+  const extractCertificateInfo = async (file: File) => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      message.error("Please login first");
+      return null;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('certificateFile', file);
+      
+      // Show loading message
+      console.log('Extracting certificate information...');
+      
+      const response = await api.post('/api/credentials/extract', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type, let axios set it with boundary for multipart
+        },
+      });
+
+      console.log('Certificate information extracted successfully!');
+      
+      if (response.data && response.data.success && response.data.extracted) {
+        return response.data.extracted;
+      } else {
+        throw new Error(response.data?.message || 'Failed to extract information');
+      }
+    } catch (error: any) {
+      console.error('Extraction error:', error);
+      console.error('Failed to extract certificate information:', error.response?.data?.message || error.message);
+      return null;
     }
   };
 
@@ -607,8 +644,20 @@ export default function CredentialsPage() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Upload the certificate file from {selectedPlatform || "your platform"}. We'll parse details automatically.</p>
               <Upload
-                beforeUpload={(f) => {
+                beforeUpload={async (f) => {
                   setFile(f);
+                  
+                  // Extract certificate information
+                  const extracted = await extractCertificateInfo(f);
+                  if (extracted) {
+                    // Auto-fill form fields with extracted data
+                    form.setFieldsValue({
+                      title: extracted.title || '',
+                      issuer: extracted.issuer || '',
+                      issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                    });
+                  }
+                  
                   return false;
                 }}
                 maxCount={1}
@@ -710,8 +759,20 @@ export default function CredentialsPage() {
               {addMethod === "upload" && (
                 <Form.Item label="Certificate File">
                   <Upload
-                    beforeUpload={(f) => {
+                    beforeUpload={async (f) => {
                       setFile(f);
+                      
+                      // Extract certificate information
+                      const extracted = await extractCertificateInfo(f);
+                      if (extracted) {
+                        // Auto-fill form fields with extracted data
+                        form.setFieldsValue({
+                          title: extracted.title || '',
+                          issuer: extracted.issuer || '',
+                          issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                        });
+                      }
+                      
                       return false;
                     }}
                     maxCount={1}

@@ -3,6 +3,7 @@ const uploadFile = require('../services/storageService');
 // 1. IMPORT YOUR NEW BLOCKCHAIN SERVICE
 const { anchorNewCredential, verifyCredential } = require('../services/blockchainService');
 const crypto = require('crypto'); // <-- ADD THIS LINE
+const { extractCredentialInfo } = require('../services/extractionService');
 
 
 // --- EXISTING DATABASE FUNCTIONS (UNCHANGED) ---
@@ -169,6 +170,40 @@ const generateCredentialHashController = async (req, res) => {
     }
 };
 
+// Certificate Information Extraction Function
+const extractCertificateInfo = async (req, res) => {
+  try {
+    // Check if file is uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No certificate file uploaded'
+      });
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type. Please upload an image file (JPEG, PNG, GIF, BMP, WebP)'
+      });
+    }
+
+    // Extract credential information using the extraction service
+    const extractionResult = await extractCredentialInfo(req.file.buffer, req.file.originalname);
+
+    res.json(extractionResult);
+  } catch (error) {
+    console.error('Extraction Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to extract certificate information',
+      error: error.message
+    });
+  }
+};
+
 // --- 2. UPDATE MODULE EXPORTS ---
 
 module.exports = {
@@ -178,5 +213,6 @@ module.exports = {
   deleteCredential,
   anchorCredentialController, 
   verifyCredentialController, 
-  generateCredentialHashController,  
+  generateCredentialHashController,
+  extractCertificateInfo,
 };
