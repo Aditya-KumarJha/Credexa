@@ -131,3 +131,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* AntD dark-mode visibility tweaks: keep tab/pagination text visible on hover/active */
+.dark .ant-tabs .ant-tabs-tab-btn,
+.dark .ant-pagination .ant-pagination-item a,
+.dark .ant-pagination .ant-pagination-item-ellipsis {
+  color: var(--foreground);
+}
+.dark .ant-tabs .ant-tabs-tab:hover .ant-tabs-tab-btn,
+.dark .ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.dark .ant-pagination .ant-pagination-item-active a,
+.dark .ant-pagination .ant-pagination-item:hover a {
+  color: var(--foreground);
+}

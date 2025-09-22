@@ -171,8 +171,12 @@ export default function LeaderboardPage() {
         const points = creds.reduce((sum: number, c: any) => sum + (Number(c.creditPoints) || 10), 0);
         const skillCounts: Record<string, number> = {};
         creds.forEach((c: any) => {
-          const arr = Array.isArray(c.skills) ? c.skills : String(c.skills || "").split(",").map((s) => s.trim());
-          arr.filter(Boolean).forEach((s) => {
+          const arr: string[] = Array.isArray(c.skills)
+            ? (c.skills as string[])
+            : String(c.skills || "")
+                .split(",")
+                .map((s: string) => s.trim());
+          arr.filter(Boolean).forEach((s: string) => {
             skillCounts[s] = (skillCounts[s] || 0) + 1;
           });
         });
@@ -207,9 +211,20 @@ export default function LeaderboardPage() {
           zIndexPopupBase: 2000,
           borderRadius: 12,
         },
-        // Fine-tune Table appearance specifically for light theme
+        // Fine-tune components
         components: isDark
-          ? undefined
+          ? {
+              Tabs: {
+                itemSelectedColor: "var(--color-foreground)",
+                itemHoverColor: "var(--color-foreground)",
+                inkBarColor: "var(--color-primary)",
+              },
+              Pagination: {
+                itemActiveBg: "var(--color-card)",
+                colorText: "var(--color-foreground)",
+                colorTextDisabled: "var(--color-muted-foreground)",
+              },
+            }
           : {
               Table: {
                 headerBg: "#F8F9FA", // Very Light Gray / Off-White
