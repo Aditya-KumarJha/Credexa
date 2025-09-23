@@ -403,7 +403,7 @@ export default function SettingsPage() {
           <div className="max-w-4xl">
             <div className="mb-8">
               <div className="flex items-center justify-between">
-                <Title level={2} className="flex items-center gap-2 mb-2 !mb-0">
+                <Title level={2} className="flex items-center gap-2 m-0">
                   <Settings className="w-6 h-6" />
                   Settings
                 </Title>

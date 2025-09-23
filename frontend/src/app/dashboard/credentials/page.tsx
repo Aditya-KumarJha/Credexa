@@ -28,6 +28,7 @@ import {
   Radio,
   ConfigProvider,
   theme as antdTheme,
+  App,
 } from "antd";
 import {
   Award,
@@ -150,6 +151,42 @@ export default function CredentialsPage() {
       message.error("Failed to load credentials");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Certificate extraction function
+  const extractCertificateInfo = async (file: File) => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      message.error("Please login first");
+      return null;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('certificateFile', file);
+      
+      // Show loading message
+      console.log('Extracting certificate information...');
+      
+      const response = await api.post('/api/credentials/extract', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type, let axios set it with boundary for multipart
+        },
+      });
+
+      console.log('Certificate information extracted successfully!');
+      
+      if (response.data && response.data.success && response.data.extracted) {
+        return response.data.extracted;
+      } else {
+        throw new Error(response.data?.message || 'Failed to extract information');
+      }
+    } catch (error: any) {
+      console.error('Extraction error:', error);
+      console.error('Failed to extract certificate information:', error.response?.data?.message || error.message);
+      return null;
     }
   };
 
@@ -334,9 +371,43 @@ export default function CredentialsPage() {
     }
   };
 
-  const handleAnchor = () => {
-    // Placeholder for anchoring logic (e.g., computing hash and sending to chain/service)
-    message.info("Anchor action coming soon");
+  const handleAnchor = async () => {
+    if (!editing?._id) {
+      message.error("Please save the credential first");
+      return;
+    }
+
+    const token = localStorage.getItem("authToken");
+    if (!token) return router.replace("/login");
+
+    try {
+      // Step 1: Generate hash for the credential
+      const hashRes = await api.post(`/api/credentials/${editing._id}/generate-hash`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { hash } = hashRes.data;
+
+      // Step 2: Anchor the hash to blockchain
+      const anchorRes = await api.post('/api/credentials/anchor', { hash }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Step 3: Update the credential with transaction hash
+      if (anchorRes.data.transactionHash) {
+        const credRes = await api.put(`/api/credentials/${editing._id}`, {
+          transactionHash: anchorRes.data.transactionHash,
+          status: 'verified'
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setItems((prev) => prev.map((x) => (x._id === credRes.data._id ? credRes.data : x)));
+        message.success("Credential anchored successfully!");
+        setIsModalOpen(false);
+      }
+    } catch (err) {
+      console.error('Anchor Error:', err);
+      message.error("Failed to anchor credential");
+    }
   };
 
   const statusTag = (status: CredentialStatus) => {
@@ -665,8 +736,20 @@ export default function CredentialsPage() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Upload the certificate file from {selectedPlatform || "your platform"}. We'll parse details automatically.</p>
               <Upload
-                beforeUpload={(f) => {
+                beforeUpload={async (f) => {
                   setFile(f);
+                  
+                  // Extract certificate information
+                  const extracted = await extractCertificateInfo(f);
+                  if (extracted) {
+                    // Auto-fill form fields with extracted data
+                    form.setFieldsValue({
+                      title: extracted.title || '',
+                      issuer: extracted.issuer || '',
+                      issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                    });
+                  }
+                  
                   return false;
                 }}
                 maxCount={1}
@@ -768,8 +851,20 @@ export default function CredentialsPage() {
               {addMethod === "upload" && (
                 <Form.Item label="Certificate File">
                   <Upload
-                    beforeUpload={(f) => {
+                    beforeUpload={async (f) => {
                       setFile(f);
+                      
+                      // Extract certificate information
+                      const extracted = await extractCertificateInfo(f);
+                      if (extracted) {
+                        // Auto-fill form fields with extracted data
+                        form.setFieldsValue({
+                          title: extracted.title || '',
+                          issuer: extracted.issuer || '',
+                          issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                        });
+                      }
+                      
                       return false;
                     }}
                     maxCount={1}

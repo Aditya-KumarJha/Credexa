@@ -23,6 +23,7 @@ export default function Dashboard() {
       return;
     }
 
+    // Fetch user data
     api
       .get("/api/users/me", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => setUser(res.data))
@@ -31,7 +32,56 @@ export default function Dashboard() {
         router.replace("/login?error=session_expired");
       })
       .finally(() => setLoading(false));
+
+    // Setup MetaMask event listeners
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length === 0) {
+        // MetaMask is locked or the user has not connected any accounts
+        console.log('Please connect to MetaMask.');
+      }
+    };
+
+    const handleChainChanged = () => {
+      // Handle chain changes by reloading the page
+      window.location.reload();
+    };
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      // Check initial connection state
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then(handleAccountsChanged)
+        .catch((err: any) => {
+          console.error(err);
+        });
+
+      // Cleanup listeners
+      return () => {
+        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum?.removeListener('chainChanged', handleChainChanged);
+      };
+    }
   }, [router]);
+
+  const checkMetaMaskStatus = async () => {
+    if (!window.ethereum?.isMetaMask) {
+      throw new Error("MetaMask is not installed");
+    }
+
+    // Check if MetaMask is locked
+    try {
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts' // This doesn't prompt, just checks current state
+      });
+      if (!accounts || accounts.length === 0) {
+        throw new Error("MetaMask is locked or not connected");
+      }
+    } catch (error) {
+      throw new Error("Failed to check MetaMask status");
+    }
+  };
 
   const handleConnectWallet = async () => {
     const token = localStorage.getItem("authToken");
@@ -41,19 +91,44 @@ export default function Dashboard() {
     }
 
     if (!window.ethereum) {
-      toast.error("Please install a Web3 wallet like MetaMask.");
+      toast.error("Please install MetaMask to connect your wallet.");
+      window.open("https://metamask.io/download/", "_blank");
       return;
     }
 
-    const toastId = toast.loading("Connecting wallet...");
+    const toastId = toast.loading("Checking wallet status...");
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
+      // Check MetaMask status first
+      try {
+        await checkMetaMaskStatus();
+      } catch (error: any) {
+        if (error.message.includes("not installed")) {
+          toast.error("Please install MetaMask to continue", { id: toastId });
+          window.open("https://metamask.io/download/", "_blank");
+          return;
+        } else if (error.message.includes("locked")) {
+          toast.error("Please unlock your MetaMask wallet", { id: toastId });
+          return;
+        }
+      }
 
+      toast.loading("Connecting wallet...", { id: toastId });
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        toast.error("Please unlock MetaMask and connect to this site.", { id: toastId });
+        return;
+      }
+
+      const address = accounts[0];
       toast.loading("Requesting challenge...", { id: toastId });
 
+      // Get challenge message
       const challengeResponse = await api.post(
         "/api/users/me/generate-link-challenge",
         { address },
@@ -63,21 +138,34 @@ export default function Dashboard() {
       const { message } = challengeResponse.data;
 
       toast.loading("Please sign the message in your wallet...", { id: toastId });
-      const signature = await signer.signMessage(message);
 
-      toast.loading("Verifying and linking wallet...", { id: toastId });
+      // Request signature using eth_sign
+      try {
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [message, address]
+        });
 
-      const linkResponse = await api.post(
-        "/api/users/me/link-wallet",
-        { address, signature },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        toast.loading("Verifying and linking wallet...", { id: toastId });
 
-      setUser(linkResponse.data);
-      toast.success("Wallet linked successfully!", { id: toastId });
+        const linkResponse = await api.post(
+          "/api/users/me/link-wallet",
+          { address, signature },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setUser(linkResponse.data);
+        toast.success("Wallet linked successfully!", { id: toastId });
+      } catch (signError: any) {
+        if (signError.code === 4001) {
+          toast.error("You rejected the signature request. Please try again.", { id: toastId });
+        } else {
+          toast.error("Failed to sign message: " + (signError.message || "Unknown error"), { id: toastId });
+        }
+      }
     } catch (error: any) {
       console.error("Wallet linking failed:", error);
-      const errorMessage =
+      const errorMessage = 
         error.response?.data?.message || error.message || "An unknown error occurred.";
       toast.error(`Error: ${errorMessage}`, { id: toastId });
     }

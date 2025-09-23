@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect, ChangeEvent } from "react";
 import api from "@/utils/axios";
+import ThemeToggleButton from "@/components/ui/theme-toggle-button";
+import { ArrowRight } from "lucide-react";
 
 // Define the shape of a user for type safety.
 interface User {
@@ -174,26 +176,38 @@ export default function CommunityPage() {
     <div className="bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 min-h-screen">
       <div className="max-w-3xl mx-auto py-8 px-4">
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105">Community</h1>
-        {/* Removed extra navbar for Credexa and Community */}
-        <nav className="mb-8 flex justify-center gap-3 border-b pb-3 bg-gray-200/50 dark:bg-gray-800/50 p-2 rounded-full">
-          {[ 
-            { key: "discussion", label: "Discussion" },
-            { key: "peer-groups", label: "Peer Groups" },
-            { key: "events", label: "Events" },
-            { key: "gamification", label: "Gamification" },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setSection(tab.key)}
-              className={`px-5 py-2 rounded-full font-semibold transition-all duration-150 ${
-                section === tab.key
-                  ? "bg-white text-blue-600 shadow"
-                  : "text-gray-700 dark:text-gray-200 hover:bg-white hover:text-black dark:hover:bg-white dark:hover:text-black"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-8 w-full max-w-6xl mx-auto">
+          <div className="flex items-center">
+            <ArrowRight
+              className="h-6 w-6 text-blue-500 dark:text-blue-400 mr-3 rotate-180 cursor-pointer"
+              onClick={() => window.history.back()}
+            />
+            <span className="text-2xl font-bold text-black dark:text-gray-100 mr-0">C</span>
+            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 ml-0">redexa</span>
+          </div>
+          <ThemeToggleButton />
+        </div>
+        <nav className="bg-white dark:bg-zinc-800 px-12 py-2 flex items-center justify-center shadow-md rounded-xl mb-8 border-b border-gray-200 dark:border-zinc-700 w-full max-w-6xl mx-auto">
+          <div className="flex gap-8">
+            {[ 
+              { key: "discussion", label: "Discussion" },
+              { key: "peer-groups", label: "Peer Groups" },
+              { key: "events", label: "Events" },
+              { key: "gamification", label: "Gamification" },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setSection(tab.key)}
+                className={`px-5 py-2 rounded-full font-semibold transition-all duration-150 ${
+                  section === tab.key
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 shadow"
+                    : "text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:text-black dark:hover:bg-blue-800 dark:hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </nav>
         {section === "discussion" && (
           <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100">
@@ -232,9 +246,9 @@ export default function CommunityPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-blue-700 text-sm">{post.name}</span>
+                        <span className="font-semibold text-black dark:text-white text-sm">{post.name}</span>
                       </div>
-                      <p className="mb-2 text-gray-800 text-sm">{post.text}</p>
+                      <p className="mb-2 text-black dark:text-white text-sm">{post.text}</p>
                       {post.image && (
                         <img src={post.image} alt="Post" className="max-w-xs mb-2 rounded-lg border" />
                       )}
@@ -256,7 +270,7 @@ export default function CommunityPage() {
                             />
                           </svg>
                         </button>
-                        <span className="ml-1 text-xs font-semibold" style={{ color: post.liked ? '#2563eb' : '#222' }}>{post.likes}</span>
+                        <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.likes}</span>
                         <span className="ml-3"></span>
                         <button
                           className="w-6 h-6 flex items-center justify-center rounded transition bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300 shadow-sm"
@@ -271,14 +285,14 @@ export default function CommunityPage() {
                             <rect x="2" y="4" width="12" height="8" rx="2" stroke="#222" strokeWidth="1.2" fill="white" />
                           </svg>
                         </button>
-                        <span className="ml-1 text-xs font-semibold" style={{ color: '#222' }}>{post.comments.length}</span>
+                        <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.comments.length}</span>
                       </div>
                       {activeCommentId === post.id && (
                         <div className="flex flex-col gap-2 mt-2 p-2 rounded" style={{ maxHeight: '120px', overflowY: 'auto', background: '#f6f6f6' }}>
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
-                              className="border rounded px-2 py-1 text-xs flex-1"
+                              className="border border-blue-900 dark:border-zinc-700 rounded px-2 py-1 text-xs flex-1 text-black dark:text-black"
                               placeholder="Add a comment..."
                               value={commentText}
                               onChange={e => setCommentText(e.target.value)}
@@ -292,7 +306,7 @@ export default function CommunityPage() {
                           </div>
                           <div className="mt-2 ml-2" style={{ maxHeight: '70px', overflowY: 'auto' }}>
                             {post.comments.length > 0 ? post.comments.map((c, idx) => (
-                              <div key={idx} className="text-gray-700 text-xs mb-1">{c.text}</div>
+                              <div key={idx} className="text-black dark:text-white text-xs mb-1">{c.text}</div>
                             )) : <span className="text-gray-400 text-xs">No comments yet.</span>}
                           </div>
                         </div>
@@ -329,9 +343,9 @@ export default function CommunityPage() {
                 {fields.filter(field => field.name.toLowerCase().includes(input.toLowerCase())).map((field, idx) => (
                   <div key={field.name} className="flex flex-col items-center justify-center w-full h-56 rounded-xl border-2 font-semibold transition-colors shadow-lg bg-white hover:bg-blue-50 border-gray-200 p-4">
                     <img src={field.img} alt={field.name} className="w-16 h-16 mb-2 object-contain" />
-                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{field.name}</span>
+                    <span className="text-lg font-bold text-black dark:text-black mb-2">{field.name}</span>
                     <button
-                      className="px-6 py-2 rounded-full bg-gray-300 text-gray-700 font-semibold shadow hover:bg-white hover:text-black transition text-base mt-2 cursor-pointer"
+                      className="px-6 py-2 rounded-full bg-gray-300 text-black dark:text-black font-semibold shadow hover:bg-white hover:text-black transition text-base mt-2 cursor-pointer"
                       onClick={() => {
                         setJoinedGroup(field.name);
                         setFields(fields.map(f => f.name === field.name ? { ...f, members: f.members + 1 } : f));
@@ -349,10 +363,10 @@ export default function CommunityPage() {
                 {/* Sidebar with remaining groups */}
                 <div className="hidden md:flex flex-col w-48 bg-gray-50 dark:bg-zinc-900 rounded-xl shadow p-4 border border-blue-100 mr-4">
                   <h4
-                    className="text-md font-bold mb-3 text-blue-600 dark:text-blue-300 cursor-pointer"
+                    className="flex items-center text-md font-bold mb-3 text-blue-600 dark:text-blue-300 cursor-pointer"
                     onClick={() => setJoinedGroup(null)}
                   >
-                    Peer Groups
+                    <ArrowRight className="h-5 w-5 mr-2 rotate-180" /> Peer Groups
                   </h4>
                   {fields.filter(f => f.name !== joinedGroup).map(f => (
                     <div key={f.name} className="flex items-center justify-between mb-2">
@@ -372,12 +386,12 @@ export default function CommunityPage() {
                 {/* Main group chat area */}
                 <div className="flex-1 bg-white rounded-xl shadow p-4 border border-blue-100">
                   <div className="flex items-center gap-2 mb-2 flex-col items-start">
-                    <h3 className="text-lg font-semibold text-black dark:text-white mb-1">{joinedGroup}</h3>
-                    <span className="text-sm text-gray-500 mb-2">{fields.find(f => f.name === joinedGroup)?.members} members</span>
+                      <h3 className="text-lg font-semibold text-black dark:text-black mb-1">{joinedGroup}</h3>
+                      <span className="text-sm font-semibold text-black dark:text-black mb-2">{fields.find(f => f.name === joinedGroup)?.members} members</span>
                   </div>
                   <div className="mb-4 max-h-56 overflow-y-auto flex flex-col gap-2">
-                    {messages.filter(m => m.group === joinedGroup).length === 0 ? (
-                      <p className="text-gray-400 text-center">No messages yet. Start the conversation!</p>
+                      {messages.filter(m => m.group === joinedGroup).length === 0 ? (
+                        <p className="text-black dark:text-black text-center font-semibold">No messages yet. Start texting!</p>
                     ) : (
                       messages.filter(m => m.group === joinedGroup).map(m => (
                         <div key={m.id} className="self-start max-w-xs bg-blue-50 dark:bg-zinc-800 rounded-lg px-4 py-2 border border-blue-200 text-gray-800 dark:text-gray-100 shadow-sm">
@@ -388,9 +402,9 @@ export default function CommunityPage() {
                   </div>
                   <div className="flex gap-2 items-center mt-2">
                     <input
-                      className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-black dark:text-black bg-white border-blue-100 dark:border-zinc-700"
                       type="text"
-                      placeholder="Type your message..."
+                      placeholder="Enter your message..."
                       value={input}
                       onChange={e => setInput(e.target.value)}
                     />
@@ -417,11 +431,11 @@ export default function CommunityPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-blue-100">
-                    <th className="p-2">Date</th>
-                    <th className="p-2">Event</th>
-                    <th className="p-2">Type</th>
-                    <th className="p-2">RSVP</th>
-                    <th className="p-2">Reminder</th>
+                    <th className="p-2 text-black dark:text-black">Date</th>
+                    <th className="p-2 text-black dark:text-black">Event</th>
+                    <th className="p-2 text-black dark:text-black">Type</th>
+                    <th className="p-2 text-black dark:text-black">RSVP</th>
+                    <th className="p-2 text-black dark:text-black">Reminder</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -454,10 +468,10 @@ export default function CommunityPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-blue-100">
-                    <th className="p-2">Rank</th>
-                    <th className="p-2">User</th>
-                    <th className="p-2">Points</th>
-                    <th className="p-2">Badge</th>
+                    <th className="p-2 text-black dark:text-black">Rank</th>
+                    <th className="p-2 text-black dark:text-black">User</th>
+                    <th className="p-2 text-black dark:text-black">Points</th>
+                    <th className="p-2 text-black dark:text-black">Badge</th>
                   </tr>
                 </thead>
                 <tbody>

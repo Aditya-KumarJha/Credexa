@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const { protect } = require('../middlewares/authMiddleware');
 const {
   createCredential,
@@ -8,7 +9,24 @@ const {
   anchorCredentialController,
   verifyCredentialController,
   generateCredentialHashController,
+  extractCertificateInfo,
 } = require('../controllers/credentialController');
+
+// Configure multer for file uploads (in memory storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -20,9 +38,12 @@ router.get('/verify/:hash', verifyCredentialController);
 // All routes below this line require user authentication
 router.use(protect);
 
+// Certificate extraction route
+router.post('/extract', upload.single('certificateFile'), extractCertificateInfo);
+
 // --- EXISTING DATABASE ROUTES (UNCHANGED) ---
-router.get('/', protect, listCredentials);
-router.post('/',protect,  createCredential);
+router.get('/', listCredentials);
+router.post('/', createCredential);
 router.put('/:id', updateCredential);
 router.delete('/:id', deleteCredential);
 
