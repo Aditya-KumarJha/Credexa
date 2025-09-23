@@ -138,18 +138,30 @@ const deleteCredential = async (req, res) => {
 // --- NEW BLOCKCHAIN FUNCTIONS ---
 
 const anchorCredentialController = async (req, res) => {
-    try {
-        const { hash } = req.body;
-        if (!hash || !hash.startsWith('0x') || hash.length !== 66) {
-            return res.status(400).json({ error: 'A valid 32-byte hash (0x...) is required.' });
-        }
-
-        const receipt = await anchorNewCredential(hash);
-        res.status(201).json({ message: 'Credential anchored successfully!', transactionHash: receipt.hash });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to anchor credential.', details: error.message });
+  try {
+    const { hash, credentialId } = req.body;
+    if (!hash || !hash.startsWith('0x') || hash.length !== 66) {
+      return res.status(400).json({ error: 'A valid 32-byte hash (0x...) is required.' });
     }
+    if (!credentialId) {
+      return res.status(400).json({ error: 'credentialId is required.' });
+    }
+
+    // Anchor on blockchain
+    const receipt = await anchorNewCredential(hash);
+    // Save transactionHash to credential
+    const cred = await Credential.findOne({ _id: credentialId, user: req.user._id });
+    if (!cred) {
+      return res.status(404).json({ error: 'Credential not found' });
+    }
+    cred.transactionHash = receipt.hash;
+    await cred.save();
+
+    res.status(201).json({ message: 'Credential anchored successfully!', transactionHash: receipt.hash });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to anchor credential.', details: error.message });
+  }
 };
 
 const verifyCredentialController = async (req, res) => {
