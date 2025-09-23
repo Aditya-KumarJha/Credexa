@@ -188,7 +188,7 @@ export default function CommunityPage() {
           <span className="text-xl font-bold text-black dark:text-gray-100">Credexa</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 ml-2">Community</span>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 ml-6">Community</span>
           <ThemeToggleButton />
         </div>
       </div>
