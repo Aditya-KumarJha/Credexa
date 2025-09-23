@@ -4,7 +4,7 @@ export type AddMethod = "sync" | "upload" | "manual";
 export type SortKey = "newest" | "oldest" | "az" | "za" | "pointsDesc" | "pointsAsc";
 
 export interface Credential {
-  credentialHash: any;
+  credentialHash?: string;
   _id?: string;
   title: string;
   issuer: string;

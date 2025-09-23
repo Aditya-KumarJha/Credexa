@@ -155,7 +155,8 @@ const anchorCredentialController = async (req, res) => {
     }
 
     // 2. Generate the unique, deterministic hash on the backend
-    const dataToHash = cred._id.toString() + cred.issuer + cred.issueDate.toISOString();
+    const issueDateISO = new Date(cred.issueDate).toISOString();
+    const dataToHash = cred._id.toString() + cred.issuer + issueDateISO;
     const credentialHash = '0x' + crypto.createHash('sha256').update(dataToHash).digest('hex');
 
     // 3. Call the blockchain service to anchor the generated hash
@@ -208,7 +209,8 @@ const generateCredentialHashController = async (req, res) => {
         }
 
         // Create a deterministic string from unique credential data
-        const dataToHash = cred._id.toString() + cred.issuer + cred.issueDate.toISOString();
+        const issueDateISO = new Date(cred.issueDate).toISOString();
+        const dataToHash = cred._id.toString() + cred.issuer + issueDateISO;
 
         // Create a SHA-256 hash
         const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
@@ -230,9 +232,18 @@ const generateCredentialHashController = async (req, res) => {
 const getCredentialDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        
+        console.log('Requested credential ID:', id);
+        console.log('Authenticated user ID:', req.user._id);
+
+        // Check if req.user is set
+        if (!req.user || !req.user._id) {
+            console.log('User not authenticated or req.user missing');
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
         // Find the credential ensuring it belongs to the logged-in user
         const cred = await Credential.findOne({ _id: id, user: req.user._id });
+        console.log('Credential found:', cred);
 
         if (!cred) {
             return res.status(404).json({ message: 'Credential not found' });
