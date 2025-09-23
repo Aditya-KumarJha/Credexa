@@ -175,7 +175,6 @@ export default function CommunityPage() {
       ...messages,
       { id: Date.now(), text: input, group: joinedGroup },
     ]);
-    setInput("");
   };
   return (
     <div className="bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 min-h-screen">
@@ -218,9 +217,8 @@ export default function CommunityPage() {
           ))}
         </nav>
         {/* Only the selected tab's content will appear below the nav */}
-      </div>
         {section === "discussion" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 max-w-2xl mx-auto">
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -329,7 +327,7 @@ export default function CommunityPage() {
           </div>
         )}
         {section === "peer-groups" && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 max-w-2xl mx-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -431,7 +429,7 @@ export default function CommunityPage() {
           </div>
         )}
         {section === "events" && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 max-w-2xl mx-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -457,7 +455,7 @@ export default function CommunityPage() {
           </div>
         )}
         {section === "gamification" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 max-w-2xl mx-auto">
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -510,5 +508,6 @@ export default function CommunityPage() {
           </div>
         )}
       </div>
+    </div>
   );
 }
