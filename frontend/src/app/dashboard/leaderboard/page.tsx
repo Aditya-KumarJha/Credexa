@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
@@ -51,13 +51,18 @@ export default function LeaderboardPage() {
   useEffect(() => {
     setMounted(true);
     const token = localStorage.getItem("authToken");
-    if (!token) router.replace("/login");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
   }, [router]);
 
   const [query, setQuery] = useState("");
   const [timeframe, setTimeframe] = useState<string>("month");
   const [category, setCategory] = useState<string>("all");
   const [course, setCourse] = useState<string>("all");
+  const [sortField, setSortField] = useState<string>("points");
+  const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("descend");
   const [courses, setCourses] = useState<{ label: string; value: string }[]>([
     { label: "All Skills", value: "all" },
   ]);
@@ -67,37 +72,15 @@ export default function LeaderboardPage() {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
-  // Mock leaderboard data (frontend only)
-  const [data, setData] = useState<LeaderItem[]>([...Array(20)].map((_, i) => ({
-    id: String(i + 1),
-    rank: i + 1,
-    name: [
-      "Aarav Sharma","Isha Verma","Rohan Gupta","Ananya Singh","Vihaan Mehta",
-      "Advika Iyer","Kabir Nair","Mira Kapoor","Arjun Reddy","Sara Khan",
-      "Riya Patel","Dev Malhotra","Anvi Joshi","Ishaan Bose","Diya Menon",
-      "Arnav Jain","Zara Ali","Vivaan Desai","Meera Rao","Ayush Chandra",
-    ][i],
-    institute: [
-      "IIT Delhi","IIT Bombay","NIT Trichy","IIM Ahmedabad","IISc Bangalore",
-      "BITS Pilani","Delhi University","Mumbai University","IIT Madras","IIT Kanpur",
-      "IIT Roorkee","IIT Kharagpur","JNU","IIT Hyderabad","AIIMS Delhi",
-      "IIT BHU","IIT Indore","IIT Guwahati","IIM Bangalore","NIT Suratkal",
-    ][i],
-    avatar: `https://avatar.vercel.sh/leader${i + 1}.png`,
-    points: Math.floor(9000 - i * 250 + (i % 3) * 57),
-    credentials: Math.floor(20 - i * 0.6),
-    skills: Math.floor(30 - i * 0.7),
-    course: [
-      "Cloud Computing","Data Science","Cybersecurity","Web Development","AI/ML",
-      "Blockchain","DevOps","UI/UX","Mobile Apps","Data Engineering",
-      "AR/VR","Product Management","Testing","Game Dev","IOT",
-      "Big Data","Networks","Databases","Analytics","Maths",
-    ][i],
-  })));
+  // Leaderboard data from backend
+  const [data, setData] = useState<LeaderItem[]>([]);
 
-  // Attempt to fetch leaderboard and skill categories from backend (graceful fallback to mock)
+  // Attempt to fetch leaderboard and skill categories from backend
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchLeaderboard = async () => {
+      if (!isMounted) return;
       setLoadingLeaderboard(true);
       const token = localStorage.getItem("authToken");
       try {
@@ -105,7 +88,7 @@ export default function LeaderboardPage() {
           params: { q: query || undefined, timeframe, category, course: course === "all" ? undefined : course },
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (Array.isArray(res.data)) {
+        if (Array.isArray(res.data) && isMounted) {
           console.log('Leaderboard data received:', res.data);
           console.log('First item structure:', res.data[0]);
           // Clean the data to ensure it matches our expected structure
@@ -122,56 +105,120 @@ export default function LeaderboardPage() {
           }));
           console.log('Cleaned data:', cleanedData[0]);
           setData(cleanedData as LeaderItem[]);
+        } else if (isMounted) {
+          setData([]);
         }
       } catch (e) {
-        console.log("Using mock leaderboard data:", e);
-        // Silently keep mock data
+        console.error("Failed to fetch leaderboard data:", e);
+        if (isMounted) {
+          setData([]);
+        }
       } finally {
-        setLoadingLeaderboard(false);
+        if (isMounted) {
+          setLoadingLeaderboard(false);
+        }
       }
     };
+    
     fetchLeaderboard();
+    
+    return () => {
+      isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, timeframe, category, course]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchSkillCategories = async () => {
+      if (!isMounted) return;
       const token = localStorage.getItem("authToken");
       try {
         const res = await api.get("/api/skills", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (res.data?.credentialTypes) {
-          setCredentialTypes(res.data.credentialTypes);
-        }
-        if (res.data?.allSkills) {
-          setCourses([
-            { label: "All Skills", value: "all" },
-            ...res.data.allSkills.map((skill: string) => ({
-              label: skill,
-              value: skill
-            }))
-          ]);
+        if (isMounted) {
+          if (res.data?.credentialTypes) {
+            setCredentialTypes(res.data.credentialTypes);
+          }
+          if (res.data?.allSkills) {
+            setCourses([
+              { label: "All Skills", value: "all" },
+              ...res.data.allSkills.map((skill: string) => ({
+                label: skill,
+                value: skill
+              }))
+            ]);
+          }
         }
       } catch (e) {
         console.log("Using default skill categories:", e);
         // Keep default categories and courses
       }
     };
+    
     fetchSkillCategories();
+    
+    return () => {
+      isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return data
-      .filter((it) =>
-        (!q || it.name.toLowerCase().includes(q) || it.institute.toLowerCase().includes(q)) &&
-        (course === "all" || (it.course || "").toLowerCase() === course.toLowerCase())
-      )
-      .map((it) => ({ ...it }))
-      .sort((a, b) => a.rank - b.rank);
-  }, [data, query]);
+    let filteredData = data.filter((it) =>
+      (!q || it.name.toLowerCase().includes(q) || it.institute.toLowerCase().includes(q)) &&
+      (course === "all" || (it.course || "").toLowerCase() === course.toLowerCase())
+    );
+
+    // Apply sorting based on current sort field and order
+    filteredData.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case "points":
+          aValue = a.points;
+          bValue = b.points;
+          break;
+        case "credentials":
+          aValue = a.credentials;
+          bValue = b.credentials;
+          break;
+        case "skills":
+          aValue = a.skills;
+          bValue = b.skills;
+          break;
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        default:
+          aValue = a.points;
+          bValue = b.points;
+      }
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "ascend" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === "ascend" ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number);
+      }
+    });
+    
+    // Assign dynamic ranks based on current filtered and sorted data
+    return filteredData.map((item, index) => ({
+      ...item,
+      rank: index + 1
+    }));
+  }, [data, query, course, sortField, sortOrder]);
+
+  const handleTableChange = useCallback((pagination: any, filters: any, sorter: any) => {
+    if (sorter && !Array.isArray(sorter)) {
+      setSortField(sorter.field as string || "points");
+      setSortOrder(sorter.order || "descend");
+    }
+  }, []);
 
   // ---- My Progress (per-user) ----
   type MyProgress = {
@@ -185,12 +232,17 @@ export default function LeaderboardPage() {
   const [progress, setProgress] = useState<MyProgress | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchMyProgress = async () => {
+      if (!isMounted) return;
       setLoadingProgress(true);
       try {
         const token = localStorage.getItem("authToken");
-        if (!token) return;
+        if (!token || !isMounted) return;
         const res = await api.get("/api/credentials", { headers: { Authorization: `Bearer ${token}` } });
+        if (!isMounted) return;
+        
         const creds = Array.isArray(res.data) ? res.data : [];
         const total = creds.length;
         const verified = creds.filter((c: any) => c.status === "verified").length;
@@ -211,14 +263,26 @@ export default function LeaderboardPage() {
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
-        setProgress({ total, verified, pending, points, topSkills });
+        
+        if (isMounted) {
+          setProgress({ total, verified, pending, points, topSkills });
+        }
       } catch (e) {
-        setProgress(null);
+        if (isMounted) {
+          setProgress(null);
+        }
       } finally {
-        setLoadingProgress(false);
+        if (isMounted) {
+          setLoadingProgress(false);
+        }
       }
     };
+    
     fetchMyProgress();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (!mounted) return null;
@@ -294,7 +358,7 @@ export default function LeaderboardPage() {
                 label: "Leaderboard",
                 children: (
                   <>
-                    <Card className="mb-6 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur" styles={{ body: { background: "transparent" } }}>
+                    <Card className="mb-8 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur" styles={{ body: { background: "transparent" } }}>
                       <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
                         <Input
                           placeholder="Search by name or institute"
@@ -331,22 +395,30 @@ export default function LeaderboardPage() {
                     </Card>
 
                     {/* Top 3 cards */}
-                    <Row gutter={[16, 16]} className="mb-6">
+                    <div className="mt-8 mb-8 p-6 rounded-2xl bg-gradient-to-r from-card/30 to-card/10 border border-border/50">
+                      <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                          🏆 Top Performers
+                        </h2>
+                        <p className="text-sm text-muted-foreground">Leading the way in points, credentials, and skills</p>
+                      </div>
+                      <Row gutter={[24, 24]} className="justify-center">
                       {filtered.slice(0, 3).map((rec, idx) => (
-                        <Col xs={24} md={8} key={rec.id}>
+                        rec && rec.id ? (
+                        <Col xs={24} sm={12} lg={8} key={rec.id}>
                           <div
                             className={
-                              "rounded-2xl p-6 border shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl bg-card relative"
+                              "rounded-2xl p-6 border shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl bg-card relative overflow-hidden"
                             }
                             style={{
                               borderColor:
-                                idx === 0 ? "rgba(234,179,8,0.4)" : idx === 1 ? "rgba(59,130,246,0.35)" : "rgba(249,115,22,0.35)",
+                                idx === 0 ? "rgba(234,179,8,0.5)" : idx === 1 ? "rgba(59,130,246,0.4)" : "rgba(249,115,22,0.4)",
                               boxShadow:
                                 idx === 0
-                                  ? "0 10px 30px -10px rgba(234,179,8,0.3)"
+                                  ? "0 20px 40px -15px rgba(234,179,8,0.4)"
                                   : idx === 1
-                                  ? "0 10px 30px -10px rgba(59,130,246,0.25)"
-                                  : "0 10px 30px -10px rgba(249,115,22,0.25)",
+                                  ? "0 20px 40px -15px rgba(59,130,246,0.3)"
+                                  : "0 20px 40px -15px rgba(249,115,22,0.3)",
                             }}
                           >
                             <div className="absolute top-4 right-4">
@@ -359,8 +431,16 @@ export default function LeaderboardPage() {
                               )}
                             </div>
                             <div className="flex flex-col items-center text-center gap-4">
-                              <div className={`rounded-full p-1 ${idx === 0 ? "ring-4 ring-yellow-400/50" : idx === 1 ? "ring-4 ring-blue-400/40" : "ring-4 ring-orange-400/40"}`}>
-                                <Avatar src={rec.avatar} size={96} />
+                              <div className="relative">
+                                <div className={`rounded-full p-1 ${idx === 0 ? "ring-4 ring-yellow-400/50" : idx === 1 ? "ring-4 ring-blue-400/40" : "ring-4 ring-orange-400/40"}`}>
+                                  <Avatar src={rec.avatar || undefined} size={96} />
+                                </div>
+                                {/* Ranking badge */}
+                                <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                                  idx === 0 ? "bg-yellow-500" : idx === 1 ? "bg-blue-500" : "bg-orange-500"
+                                }`}>
+                                  {idx + 1}
+                                </div>
                               </div>
                               <div>
                                 <div className="text-xl font-bold">{rec.name}</div>
@@ -377,6 +457,7 @@ export default function LeaderboardPage() {
                             </div>
                           </div>
                         </Col>
+                      ) : null
                       ))}
                       {filtered.length === 0 && (
                         <Col span={24}>
@@ -384,15 +465,19 @@ export default function LeaderboardPage() {
                         </Col>
                       )}
                     </Row>
+                    </div>
 
-                    {/* Full table */}
-                    <Card className="border-0 shadow-xl overflow-hidden">
+                    {/* Leaderboard Table */}
+                    <div className="mt-8">
+                      <h3 className="text-xl font-semibold mb-4">Complete Leaderboard</h3>
+                      <Card className="border-0 shadow-xl overflow-hidden">
                       <Table
                         loading={loadingLeaderboard}
                         rowKey="id"
-                        dataSource={filtered}
+                        dataSource={filtered.filter(item => item && item.id)}
                         pagination={{ pageSize: 10, showSizeChanger: false }}
                         scroll={{ x: 720 }}
+                        onChange={handleTableChange}
                         columns={[
                           {
                             title: "Rank",
@@ -422,8 +507,7 @@ export default function LeaderboardPage() {
                               }
                               return <span className="font-semibold">{rank}</span>;
                             },
-                            sorter: (a, b) => a.rank - b.rank,
-                            defaultSortOrder: "ascend",
+                            sorter: false, // Disable sorting on rank as it's computed dynamically
                           },
                           {
                             title: "Participant",
@@ -431,13 +515,14 @@ export default function LeaderboardPage() {
                             className: "min-w-[220px]",
                             render: (_: any, rec: LeaderItem) => (
                               <Space size={12}>
-                                <Avatar src={rec.avatar} size={40} />
+                                <Avatar src={rec.avatar || undefined} size={40} />
                                 <div>
                                   <div className="font-semibold">{rec.name}</div>
                                   <div className="text-xs text-muted-foreground">{rec.institute}</div>
                                 </div>
                               </Space>
                             ),
+                            sorter: (a, b) => a.name.localeCompare(b.name),
                           },
                           {
                             title: "Course",
@@ -474,6 +559,7 @@ export default function LeaderboardPage() {
                             fixed: "right",
                             width: 140,
                             render: (_: any, rec: LeaderItem) => (
+                              rec && rec.id ? (
                               <Space>
                                 <Tooltip title="View Profile">
                                   <AntButton
@@ -486,11 +572,13 @@ export default function LeaderboardPage() {
                                   </AntButton>
                                 </Tooltip>
                               </Space>
+                              ) : null
                             ),
                           },
                         ]}
                       />
                     </Card>
+                    </div>
                   </>
                 ),
               },
