@@ -46,6 +46,7 @@ export default function LeaderboardPage() {
 
   return (
     <ConfigProvider
+      key={`leaderboard-${isDark ? 'dark' : 'light'}`}
       theme={{
         algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {

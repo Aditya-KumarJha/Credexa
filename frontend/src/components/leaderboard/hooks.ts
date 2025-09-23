@@ -40,20 +40,32 @@ export function useLeaderboardData(params: {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchLeaderboard = async () => {
+      if (!isMounted) return;
       setLoading(true);
       try {
         const res = await api.get("/api/leaderboard", {
           params: { q: query || undefined, timeframe, category, course: course === "all" ? undefined : course },
         });
-        if (Array.isArray(res.data)) setData(res.data as LeaderItem[]);
+        if (Array.isArray(res.data) && isMounted) {
+          setData(res.data as LeaderItem[]);
+        }
       } catch {
         // keep mock
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+    
     fetchLeaderboard();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [query, timeframe, category, course]);
 
   const filtered = useMemo(() => {
@@ -71,21 +83,33 @@ export function useCoursesOptions(source: LeaderItem[]) {
   const [courses, setCourses] = useState<{ label: string; value: string }[]>([
     { label: "All Courses", value: "all" },
   ]);
+  
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchCourses = async () => {
+      if (!isMounted) return;
       try {
         const res = await api.get("/api/courses");
-        if (Array.isArray(res.data)) {
+        if (Array.isArray(res.data) && isMounted) {
           setCourses([{ label: "All Courses", value: "all" }, ...res.data.map((c: any) => ({ label: c.name || c.title || String(c), value: c.slug || c.id || c.name || String(c) }))]);
           return;
         }
       } catch {}
       // fallback to derive from current data
-      const unique = Array.from(new Set(source.map((d) => d.course).filter(Boolean))) as string[];
-      setCourses([{ label: "All Courses", value: "all" }, ...unique.map((c) => ({ label: c, value: c }))]);
+      if (isMounted) {
+        const unique = Array.from(new Set(source.map((d) => d.course).filter(Boolean))) as string[];
+        setCourses([{ label: "All Courses", value: "all" }, ...unique.map((c) => ({ label: c, value: c }))]);
+      }
     };
+    
     fetchCourses();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [source]);
+  
   return courses;
 }
 
@@ -94,12 +118,17 @@ export function useMyProgress() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchMyProgress = async () => {
+      if (!isMounted) return;
       setLoading(true);
       try {
         const token = localStorage.getItem("authToken");
-        if (!token) return;
+        if (!token || !isMounted) return;
         const res = await api.get("/api/credentials", { headers: { Authorization: `Bearer ${token}` } });
+        if (!isMounted) return;
+        
         const creds = Array.isArray(res.data) ? res.data : [];
         const total = creds.length;
         const verified = creds.filter((c: any) => c.status === "verified").length;
@@ -119,14 +148,26 @@ export function useMyProgress() {
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
-        setProgress({ total, verified, pending, expired, points, topSkills });
+        
+        if (isMounted) {
+          setProgress({ total, verified, pending, expired, points, topSkills });
+        }
       } catch {
-        setProgress(null);
+        if (isMounted) {
+          setProgress(null);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+    
     fetchMyProgress();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return { progress, loading };

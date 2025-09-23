@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -23,6 +23,7 @@ import {
   Moon,
 } from "lucide-react";
 import ThemeToggleButton from "../../components/ui/theme-toggle-button";
+import JobSearchModal from "../../components/jobs/JobSearchModal";
 
 interface Skill { name: string; icon: LucideIcon; }
 const popularSkills: Skill[] = [
@@ -116,6 +117,8 @@ const CredentialCard: React.FC<CredentialCardProps> = ({ name, issuer, nsqfLevel
 );
 
 const App: React.FC = () => {
+  const [isJobSearchOpen, setIsJobSearchOpen] = useState(false);
+
   return (
     <div className="bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans antialiased">
       <motion.header
@@ -261,6 +264,33 @@ const App: React.FC = () => {
           </motion.section>
         </div>
       </div>
+
+      {/* Floating Job Search Button */}
+      <motion.button
+        onClick={() => setIsJobSearchOpen(true)}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-40 flex items-center justify-center group"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 1, type: "spring", stiffness: 300 }}
+        whileHover={{ rotate: 360 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <Briefcase className="h-6 w-6" />
+        <div className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
+          AI
+        </div>
+        {/* Tooltip */}
+        <div className="absolute right-full mr-4 px-3 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Search Jobs with AI
+          <div className="absolute top-1/2 left-full w-0 h-0 border-l-4 border-l-gray-900 dark:border-l-white border-y-4 border-y-transparent -translate-y-1/2"></div>
+        </div>
+      </motion.button>
+
+      {/* Job Search Modal */}
+      <JobSearchModal
+        isOpen={isJobSearchOpen}
+        onClose={() => setIsJobSearchOpen(false)}
+      />
     </div>
   );
 };
