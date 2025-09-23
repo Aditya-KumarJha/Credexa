@@ -230,7 +230,9 @@ const generateCredentialHashController = async (req, res) => {
 const getCredentialDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        
+        console.log('Requested credential ID:', id);
+        console.log('Authenticated user ID:', req.user._id);
+
         // Find the credential ensuring it belongs to the logged-in user
         const cred = await Credential.findOne({ _id: id, user: req.user._id });
 
