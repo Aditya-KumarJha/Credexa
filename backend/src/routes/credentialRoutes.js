@@ -19,11 +19,11 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept images only
-    if (file.mimetype.startsWith('image/')) {
+    // Accept images and PDFs
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error('Only image and PDF files are allowed!'), false);
     }
   },
 });
@@ -43,7 +43,7 @@ router.post('/extract', upload.single('certificateFile'), extractCertificateInfo
 
 // --- EXISTING DATABASE ROUTES (UNCHANGED) ---
 router.get('/', listCredentials);
-router.post('/', createCredential);
+router.post('/', upload.single('certificateFile'), createCredential);
 router.put('/:id', updateCredential);
 router.delete('/:id', deleteCredential);
 
