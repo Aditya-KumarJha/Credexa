@@ -178,7 +178,6 @@ export default function LeaderboardPage() {
     total: number;
     verified: number;
     pending: number;
-    expired: number;
     points: number;
     topSkills: { name: string; count: number }[];
   };
@@ -196,7 +195,6 @@ export default function LeaderboardPage() {
         const total = creds.length;
         const verified = creds.filter((c: any) => c.status === "verified").length;
         const pending = creds.filter((c: any) => c.status === "pending").length;
-        const expired = creds.filter((c: any) => c.status === "expired").length;
         const points = creds.reduce((sum: number, c: any) => sum + (Number(c.creditPoints) || 10), 0);
         const skillCounts: Record<string, number> = {};
         creds.forEach((c: any) => {
@@ -213,7 +211,7 @@ export default function LeaderboardPage() {
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
-        setProgress({ total, verified, pending, expired, points, topSkills });
+        setProgress({ total, verified, pending, points, topSkills });
       } catch (e) {
         setProgress(null);
       } finally {
@@ -511,7 +509,7 @@ export default function LeaderboardPage() {
                             </div>
                             <Statistic title="Total" value={progress?.total ?? 0} />
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col items-center">
                               <Progress type="circle" percent={progress ? Math.round(((progress.verified || 0) / Math.max(progress.total || 1, 1)) * 100) : 0} size={90} strokeColor="#10b981" />
                               <div className="mt-2 text-sm">Verified</div>
@@ -519,10 +517,6 @@ export default function LeaderboardPage() {
                             <div className="flex flex-col items-center">
                               <Progress type="circle" percent={progress ? Math.round(((progress.pending || 0) / Math.max(progress.total || 1, 1)) * 100) : 0} size={90} strokeColor="#eab308" />
                               <div className="mt-2 text-sm">Pending</div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <Progress type="circle" percent={progress ? Math.round(((progress.expired || 0) / Math.max(progress.total || 1, 1)) * 100) : 0} size={90} strokeColor="#ef4444" />
-                              <div className="mt-2 text-sm">Expired</div>
                             </div>
                           </div>
                         </Card>

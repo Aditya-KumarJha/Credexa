@@ -45,9 +45,10 @@ import {
 import dayjs from "dayjs";
 import { useTheme } from "next-themes";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
 
 type CredentialType = "certificate" | "degree" | "license" | "badge";
-type CredentialStatus = "verified" | "pending" | "expired";
+type CredentialStatus = "verified" | "pending";
 
 interface Credential {
   _id?: string;
@@ -56,7 +57,6 @@ interface Credential {
   type: CredentialType;
   status: CredentialStatus;
   issueDate: string; // ISO
-  expiryDate?: string;
   description?: string;
   skills: string[];
   credentialUrl?: string;
@@ -294,9 +294,7 @@ function CredentialsPageContent() {
         title: editing.title,
         issuer: editing.issuer,
         type: editing.type,
-        status: editing.status,
         issueDate: editing.issueDate ? dayjs(editing.issueDate) : undefined,
-        expiryDate: editing.expiryDate ? dayjs(editing.expiryDate) : undefined,
         description: editing.description,
         skills: (editing.skills || []).join(", "),
         credentialUrl: editing.credentialUrl,
@@ -330,7 +328,6 @@ function CredentialsPageContent() {
           type: "certificate",
           status: "pending",
           issueDate: new Date().toISOString(),
-          expiryDate: "",
           description: "",
           credentialUrl: "",
           nsqfLevel: "",
@@ -365,9 +362,8 @@ function CredentialsPageContent() {
           title: values.title,
           issuer: values.issuer || "Unknown",
           type: values.type || "certificate",
-          status: values.status || "pending",
+          status: "pending",
           issueDate: values.issueDate?.toISOString() || new Date().toISOString(),
-          expiryDate: values.expiryDate ? values.expiryDate.toISOString() : "",
           description: values.description || "",
           credentialUrl: values.credentialUrl || "",
           nsqfLevel: values.nsqfLevel || "",
@@ -465,14 +461,9 @@ function CredentialsPageContent() {
         <CheckCircle className="w-3.5 h-3.5" /> Verified
       </span>
     );
-    if (status === "pending") return (
+    return (
       <span className={`${base} bg-yellow-500/10 text-yellow-500 border-yellow-500/20`}>
         <Clock className="w-3.5 h-3.5" /> Pending
-      </span>
-    );
-    return (
-      <span className={`${base} bg-[color:var(--destructive)]/10 text-[color:var(--destructive)] border-[color:var(--destructive)]/20`}>
-        <AlertCircle className="w-3.5 h-3.5" /> Expired
       </span>
     );
   };
@@ -506,18 +497,32 @@ function CredentialsPageContent() {
             colorBgContainer: "var(--color-card)",
             headerBg: "var(--color-card)",
           },
+          Input: {
+            colorBgContainer: "var(--color-card)",
+            colorText: "#ffffff",
+            colorTextPlaceholder: "#ffffff",
+            colorBorder: "var(--color-border)",
+            activeBg: "var(--color-card)",
+            hoverBg: "var(--color-card)",
+          },
+          Select: {
+            colorBgContainer: "var(--color-card)",
+            colorText: "var(--color-foreground)",
+            colorTextPlaceholder: "var(--color-muted-foreground)",
+            colorBorder: "var(--color-border)",
+          },
         },
       }}
     >
       <div className="min-h-screen bg-background text-foreground flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
           <div>
               <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
                 My Credentials
               </h1>
-              <p className="text-sm text-muted-foreground">Manage and showcase your verified achievements</p>
+              <p className="text-sm text-muted-foreground mt-1">Manage and showcase your verified achievements</p>
           </div>
           <Space>
             <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
@@ -531,130 +536,171 @@ function CredentialsPageContent() {
         </div>
 
         {/* Stats summary */}
-        <AntCard
-          className="mb-6 border-0 shadow bg-card/80"
-          styles={{ body: { background: "transparent", paddingBottom: 8 } }}
-        >
-          <Row gutter={[12, 12]}>
-            <Col xs={12} md={6}>
-              <div className="px-3 py-2 rounded-lg border bg-background">
-                <div className="text-xs text-muted-foreground">Total</div>
-                <div className="text-xl font-semibold">{items.length}</div>
-              </div>
-            </Col>
-            <Col xs={12} md={6}>
-              <div className="px-3 py-2 rounded-lg border bg-background">
-                <div className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Verified</div>
-                <div className="text-xl font-semibold">{items.filter((i) => i.status === "verified").length}</div>
-              </div>
-            </Col>
-            <Col xs={12} md={6}>
-              <div className="px-3 py-2 rounded-lg border bg-background">
-                <div className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-yellow-500" /> Pending</div>
-                <div className="text-xl font-semibold">{items.filter((i) => i.status === "pending").length}</div>
-              </div>
-            </Col>
-            <Col xs={12} md={6}>
-              <div className="px-3 py-2 rounded-lg border bg-background">
-                <div className="text-xs text-muted-foreground flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5 text-red-500" /> Expired</div>
-                <div className="text-xl font-semibold">{items.filter((i) => i.status === "expired").length}</div>
-              </div>
-            </Col>
-          </Row>
-        </AntCard>
+        <CardSpotlight className="mb-8 border-0 shadow bg-card/80 p-0 rounded-lg">
+          <div className="p-5 pb-4">
+            <Row gutter={[12, 12]}>
+              <Col xs={12} md={6}>
+                <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
+                  <div className="text-xs text-muted-foreground">Total</div>
+                  <div className="text-xl font-semibold">{items.length}</div>
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Verified</div>
+                  <div className="text-xl font-semibold">{items.filter((i) => i.status === "verified").length}</div>
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-yellow-500" /> Pending</div>
+                  <div className="text-xl font-semibold">{items.filter((i) => i.status === "pending").length}</div>
+                </div>
+              </Col>
+            </Row>
+          </div>
+        </CardSpotlight>
 
-        <AntCard
-          className="mb-6 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur"
-          styles={{ body: { background: "transparent" } }}
-        >
-          <Row gutter={[12, 12]} align="middle">
-            <Col xs={24} md={8}>
-              <Input placeholder="Search by title, issuer, or skill" value={search} onChange={(e) => setSearch(e.target.value)} allowClear />
-            </Col>
-            <Col xs={12} md={6}>
-              <Select value={typeFilter} onChange={setTypeFilter} className="w-full" options={[
-                { value: "all", label: "All Types" },
-                { value: "certificate", label: "Certificate" },
-                { value: "degree", label: "Degree" },
-                { value: "license", label: "License" },
-                { value: "badge", label: "Badge" },
-              ]} />
-            </Col>
-            <Col xs={12} md={5}>
-              <Select value={statusFilter} onChange={setStatusFilter} className="w-full" options={[
-                { value: "all", label: "All Status" },
-                { value: "verified", label: "Verified" },
-                { value: "pending", label: "Pending" },
-                { value: "expired", label: "Expired" },
-              ]} />
-            </Col>
-            <Col xs={12} md={5}>
-              <Select
-                value={issuerFilter}
-                onChange={setIssuerFilter}
-                className="w-full"
-                options={uniqueIssuers.map((u) => ({ value: u, label: u === "all" ? "All Issuers" : u }))}
-              />
-            </Col>
-            <Col xs={12} md={6}>
-              <Select
-                value={sortKey}
-                onChange={(v) => setSortKey(v)}
-                className="w-full"
-                options={[
-                  { value: "newest", label: "Newest" },
-                  { value: "oldest", label: "Oldest" },
-                  { value: "az", label: "Title A→Z" },
-                  { value: "za", label: "Title Z→A" },
-                  { value: "pointsDesc", label: "Points High→Low" },
-                  { value: "pointsAsc", label: "Points Low→High" },
-                ]}
-              />
-            </Col>
-          </Row>
-        </AntCard>
+        <CardSpotlight className="mb-8 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur p-0 rounded-lg">
+          <div className="p-5">
+            <Row gutter={[12, 12]} align="middle">
+              <Col xs={24} md={8}>
+                <div className="relative z-30">
+                  <Input 
+                    placeholder="Search by title, issuer, or skill" 
+                    value={search} 
+                    onChange={(e) => setSearch(e.target.value)} 
+                    allowClear 
+                  />
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div className="relative z-30">
+                  <Select value={typeFilter} onChange={setTypeFilter} className="w-full" options={[
+                    { value: "all", label: "All Types" },
+                    { value: "certificate", label: "Certificate" },
+                    { value: "degree", label: "Degree" },
+                    { value: "license", label: "License" },
+                    { value: "badge", label: "Badge" },
+                  ]} />
+                </div>
+              </Col>
+              <Col xs={12} md={5}>
+                <div className="relative z-30">
+                  <Select value={statusFilter} onChange={setStatusFilter} className="w-full" options={[
+                    { value: "all", label: "All Status" },
+                    { value: "verified", label: "Verified" },
+                    { value: "pending", label: "Pending" },
+                  ]} />
+                </div>
+              </Col>
+              <Col xs={12} md={5}>
+                <div className="relative z-30">
+                  <Select
+                    value={issuerFilter}
+                    onChange={setIssuerFilter}
+                    className="w-full"
+                    options={uniqueIssuers.map((u) => ({ value: u, label: u === "all" ? "All Issuers" : u }))}
+                  />
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div className="relative z-30">
+                  <Select
+                    value={sortKey}
+                    onChange={(v) => setSortKey(v)}
+                    className="w-full"
+                    options={[
+                      { value: "newest", label: "Newest" },
+                      { value: "oldest", label: "Oldest" },
+                      { value: "az", label: "Title A→Z" },
+                      { value: "za", label: "Title Z→A" },
+                      { value: "pointsDesc", label: "Points High→Low" },
+                      { value: "pointsAsc", label: "Points Low→High" },
+                    ]}
+                  />
+                </div>
+              </Col>
+            </Row>
+          </div>
+        </CardSpotlight>
 
         {loading ? (
-          <Row gutter={[16, 16]}> 
+          <Row gutter={[20, 20]} className="mt-6"> 
             {Array.from({ length: 6 }).map((_, i) => (
               <Col xs={24} sm={12} lg={8} key={i}>
-                <AntCard className="border-0 shadow-lg bg-card/80">
+                <AntCard className="border-0 shadow-lg bg-card/80" styles={{ body: { padding: "20px" } }}>
                   <Skeleton active avatar paragraph={{ rows: 3 }} />
                 </AntCard>
               </Col>
             ))}
           </Row>
         ) : filtered.length === 0 ? (
-          <AntCard className="py-12 border-0 shadow-lg bg-card/80" styles={{ body: { background: "transparent" } }}>
+          <AntCard 
+            className="py-12 mt-6 border-0 shadow-lg bg-card/80" 
+            styles={{ body: { background: "transparent", padding: "48px 24px" } }}
+          >
             <Empty description="No credentials found" />
           </AntCard>
         ) : (
-          <Row gutter={[16, 16]}> 
+          <Row gutter={[20, 20]} className="mt-6"> 
             {filtered.map((c) => (
               <Col xs={24} sm={12} lg={8} key={c._id || c.title}>
-                <AntCard
-                  className="border-0 shadow-lg hover:shadow-xl transition bg-card/80"
-                  styles={{ body: { background: "transparent" } }}
-                  title={<div className="flex items-center gap-2"><Award className="w-4 h-4" /><span>{c.title}</span></div>}
-                  extra={
-                    <Space>
-                      {statusTag(c.status)}
-                      <Button variant="outline" className="bg-transparent" onClick={() => openEdit(c)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Popconfirm title="Delete this credential?" onConfirm={() => handleDelete(c._id)}>
-                         <Button variant="outline" className="bg-transparent text-red-600 hover:text-red-700">
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
-                      </Popconfirm>
-                    </Space>
-                  }
-                >
-                  <div className="space-y-3">
+                <CardSpotlight className="h-full border-0 shadow-lg hover:shadow-xl transition bg-card/80 p-0 rounded-lg">
+                  {/* Card Header */}
+                  <div className="px-5 py-4 border-b border-white/10 relative">
+                    <div className="flex items-center gap-2 text-sm mb-3">
+                      <Award className="w-4 h-4" />
+                      <span className="truncate pr-20">{c.title}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        {statusTag(c.status)}
+                      </div>
+                      {/* Action Buttons - Positioned in header with proper z-index */}
+                      <div className="relative z-50">
+                        <Space size="small">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-sm border-gray-200 text-gray-700 hover:text-gray-900" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openEdit(c);
+                            }}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Popconfirm 
+                            title="Delete this credential?" 
+                            onConfirm={() => handleDelete(c._id)}
+                            okText="Yes"
+                            cancelText="No"
+                          >
+                             <Button 
+                               variant="outline" 
+                               size="sm" 
+                               className="bg-white/90 backdrop-blur-sm hover:bg-red-50 text-red-600 hover:text-red-700 shadow-sm border-gray-200"
+                               onClick={(e) => {
+                                 e.preventDefault();
+                                 e.stopPropagation();
+                               }}
+                             >
+                               <Trash2 className="w-3 h-3" />
+                             </Button>
+                          </Popconfirm>
+                        </Space>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="px-5 py-4 space-y-4">
                     {/* Certificate Image */}
                     {c.imageUrl && (
                       <div 
-                        className="w-full h-40 relative rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                        className="w-full h-40 relative rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity shadow-sm mb-4"
                         onClick={() => setViewingImage(c.imageUrl!)}
                       >
                         <img 
@@ -671,35 +717,52 @@ function CredentialsPageContent() {
                         </div>
                       </div>
                     )}
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
                         <Award className="w-5 h-5 text-white" />
                       </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Issuer</div>
-                        <div className="text-foreground font-medium -mt-0.5">{c.issuer}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs text-muted-foreground mb-1">Issuer</div>
+                        <div className="text-foreground font-medium text-sm truncate">{c.issuer}</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm pt-2">
-                      <div className="text-muted-foreground">Type: <span className="text-foreground">{c.type}</span></div>
-                      <div className="text-muted-foreground">Issued: <span className="text-foreground">{c.issueDate ? dayjs(c.issueDate).format("MMM D, YYYY") : "-"}</span></div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                      <div className="text-muted-foreground">
+                        Type: <span className="text-foreground font-medium">{c.type}</span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        Issued: <span className="text-foreground font-medium">{c.issueDate ? dayjs(c.issueDate).format("MMM D, YYYY") : "-"}</span>
+                      </div>
                       {typeof c.nsqfLevel !== "undefined" && (
-                        <div className="text-muted-foreground">NSQF: <span className="text-foreground">{c.nsqfLevel}</span></div>
+                        <div className="text-muted-foreground">
+                          NSQF: <span className="text-foreground font-medium">{c.nsqfLevel}</span>
+                        </div>
                       )}
                       {typeof c.creditPoints !== "undefined" && (
-                        <div className="text-muted-foreground">Points: <span className="text-foreground">{c.creditPoints}</span></div>
+                        <div className="text-muted-foreground">
+                          Points: <span className="text-foreground font-medium">{c.creditPoints}</span>
+                        </div>
                       )}
                     </div>
+                    
                     {c.skills?.length ? (
-                      <div className="flex flex-wrap gap-1 pt-2">
+                      <div className="flex flex-wrap gap-2">
                         {c.skills.slice(0, 5).map((s) => (
-                          <span key={s} className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">{s}</span>
+                          <span key={s} className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">
+                            {s}
+                          </span>
                         ))}
-                        {c.skills.length > 5 && <span className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">+{c.skills.length - 5}</span>}
+                        {c.skills.length > 5 && (
+                          <span className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">
+                            +{c.skills.length - 5}
+                          </span>
+                        )}
                       </div>
                     ) : null}
                   </div>
-                </AntCard>
+                </CardSpotlight>
               </Col>
             ))}
           </Row>
@@ -798,7 +861,7 @@ function CredentialsPageContent() {
           )}
 
           {currentStep === 1 && addMethod !== "sync" && (
-            <Form form={form} layout="vertical" initialValues={{ status: "pending", type: "certificate" }}>
+            <Form form={form} layout="vertical" initialValues={{ type: "certificate" }}>
               <Row gutter={12}>
                 <Col span={12}>
                   <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -812,7 +875,7 @@ function CredentialsPageContent() {
                 </Col>
               </Row>
               <Row gutter={12}>
-                <Col span={8}>
+                <Col span={12}>
                   <Form.Item name="type" label="Type" rules={[{ required: true }]}> 
                     <Select
                       options={[
@@ -824,31 +887,15 @@ function CredentialsPageContent() {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
-                  <Form.Item name="status" label="Status" rules={[{ required: true }]}> 
-                    <Select
-                      options={[
-                        { value: "verified", label: "Verified" },
-                        { value: "pending", label: "Pending" },
-                        { value: "expired", label: "Expired" },
-                      ]}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
+                <Col span={12}>
                   <Form.Item name="nsqfLevel" label="NSQF Level">
                     <Input type="number" min={1} />
                   </Form.Item>
                 </Col>
               </Row>
               <Row gutter={12}>
-                <Col span={12}>
+                <Col span={24}>
                   <Form.Item name="issueDate" label="Issue Date" rules={[{ required: true }]}>
-                    <DatePicker className="w-full" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="expiryDate" label="Expiry Date">
                     <DatePicker className="w-full" />
                   </Form.Item>
                 </Col>
