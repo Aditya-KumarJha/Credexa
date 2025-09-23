@@ -329,7 +329,7 @@ export default function CommunityPage() {
           </div>
         )}
           {section === "peer-groups" && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
+            <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -431,7 +431,7 @@ export default function CommunityPage() {
           </div>
         )}
           {section === "events" && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
+            <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -457,7 +457,7 @@ export default function CommunityPage() {
           </div>
         )}
           {section === "gamification" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 w-1/2 px-6 py-3 mt-10">
+            <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -511,24 +511,30 @@ export default function CommunityPage() {
         )}
         </div>
   {/* Right-side section bar: Social Feature & Recommendation */}
-  <aside className="hidden md:flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100 mt-2" style={{ position: 'fixed', right: '10px', top: '80px', width: '28vw', minWidth: '18rem', maxWidth: '32vw', zIndex: 40 }}>
+  <aside className="hidden md:flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100 mt-2" style={{ position: 'fixed', right: '25px', top: '80px', width: '28vw', minWidth: '18rem', maxWidth: '32vw', zIndex: 40 }}>
           <div className="mb-8">
             <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Social Feature</h3>
-            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
-              <li>Connect with peers</li>
-              <li>Share achievements</li>
-              <li>Direct messaging</li>
-              <li>Group chats</li>
-            </ul>
+            <div className="flex items-center gap-4 mb-4">
+              <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+                <li>Connect with peers</li>
+                <li>Share achievements</li>
+                <li>Direct messaging</li>
+                <li>Group chats</li>
+              </ul>
+              <img src="/images/card/Card-1.png" alt="Social Feature" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Recommendation</h3>
-            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
-              <li>Suggested groups</li>
-              <li>Trending topics</li>
-              <li>Events for you</li>
-              <li>Top contributors</li>
-            </ul>
+          <div className="flex items-center gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Recommendation</h3>
+              <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+                <li>Suggested groups</li>
+                <li>Trending topics</li>
+                <li>Events for you</li>
+                <li>Top contributors</li>
+              </ul>
+            </div>
+            <img src="/images/card/Card-3.png" alt="Recommendation" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
           </div>
         </aside>
         </div>
