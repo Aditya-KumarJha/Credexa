@@ -197,7 +197,7 @@ export default function CommunityPage() {
       {/* Horizontal tab navigation, left-aligned below nav bar */}
       <div className="w-full flex flex-row items-start mt-6 mb-8 px-8 gap-8">
         <div style={{ width: '60vw' }}>
-  <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col">
           <nav className="flex gap-4 bg-white dark:bg-zinc-800 px-6 py-3 shadow-md rounded-xl border border-gray-200 dark:border-zinc-700">
           {[ 
             { key: "discussion", label: "Discussion" },
@@ -510,33 +510,47 @@ export default function CommunityPage() {
           </div>
         )}
         </div>
-  {/* Right-side section bar: Social Feature & Recommendation */}
-  <aside className="hidden md:flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100 mt-2" style={{ position: 'fixed', right: '25px', top: '80px', width: '28vw', minWidth: '18rem', maxWidth: '32vw', zIndex: 40 }}>
-          <div className="mb-8">
-            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Social Feature</h3>
+        {/* Right-side column for both section bars */}
+  <div className="hidden md:flex flex-col gap-8" style={{ position: 'absolute', right: '25px', top: '72px', width: '28vw', minWidth: '18rem', maxWidth: '32vw' }}>
+          {/* Social Feature & Recommendation Section Bar */}
+          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100">
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Social Feature</h3>
+              <div className="flex items-center gap-4 mb-4">
+                <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+                  <li>Connect with peers</li>
+                  <li>Share achievements</li>
+                  <li>Direct messaging</li>
+                  <li>Group chats</li>
+                </ul>
+                <img src="/images/card/Card-1.png" alt="Social Feature" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
+              </div>
+            </div>
             <div className="flex items-center gap-4 mb-4">
-              <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
-                <li>Connect with peers</li>
-                <li>Share achievements</li>
-                <li>Direct messaging</li>
-                <li>Group chats</li>
-              </ul>
-              <img src="/images/card/Card-1.png" alt="Social Feature" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
+              <div>
+                <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Recommendation</h3>
+                <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+                  <li>Suggested groups</li>
+                  <li>Trending topics</li>
+                  <li>Events for you</li>
+                  <li>Top contributors</li>
+                </ul>
+              </div>
+              <img src="/images/card/Card-3.png" alt="Recommendation" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
             </div>
-          </div>
-          <div className="flex items-center gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Recommendation</h3>
-              <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
-                <li>Suggested groups</li>
-                <li>Trending topics</li>
-                <li>Events for you</li>
-                <li>Top contributors</li>
-              </ul>
+          </aside>
+          {/* Career Path Recommender Section Bar */}
+          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-green-200">
+            <h3 className="text-lg font-bold text-green-600 dark:text-green-300 mb-2">Career Path Recommender</h3>
+            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm mb-4">
+              <li>Explore your AI career path</li>
+              <li>Get personalized role suggestions</li>
+            </ul>
+            <div className="flex justify-center">
+              <img src="/images/card/Card-2.png" alt="Career Path" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
             </div>
-            <img src="/images/card/Card-3.png" alt="Recommendation" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
-          </div>
-        </aside>
+          </aside>
+        </div>
         </div>
       </div>
     </div>
