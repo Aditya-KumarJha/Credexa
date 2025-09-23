@@ -1,5 +1,5 @@
 const Credential = require('../models/credentialModel');
-const uploadFile = require('../services/storageService');
+const { uploadFile, deleteFile } = require('../services/storageService');
 // 1. IMPORT YOUR NEW BLOCKCHAIN SERVICE
 const { anchorNewCredential, verifyCredential } = require('../services/blockchainService');
 const crypto = require('crypto'); // <-- ADD THIS LINE
@@ -21,6 +21,17 @@ const listCredentials = async (req, res) => {
 const createCredential = async (req, res) => {
   try {
     const body = req.body;
+    console.log('Received body:', body);
+    console.log('Body type:', typeof body);
+    console.log('Body keys:', Object.keys(body));
+    
+    if (!body.title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required'
+      });
+    }
+    
     const payload = {
       user: req.user._id,
       title: body.title,
@@ -91,10 +102,32 @@ const updateCredential = async (req, res) => {
 
 const deleteCredential = async (req, res) => {
   try {
+    console.log('DELETE CREDENTIAL REQUEST RECEIVED for ID:', req.params.id);
     const { id } = req.params;
-    const deleted = await Credential.findOneAndDelete({ _id: id, user: req.user._id });
-    if (!deleted) return res.status(404).json({ message: 'Credential not found' });
-    res.json({ message: 'Credential deleted' });
+    
+    // First, get the credential to access the imageUrl
+    const credential = await Credential.findOne({ _id: id, user: req.user._id });
+    if (!credential) return res.status(404).json({ message: 'Credential not found' });
+    
+    console.log('Found credential to delete:', {
+      id: credential._id,
+      title: credential.title,
+      imageUrl: credential.imageUrl
+    });
+    
+    // Delete the image from ImageKit if it exists
+    if (credential.imageUrl) {
+      console.log('Deleting image from ImageKit:', credential.imageUrl);
+      await deleteFile(credential.imageUrl);
+    } else {
+      console.log('No image URL found for this credential');
+    }
+    
+    // Delete the credential from database
+    await Credential.findOneAndDelete({ _id: id, user: req.user._id });
+    console.log('Credential deleted from database successfully');
+    
+    res.json({ message: 'Credential and associated image deleted successfully' });
   } catch (err) {
     console.error('Delete Credential Error:', err);
     res.status(500).json({ message: 'Failed to delete credential' });

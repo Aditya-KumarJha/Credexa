@@ -12,6 +12,7 @@ import {
 import {
   Card as AntCard,
   Modal,
+  Button as AntButton,
   Form,
   Input,
   Select,
@@ -71,7 +72,8 @@ interface Credential {
 
 // AntD v5: use Select options prop instead of Select.Option
 
-export default function CredentialsPage() {
+function CredentialsPageContent() {
+  const { message } = App.useApp();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const { theme: mode } = useTheme();
@@ -92,6 +94,8 @@ export default function CredentialsPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [addMethod, setAddMethod] = useState<"sync" | "upload" | "manual" | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [formValues, setFormValues] = useState<any>(null);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   // Simple catalog of supported platforms for the selector UI
   const platforms: { key: string; name: string; logo: string }[] = [
@@ -155,7 +159,13 @@ export default function CredentialsPage() {
         throw new Error(response.data?.message || 'Failed to extract information');
       }
     } catch (error: any) {
-      console.error('Extraction error:', error);
+      console.error('Extraction error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config
+      });
       console.error('Failed to extract certificate information:', error.response?.data?.message || error.message);
       return null;
     }
@@ -219,11 +229,24 @@ export default function CredentialsPage() {
     }
   };
 
+  const handleContinueToReview = async () => {
+    try {
+      const values = await form.validateFields();
+      console.log('Form validated successfully:', values);
+      setFormValues(values);
+      setCurrentStep(2);
+    } catch (error) {
+      console.error('Form validation failed:', error);
+      message.error("Please fill in all required fields");
+    }
+  };
+
   const openCreate = () => {
     setEditing(null);
     setFile(null);
     setAddMethod(null);
     setSelectedPlatform(null);
+    setFormValues(null);
     setCurrentStep(0);
     setIsModalOpen(true);
   };
@@ -268,77 +291,106 @@ export default function CredentialsPage() {
     const fd = new FormData();
     let payload: Record<string, any> = {};
 
-    if (addMethod === "sync") {
-      // Only allow file upload for sync path; create minimal defaults
-      if (!file) {
-        message.error("Please upload a certificate file to continue.");
-        return;
-      }
-      const inferredTitle = file.name?.replace(/\.[^/.]+$/, "") || "Synced Credential";
-      payload = {
-        title: inferredTitle,
-        issuer: selectedPlatform || "Unknown",
-        type: "certificate",
-        status: "pending",
-        issueDate: new Date().toISOString(),
-        expiryDate: "",
-        description: "",
-        credentialUrl: "",
-        nsqfLevel: "",
-        blockchainAddress: "",
-        transactionHash: "",
-        credentialId: "",
-        creditPoints: "",
-        skills: "",
-      };
-    } else {
-      // Manual / Upload go through the full details form
-      const values = await form.validateFields();
-      const skillArray = String(values.skills || "")
-        .split(",")
-        .map((s: string) => s.trim())
-        .filter(Boolean);
-      payload = {
-        title: values.title,
-        issuer: values.issuer,
-        type: values.type,
-        status: values.status || "pending",
-        issueDate: values.issueDate?.toISOString(),
-        expiryDate: values.expiryDate ? values.expiryDate.toISOString() : "",
-        description: values.description || "",
-        credentialUrl: values.credentialUrl || "",
-        nsqfLevel: values.nsqfLevel || "",
-        blockchainAddress: values.blockchainAddress || "",
-        transactionHash: values.transactionHash || "",
-        credentialId: values.credentialId || "",
-        creditPoints: values.creditPoints || "",
-        skills: skillArray.join(", "),
-      };
-    }
-
-    Object.entries(payload).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) fd.append(k, String(v));
-    });
-    if (file) fd.append("certificateFile", file);
-    if (!file && editing?.imageUrl) fd.append("imageUrl", editing.imageUrl);
-
     try {
+      if (addMethod === "sync") {
+        // Only allow file upload for sync path; create minimal defaults
+        if (!file) {
+          message.error("Please upload a certificate file to continue.");
+          return;
+        }
+        const inferredTitle = file.name?.replace(/\.[^/.]+$/, "") || "Synced Credential";
+        payload = {
+          title: inferredTitle,
+          issuer: selectedPlatform || "Unknown",
+          type: "certificate",
+          status: "pending",
+          issueDate: new Date().toISOString(),
+          expiryDate: "",
+          description: "",
+          credentialUrl: "",
+          nsqfLevel: "",
+          blockchainAddress: "",
+          transactionHash: "",
+          credentialId: "",
+          creditPoints: "",
+          skills: "",
+        };
+      } else {
+        // Manual / Upload go through the full details form
+        console.log('Current step:', currentStep);
+        console.log('Add method:', addMethod);
+        console.log('Stored form values:', formValues);
+        
+        // Use stored form values from step 1
+        const values = formValues;
+        
+        if (!values || !values.title) {
+          console.log('Title validation failed - values:', values);
+          message.error("Please go back and fill in the title field");
+          return;
+        }
+        
+        console.log('Using stored form values:', values);
+        
+        const skillArray = String(values.skills || "")
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+        payload = {
+          title: values.title,
+          issuer: values.issuer || "Unknown",
+          type: values.type || "certificate",
+          status: values.status || "pending",
+          issueDate: values.issueDate?.toISOString() || new Date().toISOString(),
+          expiryDate: values.expiryDate ? values.expiryDate.toISOString() : "",
+          description: values.description || "",
+          credentialUrl: values.credentialUrl || "",
+          nsqfLevel: values.nsqfLevel || "",
+          blockchainAddress: values.blockchainAddress || "",
+          transactionHash: values.transactionHash || "",
+          credentialId: values.credentialId || "",
+          creditPoints: values.creditPoints || "",
+          skills: skillArray.join(", "),
+        };
+      }      Object.entries(payload).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) fd.append(k, String(v));
+      });
+      if (file) fd.append("certificateFile", file);
+      if (!file && editing?.imageUrl) fd.append("imageUrl", editing.imageUrl);
+
+      console.log('Submitting credential with payload:', payload);
+      console.log('FormData contents:');
+      for (let [key, value] of fd.entries()) {
+        console.log(`${key}:`, value);
+      }
+
       if (editing?._id) {
         const res = await api.put(`/api/credentials/${editing._id}`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setItems((prev) => prev.map((x) => (x._id === res.data._id ? res.data : x)));
-        message.success("Updated");
+        message.success("Credential updated successfully!");
       } else {
         const res = await api.post(`/api/credentials`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setItems((prev) => [res.data, ...prev]);
-        message.success("Created");
+        message.success("Credential created successfully!");
       }
+      
+      // Reset all modal state
+      form.resetFields();
+      setFile(null);
+      setAddMethod(null);
+      setSelectedPlatform(null);
+      setFormValues(null);
+      setCurrentStep(0);
+      setEditing(null);
       setIsModalOpen(false);
-    } catch (e) {
-      message.error("Save failed");
+      
+    } catch (e: any) {
+      console.error('Save failed:', e);
+      message.error(e.response?.data?.message || "Failed to save credential");
     }
   };
 
@@ -574,9 +626,31 @@ export default function CredentialsPage() {
                     </Space>
                   }
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    {/* Certificate Image */}
+                    {c.imageUrl && (
+                      <div 
+                        className="w-full h-40 relative rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                        onClick={() => setViewingImage(c.imageUrl!)}
+                      >
+                        <img 
+                          src={c.imageUrl} 
+                          alt={`${c.title} certificate`}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 hover:opacity-100 transition-opacity">
+                            <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600" />
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                        <Award className="w-5 h-5 text-white" />
+                      </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Issuer</div>
                         <div className="text-foreground font-medium -mt-0.5">{c.issuer}</div>
@@ -593,20 +667,13 @@ export default function CredentialsPage() {
                       )}
                     </div>
                     {c.skills?.length ? (
-                      <div className="flex flex-wrap gap-1 pt-1">
+                      <div className="flex flex-wrap gap-1 pt-2">
                         {c.skills.slice(0, 5).map((s) => (
-                          <span key={s} className="px-2 py-0.5 text-xs rounded-md bg-muted text-foreground/80 border border-border">{s}</span>
+                          <span key={s} className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">{s}</span>
                         ))}
-                        {c.skills.length > 5 && <span className="px-2 py-0.5 text-xs rounded-md bg-muted text-foreground/80 border border-border">+{c.skills.length - 5}</span>}
+                        {c.skills.length > 5 && <span className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">+{c.skills.length - 5}</span>}
                       </div>
                     ) : null}
-                    <div className="flex gap-2 pt-2">
-                      {c.credentialUrl && (
-                        <a target="_blank" rel="noreferrer" href={c.credentialUrl} className="text-primary hover:underline flex items-center gap-1">
-                          <Download className="w-4 h-4" /> View Credential
-                        </a>
-                      )}
-                    </div>
                   </div>
                 </AntCard>
               </Col>
@@ -818,7 +885,7 @@ export default function CredentialsPage() {
               )}
               <div className="flex justify-between">
                 <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>
-                <Button onClick={() => setCurrentStep(2)}>Continue</Button>
+                <Button onClick={handleContinueToReview}>Continue</Button>
               </div>
             </Form>
           )}
@@ -837,8 +904,50 @@ export default function CredentialsPage() {
             </div>
           )}
         </Modal>
+
+        {/* Certificate Image Viewer Modal */}
+        <Modal
+          open={!!viewingImage}
+          onCancel={() => setViewingImage(null)}
+          footer={null}
+          width="90vw"
+          centered
+          styles={{
+            body: { padding: 0 },
+            content: { padding: 0 }
+          }}
+        >
+          {viewingImage && (
+            <div className="relative">
+              <img 
+                src={viewingImage} 
+                alt="Certificate"
+                className="w-full h-auto max-h-[80vh] object-contain"
+              />
+              <AntButton
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white border-none"
+                onClick={() => setViewingImage(null)}
+                shape="circle"
+                icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                }
+              />
+            </div>
+          )}
+        </Modal>
+
       </main>
       </div>
     </ConfigProvider>
+  );
+}
+
+export default function CredentialsPage() {
+  return (
+    <App>
+      <CredentialsPageContent />
+    </App>
   );
 }

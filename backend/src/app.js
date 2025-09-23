@@ -30,6 +30,19 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  if (req.method === 'DELETE') {
+    console.log('DELETE request details:', {
+      path: req.path,
+      params: req.params,
+      headers: req.headers.authorization ? 'Auth header present' : 'No auth header'
+    });
+  }
+  next();
+});
+
 app.use(passport.initialize());
 require('./config/passport');
 
@@ -43,6 +56,11 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/institute', instituteRoutes);
 
 app.get('/', (req, res) => res.send('API is running'));
+
+app.get('/test', (req, res) => {
+  console.log('Test endpoint hit!');
+  res.json({ message: 'Backend is working!', timestamp: new Date().toISOString() });
+});
 
 app.use((err, req, res, next) => {
   if (err.message.startsWith('CORS')) {
