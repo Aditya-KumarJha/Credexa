@@ -79,6 +79,35 @@ export default function CredentialsPage() {
   const [items, setItems] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  // State for blockchain anchoring
+  const [anchoringId, setAnchoringId] = useState<string | null>(null);
+  // Handler to anchor a credential on the blockchain
+  const handleAnchorCredential = async (credentialId?: string) => {
+    if (!credentialId) return;
+    setAnchoringId(credentialId);
+    const token = localStorage.getItem("authToken");
+    try {
+      message.loading({ content: 'Generating secure hash...', key: 'anchor' });
+      const hashRes = await api.post(`/api/credentials/${credentialId}/generate-hash`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const { hash } = hashRes.data;
+
+      message.loading({ content: 'Anchoring on the blockchain...', key: 'anchor' });
+      const anchorRes = await api.post('/api/credentials/anchor', { hash }, { headers: { Authorization: `Bearer ${token}` } });
+      const { transactionHash } = anchorRes.data;
+
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item._id === credentialId ? { ...item, transactionHash } : item
+        )
+      );
+      message.success({ content: 'Credential anchored successfully!', key: 'anchor' });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || "Anchoring failed.";
+      message.error({ content: errorMessage, key: 'anchor' });
+    } finally {
+      setAnchoringId(null);
+    }
+  };
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [issuerFilter, setIssuerFilter] = useState<string>("all");
@@ -534,6 +563,35 @@ export default function CredentialsPage() {
                         <a target="_blank" rel="noreferrer" href={c.credentialUrl} className="text-primary hover:underline flex items-center gap-1">
                           <Download className="w-4 h-4" /> View Credential
                         </a>
+                      )}
+                      {/* Blockchain anchor button/indicator */}
+                      {c.transactionHash ? (
+                        <a
+                          target="_blank"
+                          rel="noreferrer"
+                          href={`https://sepolia.etherscan.io/tx/${c.transactionHash}`}
+                          className="text-emerald-500 hover:underline flex items-center gap-1 text-sm"
+                        >
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 mr-1"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          On-Chain Proof
+                        </a>
+                      ) : (
+                        c.status === 'verified' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-transparent text-sm"
+                            onClick={() => handleAnchorCredential(c._id)}
+                            disabled={anchoringId === c._id}
+                          >
+                            {anchoringId === c._id ? "Anchoring..." : (
+                              <>
+                                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 mr-2"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 14.828a4 4 0 01-5.656-5.656l4-4a4 4 0 015.656 5.656l-1 1" /></svg>
+                                Anchor on Blockchain
+                              </>
+                            )}
+                          </Button>
+                        )
                       )}
                     </div>
                   </div>
