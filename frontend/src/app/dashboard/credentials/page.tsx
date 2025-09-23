@@ -342,9 +342,43 @@ export default function CredentialsPage() {
     }
   };
 
-  const handleAnchor = () => {
-    // Placeholder for anchoring logic (e.g., computing hash and sending to chain/service)
-    message.info("Anchor action coming soon");
+  const handleAnchor = async () => {
+    if (!editing?._id) {
+      message.error("Please save the credential first");
+      return;
+    }
+
+    const token = localStorage.getItem("authToken");
+    if (!token) return router.replace("/login");
+
+    try {
+      // Step 1: Generate hash for the credential
+      const hashRes = await api.post(`/api/credentials/${editing._id}/generate-hash`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { hash } = hashRes.data;
+
+      // Step 2: Anchor the hash to blockchain
+      const anchorRes = await api.post('/api/credentials/anchor', { hash }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Step 3: Update the credential with transaction hash
+      if (anchorRes.data.transactionHash) {
+        const credRes = await api.put(`/api/credentials/${editing._id}`, {
+          transactionHash: anchorRes.data.transactionHash,
+          status: 'verified'
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setItems((prev) => prev.map((x) => (x._id === credRes.data._id ? credRes.data : x)));
+        message.success("Credential anchored successfully!");
+        setIsModalOpen(false);
+      }
+    } catch (err) {
+      console.error('Anchor Error:', err);
+      message.error("Failed to anchor credential");
+    }
   };
 
   const statusTag = (status: CredentialStatus) => {
