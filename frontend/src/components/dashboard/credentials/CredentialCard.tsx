@@ -12,14 +12,13 @@ import {
   Download,
   Eye,
   Link,
+  Anchor,
 } from "lucide-react";
 import dayjs from "dayjs";
-import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Credential, CredentialStatus } from "@/types/credentials";
 
 interface CredentialCardProps {
   credential: Credential;
-  onEdit: (credential: Credential) => void;
   onDelete: (id?: string) => void;
   onViewImage: (imageUrl: string) => void;
   onViewDetails: (id?: string) => void;
@@ -29,23 +28,24 @@ interface CredentialCardProps {
   loadingDetails: boolean;
 }
 
-const statusTag = (status: CredentialStatus) => {
+const blockchainStatusTag = (transactionHash: string | undefined) => {
   const base = "px-2 py-0.5 text-xs rounded-md inline-flex items-center gap-1 border";
-  if (status === "verified") return (
-    <span className={`${base} bg-emerald-500/10 text-emerald-500 border-emerald-500/20`}>
-      <CheckCircle className="w-3.5 h-3.5" /> Verified
-    </span>
-  );
+  if (transactionHash) {
+    return (
+      <span className={`${base} bg-emerald-500/10 text-emerald-500 border-emerald-500/20`}>
+        <Shield className="w-3.5 h-3.5" /> On-Chain Proof
+      </span>
+    );
+  }
   return (
-    <span className={`${base} bg-yellow-500/10 text-yellow-500 border-yellow-500/20`}>
-      <Clock className="w-3.5 h-3.5" /> Pending
+    <span className={`${base} bg-gray-500/10 text-gray-500 border-gray-500/20`}>
+      <Clock className="w-3.5 h-3.5" /> No On-Chain Proof
     </span>
   );
 };
 
 export const CredentialCard: React.FC<CredentialCardProps> = ({
   credential: c,
-  onEdit,
   onDelete,
   onViewImage,
   onViewDetails,
@@ -55,7 +55,7 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
   loadingDetails,
 }) => {
   return (
-    <CardSpotlight className="h-full border-0 shadow-lg hover:shadow-xl transition bg-card/80 p-0 rounded-lg">
+    <div className="h-full border-0 shadow-lg bg-card/80 p-0 rounded-lg">
       {/* Card Header */}
       <div className="px-5 py-4 border-b border-white/10 relative">
         <div className="flex items-center gap-2 text-sm mb-3">
@@ -64,7 +64,7 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            {statusTag(c.status)}
+            {blockchainStatusTag(c.transactionHash)}
           </div>
           {/* Action Buttons */}
           <div className="relative z-50">
@@ -94,14 +94,22 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-sm border-gray-200 text-gray-700 hover:text-gray-900"
+                className="bg-white/90 backdrop-blur-sm hover:bg-blue-50 shadow-sm border-gray-200 text-blue-600 hover:text-blue-700"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onEdit(c);
+                  onAnchor(c._id);
                 }}
+                disabled={anchoringId === c._id}
               >
-                <Edit className="w-3 h-3" />
+                {anchoringId === c._id ? (
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <Anchor className="w-3 h-3" />
+                )}
               </Button>
               <Popconfirm
                 title="Delete this credential?"
@@ -140,7 +148,7 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
             </a>
           )}
 
-          {c.transactionHash ? (
+          {c.transactionHash && (
             <div className="flex justify-between items-center w-full">
               <a
                 target="_blank"
@@ -169,23 +177,6 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
                 View Details
               </button>
             </div>
-          ) : (
-            c.status === 'verified' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-transparent text-sm"
-                onClick={() => onAnchor(c._id)}
-                disabled={anchoringId === c._id}
-              >
-                {anchoringId === c._id ? "Anchoring..." : (
-                  <>
-                    <Link className="w-4 h-4 mr-2" />
-                    Anchor on Blockchain
-                  </>
-                )}
-              </Button>
-            )
           )}
         </div>
 
@@ -262,6 +253,6 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
           )}
         </div>
       </div>
-    </CardSpotlight>
+    </div>
   );
 };

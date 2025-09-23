@@ -11,7 +11,16 @@ export const filterCredentials = (items: Credential[], filters: CredentialFilter
       c.issuer.toLowerCase().includes(search.toLowerCase()) ||
       (c.skills || []).some((s) => s.toLowerCase().includes(search.toLowerCase()));
     const matchesType = typeFilter === "all" || c.type === typeFilter;
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+    
+    // Updated blockchain-based status filtering
+    let matchesStatus = true;
+    if (statusFilter === "anchored") {
+      matchesStatus = !!c.transactionHash;
+    } else if (statusFilter === "not-anchored") {
+      matchesStatus = !c.transactionHash;
+    }
+    // "all" case: matchesStatus remains true
+    
     const matchesIssuer = issuerFilter === "all" || c.issuer === issuerFilter;
     return matchesSearch && matchesType && matchesStatus && matchesIssuer;
   });

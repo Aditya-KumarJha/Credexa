@@ -144,3 +144,36 @@
 .dark .ant-pagination .ant-pagination-item:hover a {
   color: var(--foreground);
 }
+
+/* Consistent placeholder colors for better readability */
+.ant-input::placeholder,
+.ant-input-affix-wrapper .ant-input::placeholder,
+.ant-select .ant-select-selection-placeholder,
+.ant-cascader .ant-select-selection-placeholder,
+.ant-picker .ant-picker-input input::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 0.8 !important;
+}
+
+/* Dark mode placeholder colors */
+.dark .ant-input::placeholder,
+.dark .ant-input-affix-wrapper .ant-input::placeholder,
+.dark .ant-select .ant-select-selection-placeholder,
+.dark .ant-cascader .ant-select-selection-placeholder,
+.dark .ant-picker .ant-picker-input input::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 0.7 !important;
+}
+
+/* Ensure Input.TextArea placeholders are also consistent */
+.ant-input::placeholder,
+textarea.ant-input::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 0.8 !important;
+}
+
+.dark .ant-input::placeholder,
+.dark textarea.ant-input::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 0.7 !important;
+}
