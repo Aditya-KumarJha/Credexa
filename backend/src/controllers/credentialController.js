@@ -227,6 +227,51 @@ const generateCredentialHashController = async (req, res) => {
     }
 };
 
+const getCredentialDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find the credential ensuring it belongs to the logged-in user
+        const cred = await Credential.findOne({ _id: id, user: req.user._id });
+
+        if (!cred) {
+            return res.status(404).json({ message: 'Credential not found' });
+        }
+
+        // If the credential has been anchored, also get blockchain verification data
+        let blockchainData = null;
+        if (cred.credentialHash) {
+            try {
+                const verificationData = await verifyCredential(cred.credentialHash);
+                if (verificationData) {
+                    blockchainData = {
+                        issuer: verificationData.issuer,
+                        timestamp: Number(verificationData.timestamp),
+                        timestampDate: new Date(Number(verificationData.timestamp) * 1000).toISOString(),
+                        verified: true
+                    };
+                }
+            } catch (verifyError) {
+                console.error('Error verifying credential on blockchain:', verifyError);
+                blockchainData = { verified: false, error: 'Failed to verify on blockchain' };
+            }
+        }
+
+        // Return detailed credential information
+        const response = {
+            credential: cred,
+            blockchain: blockchainData,
+            anchored: !!cred.transactionHash,
+            verificationUrl: cred.credentialHash ? `${req.protocol}://${req.get('host')}/api/credentials/verify/${cred.credentialHash}` : null
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Get Credential Details Error:', error);
+        res.status(500).json({ error: 'Failed to get credential details.', details: error.message });
+    }
+};
+
 // Certificate Information Extraction Function
 const extractCertificateInfo = async (req, res) => {
   try {
@@ -271,5 +316,6 @@ module.exports = {
   anchorCredentialController, 
   verifyCredentialController, 
   generateCredentialHashController,
+  getCredentialDetails,
   extractCertificateInfo,
 };

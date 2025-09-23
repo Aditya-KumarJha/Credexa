@@ -9,6 +9,7 @@ const {
   anchorCredentialController,
   verifyCredentialController,
   generateCredentialHashController,
+  getCredentialDetails,
   extractCertificateInfo,
 } = require('../controllers/credentialController');
 
@@ -43,6 +44,7 @@ router.post('/extract', upload.single('certificateFile'), extractCertificateInfo
 
 // --- EXISTING DATABASE ROUTES (UNCHANGED) ---
 router.get('/', listCredentials);
+router.get('/:id', getCredentialDetails);
 router.post('/', upload.single('certificateFile'), createCredential);
 router.put('/:id', updateCredential);
 router.delete('/:id', deleteCredential);

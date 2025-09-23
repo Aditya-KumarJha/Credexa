@@ -41,6 +41,12 @@ import {
   AlertCircle,
   Share2,
   Download,
+  Eye,
+  ExternalLink,
+  Calendar,
+  User,
+  Shield,
+  Link,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { useTheme } from "next-themes";
@@ -108,6 +114,28 @@ function CredentialsPageContent() {
       setAnchoringId(null);
     }
   };
+
+  // Handler to view credential details
+  const handleViewDetails = async (credentialId?: string) => {
+    if (!credentialId) return;
+    setLoadingDetails(true);
+    const token = localStorage.getItem("authToken");
+    
+    try {
+      const response = await api.get(`/api/credentials/${credentialId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setViewingDetails(response.data);
+      setDetailsModalOpen(true);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Failed to load credential details.";
+      message.error(errorMessage);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [issuerFilter, setIssuerFilter] = useState<string>("all");
@@ -122,6 +150,9 @@ function CredentialsPageContent() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<any>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [viewingDetails, setViewingDetails] = useState<any>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [skillsData, setSkillsData] = useState<{
     categories: any;
     allSkills: string[];
@@ -680,12 +711,39 @@ function CredentialsPageContent() {
                       <span className="truncate pr-20">{c.title}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <div>
+                      <div className="flex items-center gap-2">
                         {statusTag(c.status)}
+                        {c.transactionHash && (
+                          <span className="px-2 py-0.5 text-xs rounded-md inline-flex items-center gap-1 border bg-blue-500/10 text-blue-500 border-blue-500/20">
+                            <Shield className="w-3 h-3" /> Blockchain Verified
+                          </span>
+                        )}
                       </div>
                       {/* Action Buttons - Positioned in header with proper z-index */}
                       <div className="relative z-50">
                         <Space size="small">
+                          {c.transactionHash && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="bg-white/90 backdrop-blur-sm hover:bg-blue-50 shadow-sm border-gray-200 text-blue-600 hover:text-blue-700" 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleViewDetails(c._id);
+                              }}
+                              disabled={loadingDetails}
+                            >
+                              {loadingDetails ? (
+                                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <Eye className="w-3 h-3" />
+                              )}
+                            </Button>
+                          )}
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -1051,6 +1109,220 @@ function CredentialsPageContent() {
                   </svg>
                 }
               />
+            </div>
+          )}
+        </Modal>
+
+        {/* Credential Details Modal */}
+        <Modal
+          open={detailsModalOpen}
+          onCancel={() => {
+            setDetailsModalOpen(false);
+            setViewingDetails(null);
+          }}
+          title={
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-blue-600" />
+              <span>Credential Details</span>
+            </div>
+          }
+          footer={null}
+          width={800}
+        >
+          {viewingDetails && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="border border-border rounded-lg p-4 bg-card">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
+                  <Award className="w-5 h-5 text-primary" />
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Title</label>
+                    <p className="text-foreground font-medium mt-1">{viewingDetails.credential.title}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Issuer</label>
+                    <p className="text-foreground font-medium mt-1">{viewingDetails.credential.issuer}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Type</label>
+                    <p className="text-foreground font-medium mt-1 capitalize">{viewingDetails.credential.type}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Issue Date</label>
+                    <p className="text-foreground font-medium mt-1">
+                      {dayjs(viewingDetails.credential.issueDate).format("MMMM D, YYYY")}
+                    </p>
+                  </div>
+                  {viewingDetails.credential.creditPoints && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Credit Points</label>
+                      <p className="text-foreground font-medium mt-1">{viewingDetails.credential.creditPoints}</p>
+                    </div>
+                  )}
+                  {viewingDetails.credential.nsqfLevel && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">NSQF Level</label>
+                      <p className="text-foreground font-medium mt-1">{viewingDetails.credential.nsqfLevel}</p>
+                    </div>
+                  )}
+                </div>
+                {viewingDetails.credential.description && (
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-muted-foreground">Description</label>
+                    <p className="text-foreground mt-1 leading-relaxed">{viewingDetails.credential.description}</p>
+                  </div>
+                )}
+                {viewingDetails.credential.skills?.length > 0 && (
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-muted-foreground">Skills</label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {viewingDetails.credential.skills.map((skill: string, index: number) => (
+                        <span 
+                          key={index}
+                          className="px-3 py-1 text-sm bg-primary/10 text-primary rounded-full border border-primary/20"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Blockchain Information */}
+              {viewingDetails.anchored && (
+                <div className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50 dark:bg-green-950/30">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
+                    <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    Blockchain Verification
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Status</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-green-700 dark:text-green-300 font-medium">Verified on Blockchain</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Transaction Hash</label>
+                      <p className="text-foreground font-mono text-sm break-all mt-1 bg-background/50 p-2 rounded border">
+                        {viewingDetails.credential.transactionHash}
+                      </p>
+                    </div>
+                    {viewingDetails.credential.credentialHash && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Credential Hash</label>
+                        <p className="text-foreground font-mono text-sm break-all mt-1 bg-background/50 p-2 rounded border">
+                          {viewingDetails.credential.credentialHash}
+                        </p>
+                      </div>
+                    )}
+                    {viewingDetails.blockchain && viewingDetails.blockchain.verified && (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Blockchain Issuer</label>
+                          <p className="text-foreground font-medium mt-1">{viewingDetails.blockchain.issuer}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Blockchain Timestamp</label>
+                          <p className="text-foreground font-medium mt-1">
+                            {dayjs(viewingDetails.blockchain.timestampDate).format("MMMM D, YYYY [at] h:mm A")}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                    {viewingDetails.verificationUrl && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Public Verification URL</label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Link className="w-4 h-4 text-primary" />
+                          <a 
+                            href={viewingDetails.verificationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary/80 hover:underline text-sm"
+                          >
+                            Verify Publicly
+                          </a>
+                          <ExternalLink className="w-3 h-3 text-primary" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Information */}
+              <div className="border border-border rounded-lg p-4 bg-card">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  Additional Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Created</label>
+                    <p className="text-foreground mt-1">
+                      {dayjs(viewingDetails.credential.createdAt).format("MMMM D, YYYY [at] h:mm A")}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
+                    <p className="text-foreground mt-1">
+                      {dayjs(viewingDetails.credential.updatedAt).format("MMMM D, YYYY [at] h:mm A")}
+                    </p>
+                  </div>
+                  {viewingDetails.credential.credentialId && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Credential ID</label>
+                      <p className="text-foreground font-mono text-sm mt-1 bg-background/50 p-2 rounded border">
+                        {viewingDetails.credential.credentialId}
+                      </p>
+                    </div>
+                  )}
+                  {viewingDetails.credential.credentialUrl && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Original URL</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <ExternalLink className="w-4 h-4 text-primary" />
+                        <a 
+                          href={viewingDetails.credential.credentialUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary/80 hover:underline text-sm"
+                        >
+                          View Original Certificate
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Certificate Image */}
+              {viewingDetails.credential.imageUrl && (
+                <div className="border border-border rounded-lg p-4 bg-card">
+                  <h3 className="text-lg font-semibold mb-3 text-foreground">Certificate Image</h3>
+                  <div 
+                    className="w-full h-64 relative rounded-lg overflow-hidden bg-background border cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setViewingImage(viewingDetails.credential.imageUrl)}
+                  >
+                    <img 
+                      src={viewingDetails.credential.imageUrl} 
+                      alt={`${viewingDetails.credential.title} certificate`}
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
+                      <div className="bg-background/90 backdrop-blur-sm rounded-full p-3 opacity-0 hover:opacity-100 transition-opacity border">
+                        <Eye className="w-6 h-6 text-foreground" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Modal>
