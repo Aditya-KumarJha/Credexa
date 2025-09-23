@@ -1,82 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar"), { ssr: false });
 import api from "@/utils/axios";
-import {
-  Button,
-} from "@/components/ui/button";
-import {
-  Card as AntCard,
-  Modal,
-  Button as AntButton,
-  Form,
-  Input,
-  Select,
-  Skeleton,
-  DatePicker,
-  Upload,
-  Row,
-  Col,
-  Space,
-  Empty,
-  Popconfirm,
-  message,
-  Steps,
-  Radio,
-  ConfigProvider,
-  theme as antdTheme,
-  App,
-} from "antd";
-import {
-  Award,
-  Plus,
-  Edit,
-  Trash2,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Share2,
-  Download,
-  Eye,
-  ExternalLink,
-  Calendar,
-  User,
-  Shield,
-  Link,
-} from "lucide-react";
-import dayjs from "dayjs";
+import { Button } from "@/components/ui/button";
+import { Card as AntCard, Form, Row, Col, Space, Empty, Skeleton, ConfigProvider, theme as antdTheme, App } from "antd";
+import { Plus, Share2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
-import { CardSpotlight } from "@/components/ui/card-spotlight";
 
-type CredentialType = "certificate" | "degree" | "license" | "badge";
-type CredentialStatus = "verified" | "pending";
-
-interface Credential {
-  _id?: string;
-  title: string;
-  issuer: string;
-  type: CredentialType;
-  status: CredentialStatus;
-  issueDate: string; // ISO
-  description?: string;
-  skills: string[];
-  credentialUrl?: string;
-  imageUrl?: string;
-  nsqfLevel?: number;
-  blockchainAddress?: string;
-  transactionHash?: string;
-  issuerLogo?: string;
-  credentialId?: string;
-  creditPoints?: number;
-  createdAt?: string;
-}
-
-// AntD v5: use Select options prop instead of Select.Option
+import { useCredentials } from "@/hooks/useCredentials";
+import { useSkills } from "@/hooks/useSkills";
+import { useCredentialActions } from "@/hooks/useCredentialActions";
+import { useCredentialModal, useImageModal, useDetailsModal, useOnChainModal } from "@/hooks/useModals";
+import { CredentialCard } from "@/components/dashboard/credentials/CredentialCard";
+import { CredentialStats } from "@/components/dashboard/credentials/CredentialStats";
+import { CredentialFiltersComponent } from "@/components/dashboard/credentials/CredentialFilters";
+import { CredentialModal } from "@/components/dashboard/credentials/CredentialModal";
+import { ImageViewerModal } from "@/components/dashboard/credentials/ImageViewerModal";
+import { CredentialDetailsModal } from "@/components/dashboard/credentials/CredentialDetailsModal";
+import { OnChainDetailsModal } from "@/components/dashboard/credentials/OnChainDetailsModal";
+import { filterCredentials, sortCredentials, getUniqueIssuers } from "@/utils/credentialUtils";
+import { Credential, CredentialFilters } from "@/types/credentials";
 
 function CredentialsPageContent() {
   const { message } = App.useApp();
@@ -84,303 +30,95 @@ function CredentialsPageContent() {
   useEffect(() => setMounted(true), []);
   const { theme: mode } = useTheme();
   const isDark = (mode ?? "light") === "dark";
-  const router = useRouter();
-  const [items, setItems] = useState<Credential[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  // State for blockchain anchoring
-  const [anchoringId, setAnchoringId] = useState<string | null>(null);
-  // Handler to anchor a credential on the blockchain
-  const handleAnchorCredential = async (credentialId?: string) => {
-    if (!credentialId) return;
-    setAnchoringId(credentialId);
-    const token = localStorage.getItem("authToken");
-    try {
-      message.loading({ content: 'Anchoring on the blockchain...', key: 'anchor' });
-      // New API call: No request body needed
-      const anchorRes = await api.post(`/api/credentials/${credentialId}/anchor`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      const { transactionHash } = anchorRes.data;
 
-      setItems((prevItems) =>
-        prevItems.map((item) =>
-          item._id === credentialId ? { ...item, transactionHash } : item
-        )
-      );
-      message.success({ content: 'Credential anchored successfully!', key: 'anchor' });
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || "Anchoring failed.";
-      message.error({ content: errorMessage, key: 'anchor' });
-    } finally {
-      setAnchoringId(null);
-    }
-  };
+  // Use our custom hooks
+  const { items, loading, handleDelete, addCredential, updateCredential, fetchItems } = useCredentials();
+  const { skillsData, loadingSkills } = useSkills();
+  const { anchoringId, loadingDetails, handleAnchorCredential, handleViewDetails, fetchOnChainDetails } = useCredentialActions();
+  
+  // Modal hooks
+  const modalHook = useCredentialModal();
+  const imageModal = useImageModal();
+  const detailsModal = useDetailsModal();
+  const onChainModal = useOnChainModal();
 
-  // Handler to view credential details
-  const handleViewDetails = async (credentialId?: string) => {
-    if (!credentialId) return;
-    setLoadingDetails(true);
-    const token = localStorage.getItem("authToken");
-    
-    try {
-      const response = await api.get(`/api/credentials/${credentialId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      setViewingDetails(response.data);
-      setDetailsModalOpen(true);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Failed to load credential details.";
-      message.error(errorMessage);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [issuerFilter, setIssuerFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<
-    "newest" | "oldest" | "az" | "za" | "pointsDesc" | "pointsAsc"
-  >("newest");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Credential | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [addMethod, setAddMethod] = useState<"sync" | "upload" | "manual" | null>(null);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<any>(null);
-  const [viewingImage, setViewingImage] = useState<string | null>(null);
-  const [viewingDetails, setViewingDetails] = useState<any>(null);
-  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [skillsData, setSkillsData] = useState<{
-    categories: any;
-    allSkills: string[];
-    filterCategories: any[];
-  }>({ categories: {}, allSkills: [], filterCategories: [] });
-  const [loadingSkills, setLoadingSkills] = useState(false);
-
-  // Simple catalog of supported platforms for the selector UI
-  const platforms: { key: string; name: string; logo: string }[] = [
-    { key: "coursera", name: "Coursera", logo: "/coursera-logo.png" },
-    { key: "udemy", name: "Udemy", logo: "/placeholder-logo.png" },
-    { key: "nptel", name: "NPTEL", logo: "/placeholder-logo.png" },
-    { key: "edx", name: "edX", logo: "/placeholder-logo.png" },
-    { key: "linkedin", name: "LinkedIn Learning", logo: "/placeholder-logo.png" },
-    { key: "google", name: "Google", logo: "/google-logo.png" },
-    { key: "microsoft", name: "Microsoft", logo: "/microsoft-logo.png" },
-    { key: "ibm", name: "IBM", logo: "/ibm-logo.png" },
-    { key: "aws", name: "AWS", logo: "/aws-logo.png" },
-  ];
-
-  const fetchItems = async () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) return router.replace("/login");
-    try {
-      const res = await api.get("/api/credentials", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setItems(res.data);
-    } catch (e: any) {
-      if (e?.response?.status === 401) {
-        localStorage.removeItem("authToken");
-        return router.replace("/login?error=session_expired");
-      }
-      message.error("Failed to load credentials");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSkills = async () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) return;
-    
-    setLoadingSkills(true);
-    try {
-      const res = await api.get("/api/skills", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSkillsData(res.data);
-    } catch (e: any) {
-      console.error("Failed to load skills data:", e);
-      // Don't show error message as this is not critical
-    } finally {
-      setLoadingSkills(false);
-    }
-  };
-
-  // Certificate extraction function
-  const extractCertificateInfo = async (file: File) => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      message.error("Please login first");
-      return null;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('certificateFile', file);
-      
-      // Show loading message
-      message.loading({ content: 'Extracting certificate information...', key: 'extract' });
-      
-      const response = await api.post('/api/credentials/extract', formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Don't set Content-Type, let axios set it with boundary for multipart
-        },
-        timeout: 30000, // 30 second timeout for extraction
-      });
-
-      message.success({ content: 'Certificate information extracted successfully!', key: 'extract' });
-      
-      if (response.data && response.data.success && response.data.extracted) {
-        return response.data.extracted;
-      } else {
-        throw new Error(response.data?.error || response.data?.message || 'Failed to extract information');
-      }
-    } catch (error: any) {
-      console.error('Extraction error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: error.config
-      });
-      
-      let errorMessage = 'Failed to extract certificate information';
-      
-      if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Extraction timed out. Please try again with a clearer image.';
-      } else if (error.response?.status === 400) {
-        errorMessage = error.response?.data?.error || 'Invalid image file. Please upload a clear certificate image.';
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Extraction service error. Please try again or fill the form manually.';
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
-      message.error({ content: errorMessage, key: 'extract' });
-      return null;
-    }
-  };
-
-  useEffect(() => {
-    fetchItems();
-    fetchSkills();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const filtered = useMemo(() => {
-    const base = items.filter((c) => {
-      const matchesSearch =
-        c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.issuer.toLowerCase().includes(search.toLowerCase()) ||
-        (c.skills || []).some((s) => s.toLowerCase().includes(search.toLowerCase()));
-      const matchesType = typeFilter === "all" || c.type === typeFilter;
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-      const matchesIssuer = issuerFilter === "all" || c.issuer === issuerFilter;
-      return matchesSearch && matchesType && matchesStatus && matchesIssuer;
-    });
-    const sorted = [...base].sort((a, b) => {
-      if (sortKey === "newest") {
-        return (new Date(b.issueDate).getTime() || 0) - (new Date(a.issueDate).getTime() || 0);
-      }
-      if (sortKey === "oldest") {
-        return (new Date(a.issueDate).getTime() || 0) - (new Date(b.issueDate).getTime() || 0);
-      }
-      if (sortKey === "az") {
-        return a.title.localeCompare(b.title);
-      }
-      if (sortKey === "za") {
-        return b.title.localeCompare(a.title);
-      }
-      if (sortKey === "pointsDesc") {
-        return (b.creditPoints || 0) - (a.creditPoints || 0);
-      }
-      if (sortKey === "pointsAsc") {
-        return (a.creditPoints || 0) - (b.creditPoints || 0);
-      }
-      return 0;
-    });
-    return sorted;
-  }, [items, search, typeFilter, statusFilter, issuerFilter, sortKey]);
-
-  // Derived options
-  const uniqueIssuers = useMemo(() => {
-    const set = new Set(items.map((it) => it.issuer).filter(Boolean));
-    return ["all", ...Array.from(set)] as string[];
-  }, [items]);
-
-  const handleDelete = async (id?: string) => {
-    if (!id) return;
-    const token = localStorage.getItem("authToken");
-    try {
-      await api.delete(`/api/credentials/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      setItems((prev) => prev.filter((x) => x._id !== id));
-      message.success("Deleted");
-    } catch {
-      message.error("Delete failed");
-    }
-  };
-
-  const handleContinueToReview = async () => {
-    try {
-      const values = await form.validateFields();
-      console.log('Form validated successfully:', values);
-      setFormValues(values);
-      setCurrentStep(2);
-    } catch (error) {
-      console.error('Form validation failed:', error);
-      message.error("Please fill in all required fields");
-    }
-  };
-
-  const openCreate = () => {
-    setEditing(null);
-    setFile(null);
-    setAddMethod(null);
-    setSelectedPlatform(null);
-    setFormValues(null);
-    setCurrentStep(0);
-    setIsModalOpen(true);
-  };
-
-  const openEdit = (c: Credential) => {
-    setEditing(c);
-    setFile(null);
-    setAddMethod("manual");
-    setCurrentStep(1);
-    setIsModalOpen(true);
-  };
+  // Local state for filters
+  const [filters, setFilters] = useState<CredentialFilters>({
+    search: "",
+    typeFilter: "all",
+    statusFilter: "all",
+    issuerFilter: "all",
+    sortKey: "newest",
+  });
 
   const [form] = Form.useForm();
 
-  // Initialize or reset form only when the Form is actually rendered (step 1)
-  useEffect(() => {
-    if (!isModalOpen || currentStep !== 1) return;
-    if (editing) {
-      form.setFieldsValue({
-        title: editing.title,
-        issuer: editing.issuer,
-        type: editing.type,
-        issueDate: editing.issueDate ? dayjs(editing.issueDate) : undefined,
-        description: editing.description,
-        skills: editing.skills || [],
-        credentialUrl: editing.credentialUrl,
-        nsqfLevel: editing.nsqfLevel,
-        blockchainAddress: editing.blockchainAddress,
-        transactionHash: editing.transactionHash,
-        credentialId: editing.credentialId,
-        creditPoints: editing.creditPoints,
-      });
-    } else {
-      form.resetFields();
+  // Computed values
+  const filteredItems = useMemo(() => {
+    const filtered = filterCredentials(items, filters);
+    return sortCredentials(filtered, filters.sortKey);
+  }, [items, filters]);
+
+  const uniqueIssuers = useMemo(() => getUniqueIssuers(items), [items]);
+
+  // Handlers
+  const handleFiltersChange = (newFilters: Partial<CredentialFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  const handleViewDetailsClick = async (credentialId?: string) => {
+    const details = await handleViewDetails(credentialId);
+    if (details) {
+      detailsModal.openDetailsModal(details);
     }
-  }, [isModalOpen, currentStep, editing, form]);
+  };
+
+  const handleShowOnChainDetails = async (credential: Credential) => {
+    console.log('🚀 handleShowOnChainDetails called');
+    console.log('📦 Received credential:', credential);
+    
+    if (!credential.credentialHash) {
+      console.error('❌ Credential hash is missing!');
+      console.log('📋 Full credential object:', credential);
+      message.error("Credential hash is missing. Cannot fetch details.");
+      return;
+    }
+    
+    console.log('✅ Credential hash found:', credential.credentialHash);
+    console.log('🔄 Setting modal loading to true');
+    onChainModal.setIsModalLoading(true);
+    onChainModal.openOnChainModal(null);
+    
+    console.log('📡 Calling fetchOnChainDetails with hash:', credential.credentialHash);
+    const data = await fetchOnChainDetails(credential.credentialHash);
+    
+    console.log('📥 Response from fetchOnChainDetails:', data);
+    if (data) {
+      console.log('✅ Opening modal with data:', data);
+      onChainModal.openOnChainModal(data);
+    } else {
+      console.log('❌ No data received, closing modal');
+      onChainModal.closeOnChainModal();
+    }
+    console.log('🔄 Setting modal loading to false');
+    onChainModal.setIsModalLoading(false);
+  };
+
+  const handleAnchorCredentialClick = async (credentialId?: string) => {
+    console.log('⚓ handleAnchorCredentialClick called with ID:', credentialId);
+    
+    const transactionHash = await handleAnchorCredential(credentialId);
+    console.log('📄 Anchoring result - Transaction hash:', transactionHash);
+    
+    if (transactionHash && credentialId) {
+      console.log('✅ Anchoring successful, refreshing credentials list...');
+      // Refresh the credentials list to get the updated credentialHash
+      await fetchItems();
+      console.log('🔄 Credentials list refreshed');
+    } else {
+      console.log('❌ Anchoring failed or missing data');
+    }
+  };
 
   const submitForm = async () => {
     const token = localStorage.getItem("authToken");
@@ -388,16 +126,15 @@ function CredentialsPageContent() {
     let payload: Record<string, any> = {};
 
     try {
-      if (addMethod === "sync") {
-        // Only allow file upload for sync path; create minimal defaults
-        if (!file) {
+      if (modalHook.addMethod === "sync") {
+        if (!modalHook.file) {
           message.error("Please upload a certificate file to continue.");
           return;
         }
-        const inferredTitle = file.name?.replace(/\.[^/.]+$/, "") || "Synced Credential";
+        const inferredTitle = modalHook.file.name?.replace(/\.[^/.]+$/, "") || "Synced Credential";
         payload = {
           title: inferredTitle,
-          issuer: selectedPlatform || "Unknown",
+          issuer: modalHook.selectedPlatform || "Unknown",
           type: "certificate",
           status: "pending",
           issueDate: new Date().toISOString(),
@@ -411,22 +148,12 @@ function CredentialsPageContent() {
           skills: "",
         };
       } else {
-        // Manual / Upload go through the full details form
-        console.log('Current step:', currentStep);
-        console.log('Add method:', addMethod);
-        console.log('Stored form values:', formValues);
-        
-        // Use stored form values from step 1
-        const values = formValues;
-        
+        const values = modalHook.formValues;
         if (!values || !values.title) {
-          console.log('Title validation failed - values:', values);
           message.error("Please go back and fill in the title field");
           return;
         }
-        
-        console.log('Using stored form values:', values);
-        
+
         const skillArray = Array.isArray(values.skills) 
           ? values.skills 
           : String(values.skills || "")
@@ -448,42 +175,30 @@ function CredentialsPageContent() {
           creditPoints: values.creditPoints || "",
           skills: skillArray.join(", "),
         };
-      }      Object.entries(payload).forEach(([k, v]) => {
-        if (v !== undefined && v !== null) fd.append(k, String(v));
-      });
-      if (file) fd.append("certificateFile", file);
-      if (!file && editing?.imageUrl) fd.append("imageUrl", editing.imageUrl);
-
-      console.log('Submitting credential with payload:', payload);
-      console.log('FormData contents:');
-      for (let [key, value] of fd.entries()) {
-        console.log(`${key}:`, value);
       }
 
-      if (editing?._id) {
-        const res = await api.put(`/api/credentials/${editing._id}`, fd, {
+      Object.entries(payload).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) fd.append(k, String(v));
+      });
+      if (modalHook.file) fd.append("certificateFile", modalHook.file);
+      if (!modalHook.file && modalHook.editing?.imageUrl) fd.append("imageUrl", modalHook.editing.imageUrl);
+
+      if (modalHook.editing?._id) {
+        const res = await api.put(`/api/credentials/${modalHook.editing._id}`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setItems((prev) => prev.map((x) => (x._id === res.data._id ? res.data : x)));
+        updateCredential(res.data);
         message.success("Credential updated successfully!");
       } else {
         const res = await api.post(`/api/credentials`, fd, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setItems((prev) => [res.data, ...prev]);
+        addCredential(res.data);
         message.success("Credential created successfully!");
       }
-      
-      // Reset all modal state
+
       form.resetFields();
-      setFile(null);
-      setAddMethod(null);
-      setSelectedPlatform(null);
-      setFormValues(null);
-      setCurrentStep(0);
-      setEditing(null);
-      setIsModalOpen(false);
-      
+      modalHook.resetModal();
     } catch (e: any) {
       console.error('Save failed:', e);
       message.error(e.response?.data?.message || "Failed to save credential");
@@ -491,53 +206,39 @@ function CredentialsPageContent() {
   };
 
   const handleAnchor = async () => {
-    if (!editing?._id) {
+    if (!modalHook.editing?._id) {
       message.error("Please save the credential first");
       return;
     }
 
     const token = localStorage.getItem("authToken");
-    if (!token) return router.replace("/login");
+    if (!token) return;
 
     try {
-      message.loading({ content: 'Anchoring on the blockchain...', key: 'anchor' });
-      
-      // Use the existing anchor endpoint that works
-      const anchorRes = await api.post(`/api/credentials/${editing._id}/anchor`, {}, {
+      const hashRes = await api.post(`/api/credentials/${modalHook.editing._id}/generate-hash`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { hash } = hashRes.data;
+
+      const anchorRes = await api.post(`/api/credentials/${modalHook.editing._id}/anchor`, { hash }, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Update the credential with transaction hash
       if (anchorRes.data.transactionHash) {
-        const credRes = await api.put(`/api/credentials/${editing._id}`, {
+        const credRes = await api.put(`/api/credentials/${modalHook.editing._id}`, {
           transactionHash: anchorRes.data.transactionHash,
           status: 'verified'
         }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setItems((prev) => prev.map((x) => (x._id === credRes.data._id ? credRes.data : x)));
-        message.success({ content: 'Credential anchored successfully!', key: 'anchor' });
-        setIsModalOpen(false);
+        updateCredential(credRes.data);
+        message.success("Credential anchored successfully!");
+        modalHook.setIsModalOpen(false);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Anchor Error:', err);
-      const errorMessage = err.response?.data?.error || "Failed to anchor credential";
-      message.error({ content: errorMessage, key: 'anchor' });
+      message.error("Failed to anchor credential");
     }
-  };
-
-  const statusTag = (status: CredentialStatus) => {
-    const base = "px-2 py-0.5 text-xs rounded-md inline-flex items-center gap-1 border";
-    if (status === "verified") return (
-      <span className={`${base} bg-emerald-500/10 text-emerald-500 border-emerald-500/20`}>
-        <CheckCircle className="w-3.5 h-3.5" /> Verified
-      </span>
-    );
-    return (
-      <span className={`${base} bg-yellow-500/10 text-yellow-500 border-yellow-500/20`}>
-        <Clock className="w-3.5 h-3.5" /> Pending
-      </span>
-    );
   };
 
   if (!mounted) return null;
@@ -589,770 +290,113 @@ function CredentialsPageContent() {
       <div className="min-h-screen bg-background text-foreground flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
-          <div>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
+            <div>
               <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
                 My Credentials
               </h1>
               <p className="text-sm text-muted-foreground mt-1">Manage and showcase your verified achievements</p>
+            </div>
+            <Space>
+              <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+              <Button variant="outline" className="bg-transparent" onClick={() => message.info("Share coming soon")}>
+                <Share2 className="w-4 h-4 mr-2" /> Share Profile
+              </Button>
+              <Button onClick={modalHook.openCreate} className="shadow">
+                <Plus className="w-4 h-4 mr-2" /> Add Credential
+              </Button>
+            </Space>
           </div>
-          <Space>
-            <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
-            <Button variant="outline" className="bg-transparent" onClick={() => message.info("Share coming soon")}> 
-              <Share2 className="w-4 h-4 mr-2" /> Share Profile
-            </Button>
-            <Button onClick={openCreate} className="shadow"> 
-              <Plus className="w-4 h-4 mr-2" /> Add Credential
-            </Button>
-          </Space>
-        </div>
 
-        {/* Stats summary */}
-        <CardSpotlight className="mb-8 border-0 shadow bg-card/80 p-0 rounded-lg">
-          <div className="p-5 pb-4">
-            <Row gutter={[12, 12]}>
-              <Col xs={12} md={6}>
-                <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
-                  <div className="text-xs text-muted-foreground">Total</div>
-                  <div className="text-xl font-semibold">{items.length}</div>
-                </div>
-              </Col>
-              <Col xs={12} md={6}>
-                <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Verified</div>
-                  <div className="text-xl font-semibold">{items.filter((i) => i.status === "verified").length}</div>
-                </div>
-              </Col>
-              <Col xs={12} md={6}>
-                <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
-                  <div className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-yellow-500" /> Pending</div>
-                  <div className="text-xl font-semibold">{items.filter((i) => i.status === "pending").length}</div>
-                </div>
-              </Col>
+          {/* Stats summary */}
+          <CredentialStats items={items} />
+
+          {/* Filters */}
+          <CredentialFiltersComponent
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            uniqueIssuers={uniqueIssuers}
+          />
+
+          {/* Credentials Grid */}
+          {loading ? (
+            <Row gutter={[20, 20]} className="mt-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Col xs={24} sm={12} lg={8} key={i}>
+                  <AntCard className="border-0 shadow-lg bg-card/80" styles={{ body: { padding: "20px" } }}>
+                    <Skeleton active avatar paragraph={{ rows: 3 }} />
+                  </AntCard>
+                </Col>
+              ))}
             </Row>
-          </div>
-        </CardSpotlight>
-
-        <CardSpotlight className="mb-8 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur p-0 rounded-lg">
-          <div className="p-5">
-            <Row gutter={[12, 12]} align="middle">
-              <Col xs={24} md={8}>
-                <div className="relative z-30">
-                  <Input 
-                    placeholder="Search by title, issuer, or skill" 
-                    value={search} 
-                    onChange={(e) => setSearch(e.target.value)} 
-                    allowClear 
+          ) : filteredItems.length === 0 ? (
+            <AntCard
+              className="py-12 mt-6 border-0 shadow-lg bg-card/80"
+              styles={{ body: { background: "transparent", padding: "48px 24px" } }}
+            >
+              <Empty description="No credentials found" />
+            </AntCard>
+          ) : (
+            <Row gutter={[20, 20]} className="mt-6">
+              {filteredItems.map((credential) => (
+                <Col xs={24} sm={12} lg={8} key={credential._id || credential.title}>
+                  <CredentialCard
+                    credential={credential}
+                    onEdit={modalHook.openEdit}
+                    onDelete={handleDelete}
+                    onViewImage={imageModal.setViewingImage}
+                    onViewDetails={handleViewDetailsClick}
+                    onAnchor={handleAnchorCredentialClick}
+                    onShowOnChainDetails={handleShowOnChainDetails}
+                    anchoringId={anchoringId}
+                    loadingDetails={loadingDetails}
                   />
-                </div>
-              </Col>
-              <Col xs={12} md={6}>
-                <div className="relative z-30">
-                  <Select value={typeFilter} onChange={setTypeFilter} className="w-full" options={[
-                    { value: "all", label: "All Types" },
-                    { value: "certificate", label: "Certificate" },
-                    { value: "degree", label: "Degree" },
-                    { value: "license", label: "License" },
-                    { value: "badge", label: "Badge" },
-                  ]} />
-                </div>
-              </Col>
-              <Col xs={12} md={5}>
-                <div className="relative z-30">
-                  <Select value={statusFilter} onChange={setStatusFilter} className="w-full" options={[
-                    { value: "all", label: "All Status" },
-                    { value: "verified", label: "Blockchain Verified" },
-                    { value: "pending", label: "Pending" },
-                  ]} />
-                </div>
-              </Col>
-              <Col xs={12} md={5}>
-                <div className="relative z-30">
-                  <Select
-                    value={issuerFilter}
-                    onChange={setIssuerFilter}
-                    className="w-full"
-                    options={uniqueIssuers.map((u) => ({ value: u, label: u === "all" ? "All Issuers" : u }))}
-                  />
-                </div>
-              </Col>
-              <Col xs={12} md={6}>
-                <div className="relative z-30">
-                  <Select
-                    value={sortKey}
-                    onChange={(v) => setSortKey(v)}
-                    className="w-full"
-                    options={[
-                      { value: "newest", label: "Newest" },
-                      { value: "oldest", label: "Oldest" },
-                      { value: "az", label: "Title A→Z" },
-                      { value: "za", label: "Title Z→A" },
-                      { value: "pointsDesc", label: "Points High→Low" },
-                      { value: "pointsAsc", label: "Points Low→High" },
-                    ]}
-                  />
-                </div>
-              </Col>
+                </Col>
+              ))}
             </Row>
-          </div>
-        </CardSpotlight>
-
-        {loading ? (
-          <Row gutter={[20, 20]} className="mt-6"> 
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Col xs={24} sm={12} lg={8} key={i}>
-                <AntCard className="border-0 shadow-lg bg-card/80" styles={{ body: { padding: "20px" } }}>
-                  <Skeleton active avatar paragraph={{ rows: 3 }} />
-                </AntCard>
-              </Col>
-            ))}
-          </Row>
-        ) : filtered.length === 0 ? (
-          <AntCard 
-            className="py-12 mt-6 border-0 shadow-lg bg-card/80" 
-            styles={{ body: { background: "transparent", padding: "48px 24px" } }}
-          >
-            <Empty description="No credentials found" />
-          </AntCard>
-        ) : (
-          <Row gutter={[20, 20]} className="mt-6"> 
-            {filtered.map((c) => (
-              <Col xs={24} sm={12} lg={8} key={c._id || c.title}>
-                <CardSpotlight className="h-full border-0 shadow-lg hover:shadow-xl transition bg-card/80 p-0 rounded-lg">
-                  {/* Card Header */}
-                  <div className="px-5 py-4 border-b border-white/10 relative">
-                    <div className="flex items-center gap-2 text-sm mb-3">
-                      <Award className="w-4 h-4" />
-                      <span className="truncate pr-20">{c.title}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {statusTag(c.status)}
-                      </div>
-                      {/* Action Buttons - Positioned in header with proper z-index */}
-                      <div className="relative z-50">
-                        <Space size="small">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className={`bg-white/90 backdrop-blur-sm shadow-sm border-gray-200 hover:shadow-md transition-all ${
-                              c.transactionHash 
-                                ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300" 
-                                : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                            }`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleViewDetails(c._id);
-                            }}
-                            disabled={loadingDetails}
-                            title={c.transactionHash ? "View blockchain-verified details" : "View credential details"}
-                          >
-                            {loadingDetails ? (
-                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                            ) : (
-                              <Eye className="w-3 h-3" />
-                            )}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-sm border-gray-200 text-gray-700 hover:text-gray-900" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              openEdit(c);
-                            }}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Popconfirm 
-                            title="Delete this credential?" 
-                            onConfirm={() => handleDelete(c._id)}
-                            okText="Yes"
-                            cancelText="No"
-                          >
-                             <Button 
-                               variant="outline" 
-                               size="sm" 
-                               className="bg-white/90 backdrop-blur-sm hover:bg-red-50 text-red-600 hover:text-red-700 shadow-sm border-gray-200"
-                               onClick={(e) => {
-                                 e.preventDefault();
-                                 e.stopPropagation();
-                               }}
-                             >
-                               <Trash2 className="w-3 h-3" />
-                             </Button>
-                          </Popconfirm>
-                        </Space>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="px-5 py-4 space-y-4">
-                    {/* Certificate Image */}
-                    {c.imageUrl && (
-                      <div 
-                        className="w-full h-40 relative rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity shadow-sm mb-4"
-                        onClick={() => setViewingImage(c.imageUrl!)}
-                      >
-                        <img 
-                          src={c.imageUrl} 
-                          alt={`${c.title} certificate`}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                        />
-                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-                          <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 hover:opacity-100 transition-opacity">
-                            <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                        <Award className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs text-muted-foreground mb-1">Issuer</div>
-                        <div className="text-foreground font-medium text-sm truncate">{c.issuer}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                      <div className="text-muted-foreground">
-                        Type: <span className="text-foreground font-medium">{c.type}</span>
-                      </div>
-                      <div className="text-muted-foreground">
-                        Issued: <span className="text-foreground font-medium">{c.issueDate ? dayjs(c.issueDate).format("MMM D, YYYY") : "-"}</span>
-                      </div>
-                      {typeof c.nsqfLevel !== "undefined" && (
-                        <div className="text-muted-foreground">
-                          NSQF: <span className="text-foreground font-medium">{c.nsqfLevel}</span>
-                        </div>
-                      )}
-                      {typeof c.creditPoints !== "undefined" && (
-                        <div className="text-muted-foreground">
-                          Points: <span className="text-foreground font-medium">{c.creditPoints}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {c.skills?.length ? (
-                      <div className="flex flex-wrap gap-2">
-                        {c.skills.slice(0, 5).map((s) => (
-                          <span key={s} className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">
-                            {s}
-                          </span>
-                        ))}
-                        {c.skills.length > 5 && (
-                          <span className="px-2 py-1 text-xs rounded-md bg-muted text-foreground/80 border border-border">
-                            +{c.skills.length - 5}
-                          </span>
-                        )}
-                      </div>
-                    ) : null}
-                    <div className="flex gap-2 pt-2">
-                      {c.credentialUrl && (
-                        <a target="_blank" rel="noreferrer" href={c.credentialUrl} className="text-primary hover:underline flex items-center gap-1">
-                          <Download className="w-4 h-4" /> View Credential
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </CardSpotlight>
-              </Col>
-            ))}
-          </Row>
-        )}
-
-        <Modal
-          open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
-          title={editing ? "Edit Credential" : "Add Credential"}
-          footer={null}
-          width={800}
-          destroyOnHidden
-        >
-          <div className="mb-6">
-            <Steps current={currentStep} items={[{ title: "Method" }, { title: "Details" }, { title: "Verification" }]} />
-          </div>
-
-          {currentStep === 0 && (
-            <div className="space-y-5">
-              <p className="text-sm text-muted-foreground">How do you want to add your credential?</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {[
-                  { key: "sync", title: "Sync from Platform", desc: "Connect your account to import credentials", icon: "🌐" },
-                  { key: "upload", title: "Upload Certificate", desc: "Upload PDF/PNG/JPG with OCR parsing", icon: "⬆️" },
-                  { key: "manual", title: "Add Manually", desc: "Fill in the details using a form", icon: "📝" },
-                ].map((m) => (
-                  <button
-                    key={m.key}
-                    onClick={() => setAddMethod(m.key as any)}
-                    className={`text-left rounded-xl border p-4 transition hover:shadow ${addMethod === m.key ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
-                  >
-                    <div className="text-2xl mb-2">{m.icon}</div>
-                    <div className="font-medium">{m.title}</div>
-                    <div className="text-sm text-muted-foreground">{m.desc}</div>
-                  </button>
-                ))}
-              </div>
-
-              {addMethod === "sync" && (
-                <div className="space-y-3">
-                  <div className="text-sm font-medium">Select Platform</div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {platforms.map((p) => (
-                      <button
-                        type="button"
-                        key={p.key}
-                        onClick={() => setSelectedPlatform(p.name)}
-                        className={`flex items-center gap-3 rounded-xl border p-3 bg-background hover:shadow transition ${selectedPlatform === p.name ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
-                      >
-                        <div className="relative w-8 h-8 rounded-md overflow-hidden">
-                          <Image src={p.logo} alt={`${p.name} logo`} fill sizes="32px" className="object-contain" />
-                        </div>
-                        <span className="text-sm">{p.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end">
-                <Button onClick={() => setCurrentStep(1)} disabled={!addMethod}>Continue to Details</Button>
-              </div>
-            </div>
           )}
 
-          {currentStep === 1 && addMethod === "sync" && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Upload the certificate file from {selectedPlatform || "your platform"}. We'll parse details automatically.</p>
-              <Upload
-                beforeUpload={async (f) => {
-                  setFile(f);
-                  
-                  // Extract certificate information
-                  const extracted = await extractCertificateInfo(f);
-                  if (extracted) {
-                    // Auto-fill form fields with extracted data
-                    form.setFieldsValue({
-                      title: extracted.title || '',
-                      issuer: extracted.issuer || '',
-                      issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
-                    });
-                  }
-                  
-                  return false;
-                }}
-                maxCount={1}
-                accept="image/*,application/pdf"
-              >
-                <Button variant="outline" className="bg-transparent">Upload File</Button>
-              </Upload>
-              <div className="flex justify-between">
-                <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>
-                <Button onClick={() => setCurrentStep(2)}>Continue</Button>
-              </div>
-            </div>
-          )}
+          {/* Modals */}
+          <CredentialModal
+            isOpen={modalHook.isModalOpen}
+            onClose={() => modalHook.setIsModalOpen(false)}
+            editing={modalHook.editing}
+            currentStep={modalHook.currentStep}
+            setCurrentStep={modalHook.setCurrentStep}
+            addMethod={modalHook.addMethod}
+            setAddMethod={modalHook.setAddMethod}
+            selectedPlatform={modalHook.selectedPlatform}
+            setSelectedPlatform={modalHook.setSelectedPlatform}
+            file={modalHook.file}
+            setFile={modalHook.setFile}
+            formValues={modalHook.formValues}
+            setFormValues={modalHook.setFormValues}
+            skillsData={skillsData}
+            loadingSkills={loadingSkills}
+            onSubmit={submitForm}
+            onAnchor={handleAnchor}
+            form={form}
+          />
 
-          {currentStep === 1 && addMethod !== "sync" && (
-            <Form form={form} layout="vertical" initialValues={{ type: "certificate" }}>
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-                    <Input placeholder="e.g., Full Stack Web Development" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="issuer" label="Issuer" rules={[{ required: true }]}>
-                    <Input placeholder="e.g., Tech Academy" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item name="type" label="Type" rules={[{ required: true }]}> 
-                    <Select
-                      options={[
-                        { value: "certificate", label: "Certificate" },
-                        { value: "degree", label: "Degree" },
-                        { value: "license", label: "License" },
-                        { value: "badge", label: "Badge" },
-                      ]}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="nsqfLevel" label="NSQF Level">
-                    <Input type="number" min={1} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={12}>
-                <Col span={24}>
-                  <Form.Item name="issueDate" label="Issue Date" rules={[{ required: true }]}>
-                    <DatePicker className="w-full" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="description" label="Description">
-                <Input.TextArea rows={3} placeholder="What did you learn or achieve?" />
-              </Form.Item>
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item name="skills" label="Skills">
-                    <Select
-                      mode="multiple"
-                      placeholder="Select or type skills"
-                      allowClear
-                      showSearch
-                      filterOption={(input, option) =>
-                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                      }
-                      options={skillsData.allSkills.map(skill => ({
-                        value: skill,
-                        label: skill
-                      }))}
-                      loading={loadingSkills}
-                      disabled={loadingSkills}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="credentialUrl" label="Verification URL">
-                    <Input placeholder="https://..." />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item name="credentialId" label="Credential ID">
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="creditPoints" label="Credit Points">
-                    <Input type="number" min={0} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              {addMethod === "upload" && (
-                <Form.Item label="Certificate File">
-                  <Upload
-                    beforeUpload={async (f) => {
-                      setFile(f);
-                      
-                      // Extract certificate information
-                      const extracted = await extractCertificateInfo(f);
-                      if (extracted) {
-                        // Auto-fill form fields with extracted data
-                        form.setFieldsValue({
-                          title: extracted.title || '',
-                          issuer: extracted.issuer || '',
-                          issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
-                        });
-                      }
-                      
-                      return false;
-                    }}
-                    maxCount={1}
-                    accept="image/*,application/pdf"
-                  >
-                    <Button variant="outline" className="bg-transparent">Upload</Button>
-                  </Upload>
-                </Form.Item>
-              )}
-              <div className="flex justify-between">
-                <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>
-                <Button onClick={handleContinueToReview}>Continue</Button>
-              </div>
-            </Form>
-          )}
+          <ImageViewerModal
+            imageUrl={imageModal.viewingImage}
+            onClose={() => imageModal.setViewingImage(null)}
+          />
 
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Review and finalize your credential. You can optionally anchor later.</p>
-              <div className="flex justify-between">
-                <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(1)}>Back</Button>
-                <Space>
-                  <Button variant="outline" className="bg-transparent" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                  <Button variant="outline" className="bg-transparent" onClick={handleAnchor}>Anchor</Button>
-                  <Button onClick={submitForm}>{editing ? "Update" : "Create"}</Button>
-                </Space>
-              </div>
-            </div>
-          )}
-        </Modal>
+          <CredentialDetailsModal
+            isOpen={detailsModal.detailsModalOpen}
+            onClose={detailsModal.closeDetailsModal}
+            details={detailsModal.viewingDetails}
+            onViewImage={imageModal.setViewingImage}
+          />
 
-        {/* Certificate Image Viewer Modal */}
-        <Modal
-          open={!!viewingImage}
-          onCancel={() => setViewingImage(null)}
-          footer={null}
-          width="90vw"
-          centered
-          styles={{
-            body: { padding: 0 },
-            content: { padding: 0 }
-          }}
-        >
-          {viewingImage && (
-            <div className="relative">
-              <img 
-                src={viewingImage} 
-                alt="Certificate"
-                className="w-full h-auto max-h-[80vh] object-contain"
-              />
-              <AntButton
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white border-none"
-                onClick={() => setViewingImage(null)}
-                shape="circle"
-                icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                }
-              />
-            </div>
-          )}
-        </Modal>
-
-        {/* Credential Details Modal */}
-        <Modal
-          open={detailsModalOpen}
-          onCancel={() => {
-            setDetailsModalOpen(false);
-            setViewingDetails(null);
-          }}
-          title={
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-600" />
-              <span>Credential Details</span>
-              {viewingDetails?.credential?.transactionHash && (
-                <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full border border-green-200">
-                  Blockchain Verified
-                </span>
-              )}
-            </div>
-          }
-          footer={null}
-          width={800}
-          loading={loadingDetails}
-        >
-          {loadingDetails ? (
-            <div className="space-y-6">
-              <Skeleton active paragraph={{ rows: 4 }} />
-              <Skeleton active paragraph={{ rows: 3 }} />
-              <Skeleton active paragraph={{ rows: 2 }} />
-            </div>
-          ) : viewingDetails && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="border border-border rounded-lg p-4 bg-card">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
-                  <Award className="w-5 h-5 text-primary" />
-                  Basic Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Title</label>
-                    <p className="text-foreground font-medium mt-1">{viewingDetails.credential.title}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Issuer</label>
-                    <p className="text-foreground font-medium mt-1">{viewingDetails.credential.issuer}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Type</label>
-                    <p className="text-foreground font-medium mt-1 capitalize">{viewingDetails.credential.type}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Issue Date</label>
-                    <p className="text-foreground font-medium mt-1">
-                      {dayjs(viewingDetails.credential.issueDate).format("MMMM D, YYYY")}
-                    </p>
-                  </div>
-                  {viewingDetails.credential.creditPoints && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Credit Points</label>
-                      <p className="text-foreground font-medium mt-1">{viewingDetails.credential.creditPoints}</p>
-                    </div>
-                  )}
-                  {viewingDetails.credential.nsqfLevel && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">NSQF Level</label>
-                      <p className="text-foreground font-medium mt-1">{viewingDetails.credential.nsqfLevel}</p>
-                    </div>
-                  )}
-                </div>
-                {viewingDetails.credential.description && (
-                  <div className="mt-4">
-                    <label className="text-sm font-medium text-muted-foreground">Description</label>
-                    <p className="text-foreground mt-1 leading-relaxed">{viewingDetails.credential.description}</p>
-                  </div>
-                )}
-                {viewingDetails.credential.skills?.length > 0 && (
-                  <div className="mt-4">
-                    <label className="text-sm font-medium text-muted-foreground">Skills</label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {viewingDetails.credential.skills.map((skill: string, index: number) => (
-                        <span 
-                          key={index}
-                          className="px-3 py-1 text-sm bg-primary/10 text-primary rounded-full border border-primary/20"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Blockchain Information */}
-              {viewingDetails.anchored && (
-                <div className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50 dark:bg-green-950/30">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
-                    <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    Blockchain Verification
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Status</label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        <span className="text-green-700 dark:text-green-300 font-medium">Verified on Blockchain</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Transaction Hash</label>
-                      <p className="text-foreground font-mono text-sm break-all mt-1 bg-background/50 p-2 rounded border">
-                        {viewingDetails.credential.transactionHash}
-                      </p>
-                    </div>
-                    {viewingDetails.credential.credentialHash && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Credential Hash</label>
-                        <p className="text-foreground font-mono text-sm break-all mt-1 bg-background/50 p-2 rounded border">
-                          {viewingDetails.credential.credentialHash}
-                        </p>
-                      </div>
-                    )}
-                    {viewingDetails.blockchain && viewingDetails.blockchain.verified && (
-                      <>
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Blockchain Issuer</label>
-                          <p className="text-foreground font-medium mt-1">{viewingDetails.blockchain.issuer}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Blockchain Timestamp</label>
-                          <p className="text-foreground font-medium mt-1">
-                            {dayjs(viewingDetails.blockchain.timestampDate).format("MMMM D, YYYY [at] h:mm A")}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                    {viewingDetails.verificationUrl && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Public Verification URL</label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Link className="w-4 h-4 text-primary" />
-                          <a 
-                            href={viewingDetails.verificationUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:text-primary/80 hover:underline text-sm"
-                          >
-                            Verify Publicly
-                          </a>
-                          <ExternalLink className="w-3 h-3 text-primary" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Additional Information */}
-              <div className="border border-border rounded-lg p-4 bg-card">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-foreground">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  Additional Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Created</label>
-                    <p className="text-foreground mt-1">
-                      {dayjs(viewingDetails.credential.createdAt).format("MMMM D, YYYY [at] h:mm A")}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
-                    <p className="text-foreground mt-1">
-                      {dayjs(viewingDetails.credential.updatedAt).format("MMMM D, YYYY [at] h:mm A")}
-                    </p>
-                  </div>
-                  {viewingDetails.credential.credentialId && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Credential ID</label>
-                      <p className="text-foreground font-mono text-sm mt-1 bg-background/50 p-2 rounded border">
-                        {viewingDetails.credential.credentialId}
-                      </p>
-                    </div>
-                  )}
-                  {viewingDetails.credential.credentialUrl && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Original URL</label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <ExternalLink className="w-4 h-4 text-primary" />
-                        <a 
-                          href={viewingDetails.credential.credentialUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/80 hover:underline text-sm"
-                        >
-                          View Original Certificate
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Certificate Image */}
-              {viewingDetails.credential.imageUrl && (
-                <div className="border border-border rounded-lg p-4 bg-card">
-                  <h3 className="text-lg font-semibold mb-3 text-foreground">Certificate Image</h3>
-                  <div 
-                    className="w-full h-64 relative rounded-lg overflow-hidden bg-background border cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setViewingImage(viewingDetails.credential.imageUrl)}
-                  >
-                    <img 
-                      src={viewingDetails.credential.imageUrl} 
-                      alt={`${viewingDetails.credential.title} certificate`}
-                      className="w-full h-full object-contain"
-                    />
-                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <div className="bg-background/90 backdrop-blur-sm rounded-full p-3 opacity-0 hover:opacity-100 transition-opacity border">
-                        <Eye className="w-6 h-6 text-foreground" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </Modal>
-
-      </main>
+          <OnChainDetailsModal
+            isOpen={onChainModal.isDetailsModalOpen}
+            onClose={onChainModal.closeOnChainModal}
+            data={onChainModal.modalData}
+            isLoading={onChainModal.isModalLoading}
+          />
+        </main>
       </div>
     </ConfigProvider>
   );
