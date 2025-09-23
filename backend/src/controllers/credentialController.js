@@ -1,8 +1,7 @@
+const crypto = require('crypto');
 const Credential = require('../models/credentialModel');
-const { uploadFile, deleteFile } = require('../services/storageService');
-// 1. IMPORT YOUR NEW BLOCKCHAIN SERVICE
 const { anchorNewCredential, verifyCredential } = require('../services/blockchainService');
-const crypto = require('crypto'); // <-- ADD THIS LINE
+const { uploadFile, deleteFile } = require('../services/storageService');
 const { extractCredentialInfo } = require('../services/extractionService');
 
 
@@ -136,27 +135,41 @@ const deleteCredential = async (req, res) => {
 
 // --- NEW BLOCKCHAIN FUNCTIONS ---
 
+/**
+ * Generates a hash for a credential, anchors it on the blockchain,
+ * and saves both the credentialHash and transactionHash to the database.
+ */
 const anchorCredentialController = async (req, res) => {
   try {
-    const { hash, credentialId } = req.body;
-    if (!hash || !hash.startsWith('0x') || hash.length !== 66) {
-      return res.status(400).json({ error: 'A valid 32-byte hash (0x...) is required.' });
-    }
-    if (!credentialId) {
-      return res.status(400).json({ error: 'credentialId is required.' });
-    }
+    // The credential's database ID is now taken from the URL parameters
+    const { id } = req.params; 
 
-    // Anchor on blockchain
-    const receipt = await anchorNewCredential(hash);
-    // Save transactionHash to credential
-    const cred = await Credential.findOne({ _id: credentialId, user: req.user._id });
+    // 1. Find the credential in the database first
+    const cred = await Credential.findOne({ _id: id, user: req.user._id });
+
     if (!cred) {
-      return res.status(404).json({ error: 'Credential not found' });
+      return res.status(404).json({ message: 'Credential not found' });
     }
-    cred.transactionHash = receipt.hash;
-    await cred.save();
+    if (cred.transactionHash) {
+      return res.status(400).json({ message: 'This credential has already been anchored.' });
+    }
 
-    res.status(201).json({ message: 'Credential anchored successfully!', transactionHash: receipt.hash });
+    // 2. Generate the unique, deterministic hash on the backend
+    const dataToHash = cred._id.toString() + cred.issuer + cred.issueDate.toISOString();
+    const credentialHash = '0x' + crypto.createHash('sha256').update(dataToHash).digest('hex');
+
+    // 3. Call the blockchain service to anchor the generated hash
+    const receipt = await anchorNewCredential(credentialHash);
+
+    // 4. Save BOTH the credential hash and the transaction hash to the database
+    cred.credentialHash = credentialHash;   // The key used to look up data in the contract
+    cred.transactionHash = receipt.hash;    // The proof that the anchoring transaction occurred
+    
+    const updatedCredential = await cred.save();
+
+    // 5. Send the fully updated credential object back to the frontend
+    res.status(200).json(updatedCredential);
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to anchor credential.', details: error.message });

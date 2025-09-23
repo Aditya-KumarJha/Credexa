@@ -90,12 +90,9 @@ function CredentialsPageContent() {
     setAnchoringId(credentialId);
     const token = localStorage.getItem("authToken");
     try {
-      message.loading({ content: 'Generating secure hash...', key: 'anchor' });
-      const hashRes = await api.post(`/api/credentials/${credentialId}/generate-hash`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      const { hash } = hashRes.data;
-
       message.loading({ content: 'Anchoring on the blockchain...', key: 'anchor' });
-      const anchorRes = await api.post('/api/credentials/anchor', { hash }, { headers: { Authorization: `Bearer ${token}` } });
+      // New API call: No request body needed
+      const anchorRes = await api.post(`/api/credentials/${credentialId}/anchor`, {}, { headers: { Authorization: `Bearer ${token}` } });
       const { transactionHash } = anchorRes.data;
 
       setItems((prevItems) =>

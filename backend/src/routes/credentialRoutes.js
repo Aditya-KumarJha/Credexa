@@ -47,7 +47,7 @@ router.post('/', upload.single('certificateFile'), createCredential);
 router.put('/:id', updateCredential);
 router.delete('/:id', deleteCredential);
 
-router.post('/anchor', anchorCredentialController);
+router.post('/:id/anchor', anchorCredentialController);
 
 router.post('/:id/generate-hash', generateCredentialHashController);
 
