@@ -36,6 +36,9 @@ function CredentialsPageContent() {
   const { skillsData, loadingSkills } = useSkills();
   const { anchoringId, loadingDetails, handleAnchorCredential, handleViewDetails, fetchOnChainDetails } = useCredentialActions();
   
+  // Local state for loading
+  const [submitting, setSubmitting] = useState(false);
+  
   // Modal hooks
   const modalHook = useCredentialModal();
   const imageModal = useImageModal();
@@ -121,6 +124,7 @@ function CredentialsPageContent() {
   };
 
   const submitForm = async () => {
+    setSubmitting(true);
     const token = localStorage.getItem("authToken");
     const fd = new FormData();
     let payload: Record<string, any> = {};
@@ -202,6 +206,8 @@ function CredentialsPageContent() {
     } catch (e: any) {
       console.error('Save failed:', e);
       message.error(e.response?.data?.message || "Failed to save credential");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -342,7 +348,6 @@ function CredentialsPageContent() {
                 <Col xs={24} sm={12} lg={8} key={credential._id || credential.title}>
                   <CredentialCard
                     credential={credential}
-                    onEdit={modalHook.openEdit}
                     onDelete={handleDelete}
                     onViewImage={imageModal.setViewingImage}
                     onViewDetails={handleViewDetailsClick}
@@ -375,6 +380,7 @@ function CredentialsPageContent() {
             loadingSkills={loadingSkills}
             onSubmit={submitForm}
             onAnchor={handleAnchor}
+            submitting={submitting}
             form={form}
           />
 

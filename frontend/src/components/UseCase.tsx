@@ -43,7 +43,7 @@ const UseCase = () => {
             {cards.map((card, key) => (
               <MinimalCard
                 key={key}
-                className="w-full md:w-1/3 bg-[#2a2a2a] text-white rounded-2xl shadow-md hover:scale-[1.03] transition-transform duration-300"
+                className="w-full md:w-1/3 bg-[#2a2a2a] text-white rounded-2xl shadow-md"
               >
                 <MinimalCardImage
                   className="h-[180px] w-full object-cover rounded-t-2xl"

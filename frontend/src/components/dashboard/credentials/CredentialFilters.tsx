@@ -1,6 +1,5 @@
 import React from "react";
 import { Input, Select, Row, Col } from "antd";
-import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { CredentialFilters, SortKey } from "@/types/credentials";
 
 interface CredentialFiltersProps {
@@ -15,7 +14,7 @@ export const CredentialFiltersComponent: React.FC<CredentialFiltersProps> = ({
   uniqueIssuers,
 }) => {
   return (
-    <CardSpotlight className="mb-8 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur p-0 rounded-lg">
+    <div className="mb-8 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur p-0 rounded-lg">
       <div className="p-5">
         <Row gutter={[12, 12]} align="middle">
           <Col xs={24} md={8}>
@@ -51,9 +50,9 @@ export const CredentialFiltersComponent: React.FC<CredentialFiltersProps> = ({
                 onChange={(value) => onFiltersChange({ statusFilter: value })} 
                 className="w-full" 
                 options={[
-                  { value: "all", label: "All Status" },
-                  { value: "verified", label: "Verified" },
-                  { value: "pending", label: "Pending" },
+                  { value: "all", label: "All Blockchain Status" },
+                  { value: "anchored", label: "On-Chain Proof" },
+                  { value: "not-anchored", label: "No On-Chain Proof" },
                 ]} 
               />
             </div>
@@ -87,6 +86,6 @@ export const CredentialFiltersComponent: React.FC<CredentialFiltersProps> = ({
           </Col>
         </Row>
       </div>
-    </CardSpotlight>
+    </div>
   );
 };

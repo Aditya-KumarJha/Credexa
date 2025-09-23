@@ -24,6 +24,7 @@ interface CredentialModalProps {
   loadingSkills: boolean;
   onSubmit: () => void;
   onAnchor: () => void;
+  submitting: boolean;
   form: any;
 }
 
@@ -45,6 +46,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
   loadingSkills,
   onSubmit,
   onAnchor,
+  submitting,
   form,
 }) => {
   // Initialize or reset form only when the Form is actually rendered (step 1)
@@ -91,7 +93,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
       destroyOnHidden={true}
     >
       <div className="mb-6">
-        <Steps current={currentStep} items={[{ title: "Method" }, { title: "Details" }, { title: "Verification" }]} />
+        <Steps current={currentStep} items={[{ title: "Method" }, { title: "Details" }, { title: "Creation" }]} />
       </div>
 
       {currentStep === 0 && (
@@ -292,11 +294,22 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">Review and finalize your credential. You can optionally anchor later.</p>
           <div className="flex justify-between">
-            <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(1)}>Back</Button>
+            <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(1)} disabled={submitting}>Back</Button>
             <Space>
-              <Button variant="outline" className="bg-transparent" onClick={onClose}>Cancel</Button>
-              <Button variant="outline" className="bg-transparent" onClick={onAnchor}>Anchor</Button>
-              <Button onClick={onSubmit}>{editing ? "Update" : "Create"}</Button>
+              <Button variant="outline" className="bg-transparent" onClick={onClose} disabled={submitting}>Cancel</Button>
+              <Button onClick={onSubmit} disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {editing ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  editing ? "Update" : "Create"
+                )}
+              </Button>
             </Space>
           </div>
         </div>
