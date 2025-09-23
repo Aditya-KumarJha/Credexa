@@ -83,6 +83,11 @@ function EventRow({ date, name, type }: EventRowProps) {
 }
 
 export default function CommunityPage() {
+  // State and handlers
+
+  // ...existing code...
+
+  // ...existing code...
   const [section, setSection] = useState<string>("discussion");
   // Discussion Section
   const [posts, setPosts] = useState<Post[]>([]);
@@ -170,47 +175,52 @@ export default function CommunityPage() {
       ...messages,
       { id: Date.now(), text: input, group: joinedGroup },
     ]);
-    setInput("");
   };
   return (
     <div className="bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 min-h-screen">
-      <div className="max-w-3xl mx-auto py-8 px-4">
-        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105">Community</h1>
-        <div className="flex items-center justify-between mb-8 w-full max-w-6xl mx-auto">
-          <div className="flex items-center">
-            <ArrowRight
-              className="h-6 w-6 text-blue-500 dark:text-blue-400 mr-3 rotate-180 cursor-pointer"
-              onClick={() => window.history.back()}
-            />
-            <span className="text-2xl font-bold text-black dark:text-gray-100 mr-0">C</span>
-            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 ml-0">redexa</span>
-          </div>
+      {/* Fixed nav bar at top */}
+  <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between px-6 py-2 shadow-md">
+        <div className="flex items-center gap-2">
+          <ArrowRight
+            className="h-5 w-5 text-blue-500 dark:text-blue-400 rotate-180 cursor-pointer"
+            onClick={() => window.history.back()}
+          />
+          <span className="text-xl font-bold text-black dark:text-gray-100">Credexa</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 ml-2">Community</span>
           <ThemeToggleButton />
         </div>
-        <nav className="bg-white dark:bg-zinc-800 px-12 py-2 flex items-center justify-center shadow-md rounded-xl mb-8 border-b border-gray-200 dark:border-zinc-700 w-full max-w-6xl mx-auto">
-          <div className="flex gap-8">
-            {[ 
-              { key: "discussion", label: "Discussion" },
-              { key: "peer-groups", label: "Peer Groups" },
-              { key: "events", label: "Events" },
-              { key: "gamification", label: "Gamification" },
-            ].map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setSection(tab.key)}
-                className={`px-5 py-2 rounded-full font-semibold transition-all duration-150 ${
-                  section === tab.key
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 shadow"
-                    : "text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:text-black dark:hover:bg-blue-800 dark:hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      </div>
+      {/* Spacer for fixed nav bar */}
+      <div className="h-12" />
+      {/* Horizontal tab navigation, left-aligned below nav bar */}
+      <div className="w-full flex flex-row items-start mt-6 mb-8 px-8 gap-8">
+        <div style={{ width: '60vw' }}>
+  <div className="flex-1 flex flex-col">
+          <nav className="flex gap-4 bg-white dark:bg-zinc-800 px-6 py-3 shadow-md rounded-xl border border-gray-200 dark:border-zinc-700">
+          {[ 
+            { key: "discussion", label: "Discussion" },
+            { key: "peer-groups", label: "Peer Groups" },
+            { key: "events", label: "Events" },
+            { key: "gamification", label: "Gamification" },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setSection(tab.key)}
+              className={`px-5 py-2 rounded-full font-semibold transition-all duration-150 ${
+                section === tab.key
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 shadow"
+                  : "text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:text-black dark:hover:bg-blue-800 dark:hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
-        {section === "discussion" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100">
+          {/* Only the selected tab's content will appear below the nav */}
+          {section === "discussion" && (
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -318,8 +328,8 @@ export default function CommunityPage() {
             </div>
           </div>
         )}
-        {section === "peer-groups" && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100">
+          {section === "peer-groups" && (
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -420,8 +430,8 @@ export default function CommunityPage() {
             )}
           </div>
         )}
-        {section === "events" && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100">
+          {section === "events" && (
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -446,8 +456,8 @@ export default function CommunityPage() {
             <div className="text-gray-500 text-center">Click RSVP to register and set a reminder for upcoming events!</div>
           </div>
         )}
-        {section === "gamification" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100">
+          {section === "gamification" && (
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -499,6 +509,29 @@ export default function CommunityPage() {
             <div className="text-gray-500 text-center">Earn badges and points by posting, commenting, and helping others!</div>
           </div>
         )}
+        </div>
+  {/* Right-side section bar: Social Feature & Recommendation */}
+  <aside className="hidden md:flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100 mt-2" style={{ position: 'fixed', right: '10px', top: '80px', width: '28vw', minWidth: '18rem', maxWidth: '32vw', zIndex: 40 }}>
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Social Feature</h3>
+            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+              <li>Connect with peers</li>
+              <li>Share achievements</li>
+              <li>Direct messaging</li>
+              <li>Group chats</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Recommendation</h3>
+            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+              <li>Suggested groups</li>
+              <li>Trending topics</li>
+              <li>Events for you</li>
+              <li>Top contributors</li>
+            </ul>
+          </div>
+        </aside>
+        </div>
       </div>
     </div>
   );
