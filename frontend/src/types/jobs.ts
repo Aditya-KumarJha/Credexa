@@ -5,8 +5,8 @@ export interface JobPosting {
   location: string;
   description: string;
   skills_required: string[];
-  experience_level: string;
-  salary_range: string;
+  experience_level?: string;
+  salary_range?: string;
   job_type?: string;
   work_type?: string;
   url?: string;
@@ -44,6 +44,13 @@ export interface UserProfile {
     max: number;
   };
   work_type: string;
+  bio?: string;
+  years_experience?: number;
+  education_level?: string;
+  certifications?: string[];
+  industries?: string[];
+  company_size_preference?: string;
+  remote_preference?: boolean;
 }
 
 export interface JobSearchFilters {

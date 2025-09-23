@@ -50,6 +50,7 @@ const authRoutes = require('./routes/authRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const instituteRoutes = require('./routes/instituteRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const jobRoutes = require('./routes/jobRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -57,6 +58,7 @@ app.use('/api/credentials', credentialRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/institute', instituteRoutes);
 app.use('/api', leaderboardRoutes);
+app.use('/api/jobs', jobRoutes);
 
 app.get('/', (req, res) => res.send('API is running'));
 
