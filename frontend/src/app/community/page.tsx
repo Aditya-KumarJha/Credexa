@@ -199,9 +199,9 @@ export default function CommunityPage() {
         <div style={{ width: '60vw' }}>
           <div className="flex-1 flex flex-col">
           <nav className="flex gap-4 bg-white dark:bg-zinc-800 px-6 py-3 shadow-md rounded-xl border border-gray-200 dark:border-zinc-700">
-          {[ 
-            { key: "discussion", label: "Discussion" },
+          {[
             { key: "peer-groups", label: "Peer Groups" },
+            { key: "discussion", label: "Discussion" },
             { key: "events", label: "Events" },
             { key: "gamification", label: "Gamification" },
           ].map(tab => (
@@ -220,114 +220,115 @@ export default function CommunityPage() {
         </nav>
           {/* Only the selected tab's content will appear below the nav */}
           {section === "discussion" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
-            <h2
-              className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
-            >
-              Discussion
-            </h2>
-            <div className="flex flex-col gap-2 mb-4">
-              <textarea
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
-                rows={2}
-                placeholder="Share your thoughts..."
-                value={text}
-                onChange={e => setText(e.target.value)}
-              />
-              <input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
-              <button
-                className="bg-blue-600 text-white px-4 py-1 rounded font-bold shadow hover:bg-blue-700 transition"
-                onClick={handlePost}
+            <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
+              <h2
+                className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
               >
-                Post
-              </button>
-            </div>
-            <div className="mt-6">
-              {posts.length === 0 ? (
-                <p className="text-gray-400 text-center">No posts yet.</p>
-              ) : (
-                posts.map(post => (
-                  <div key={post.id} className="mb-4 bg-white dark:bg-zinc-900 rounded-lg p-3 border border-gray-200 shadow flex gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center border">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="8" r="4" fill="#bdbdbd" />
-                        <rect x="4" y="16" width="16" height="6" rx="3" fill="#bdbdbd" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-black dark:text-white text-sm">{post.name}</span>
+                Discussion
+              </h2>
+              <div className="flex flex-col gap-2 mb-4">
+                <textarea
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
+                  rows={2}
+                  placeholder="Share your thoughts..."
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                />
+                <input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
+                <button
+                  className="bg-blue-600 text-white px-4 py-1 rounded font-bold shadow hover:bg-blue-700 transition"
+                  onClick={handlePost}
+                >
+                  Post
+                </button>
+              </div>
+              <div className="mt-6">
+                {posts.length === 0 ? (
+                  <p className="text-gray-400 text-center">No posts yet.</p>
+                ) : (
+                  posts.map(post => (
+                    <div key={post.id} className="mb-4 bg-white dark:bg-zinc-900 rounded-lg p-3 border border-gray-200 shadow flex gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center border">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="8" r="4" fill="#bdbdbd" />
+                          <rect x="4" y="16" width="16" height="6" rx="3" fill="#bdbdbd" />
+                        </svg>
                       </div>
-                      <p className="mb-2 text-black dark:text-white text-sm">{post.text}</p>
-                      {post.image && (
-                        <img src={post.image} alt="Post" className="max-w-xs mb-2 rounded-lg border" />
-                      )}
-                      <div className="flex gap-2 mt-2 items-center">
-                        <button
-                          className={`w-6 h-6 flex items-center justify-center rounded transition ${
-                            post.liked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                          onClick={() => handleLike(post.id)}
-                          title="Like"
-                          style={{ border: 'none', outline: 'none', position: 'relative' }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                              d="M6.5 14V7.5L10.5 2.5C10.5 2.5 11.5 2.5 11.5 4.5C11.5 6.5 9.5 7.5 9.5 7.5H13C13.5 7.5 14 8 14 8.5V13C14 13.5 13.5 14 13 14H6.5Z"
-                              stroke={post.liked ? '#2563eb' : '#222'}
-                              strokeWidth="1.2"
-                              fill={post.liked ? '#2563eb' : 'white'}
-                            />
-                          </svg>
-                        </button>
-                        <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.likes}</span>
-                        <span className="ml-3"></span>
-                        <button
-                          className="w-6 h-6 flex items-center justify-center rounded transition bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300 shadow-sm"
-                          onClick={e => {
-                            e.preventDefault();
-                            setActiveCommentId(activeCommentId === post.id ? null : post.id);
-                          }}
-                          title="Comment"
-                          style={{ outline: 'none' }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="2" y="4" width="12" height="8" rx="2" stroke="#222" strokeWidth="1.2" fill="white" />
-                          </svg>
-                        </button>
-                        <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.comments.length}</span>
-                      </div>
-                      {activeCommentId === post.id && (
-                        <div className="flex flex-col gap-2 mt-2 p-2 rounded" style={{ maxHeight: '120px', overflowY: 'auto', background: '#f6f6f6' }}>
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              className="border border-blue-900 dark:border-zinc-700 rounded px-2 py-1 text-xs flex-1 text-black dark:text-black"
-                              placeholder="Add a comment..."
-                              value={commentText}
-                              onChange={e => setCommentText(e.target.value)}
-                            />
-                            <button
-                              className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition"
-                              onClick={() => { handleComment(post.id); }}
-                            >
-                              Comment
-                            </button>
-                          </div>
-                          <div className="mt-2 ml-2" style={{ maxHeight: '70px', overflowY: 'auto' }}>
-                            {post.comments.length > 0 ? post.comments.map((c, idx) => (
-                              <div key={idx} className="text-black dark:text-white text-xs mb-1">{c.text}</div>
-                            )) : <span className="text-gray-400 text-xs">No comments yet.</span>}
-                          </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-black dark:text-white text-sm">{post.name}</span>
                         </div>
-                      )}
+                        <p className="mb-2 text-black dark:text-white text-sm">{post.text}</p>
+                        {post.image && (
+                          <img src={post.image} alt="Post" className="max-w-xs mb-2 rounded-lg border" />
+                        )}
+                        <div className="flex gap-2 mt-2 items-center">
+                          <button
+                            className={`w-6 h-6 flex items-center justify-center rounded transition ${
+                              post.liked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                            onClick={() => handleLike(post.id)}
+                            title="Like"
+                            style={{ border: 'none', outline: 'none', position: 'relative' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path
+                                d="M6.5 14V7.5L10.5 2.5C10.5 2.5 11.5 2.5 11.5 4.5C11.5 6.5 9.5 7.5 9.5 7.5H13C13.5 7.5 14 8 14 8.5V13C14 13.5 13.5 14 13 14H6.5Z"
+                                stroke={post.liked ? '#2563eb' : '#222'}
+                                strokeWidth="1.2"
+                                fill={post.liked ? '#2563eb' : 'white'}
+                              />
+                            </svg>
+                          </button>
+                          <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.likes}</span>
+                          <span className="ml-3"></span>
+                          <button
+                            className="w-6 h-6 flex items-center justify-center rounded transition bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300 shadow-sm"
+                            onClick={e => {
+                              e.preventDefault();
+                              setActiveCommentId(activeCommentId === post.id ? null : post.id);
+                            }}
+                            title="Comment"
+                            style={{ outline: 'none' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="2" y="4" width="12" height="8" rx="2" stroke="#222" strokeWidth="1.2" fill="white" />
+                            </svg>
+                          </button>
+                          <span className="ml-1 text-xs font-semibold text-black dark:text-white">{post.comments.length}</span>
+                        </div>
+                        {activeCommentId === post.id && (
+                          <div className="flex flex-col gap-2 mt-2 p-2 rounded" style={{ maxHeight: '120px', overflowY: 'auto', background: '#f6f6f6' }}>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                className="border border-blue-900 dark:border-zinc-700 rounded px-2 py-1 text-xs flex-1 text-black dark:text-black"
+                                placeholder="Add a comment..."
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                              />
+                              <button
+                                className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition"
+                                onClick={() => { handleComment(post.id); }}
+                              >
+                                Comment
+                              </button>
+                            </div>
+                            <div className="mt-2 ml-2" style={{ maxHeight: '70px', overflowY: 'auto' }}>
+                              {post.comments.length > 0 ? post.comments.map((c, idx) => (
+                                <div key={idx} className="text-black dark:text-white text-xs mb-1">{c.text}</div>
+                              )) : <span className="text-gray-400 text-xs">No comments yet.</span>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          {/* Only the selected tab's content will appear below the nav */}
           {section === "peer-groups" && (
             <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
             <h2
@@ -512,6 +513,17 @@ export default function CommunityPage() {
         </div>
         {/* Right-side column for both section bars */}
   <div className="hidden md:flex flex-col gap-8" style={{ position: 'absolute', right: '25px', top: '72px', width: '28vw', minWidth: '18rem', maxWidth: '32vw' }}>
+          {/* Career Path Recommender Section Bar */}
+          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-green-200">
+            <h3 className="text-lg font-bold text-green-600 dark:text-green-300 mb-2">Career Path Recommender</h3>
+            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm mb-4">
+              <li>Explore your AI career path</li>
+              <li>Get personalized role suggestions</li>
+            </ul>
+            <div className="flex justify-center">
+              <img src="/images/card/Card-2.png" alt="Career Path" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
+            </div>
+          </aside>
           {/* Social Feature & Recommendation Section Bar */}
           <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100">
             <div className="mb-8">
@@ -537,17 +549,6 @@ export default function CommunityPage() {
                 </ul>
               </div>
               <img src="/images/card/Card-3.png" alt="Recommendation" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
-            </div>
-          </aside>
-          {/* Career Path Recommender Section Bar */}
-          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-green-200">
-            <h3 className="text-lg font-bold text-green-600 dark:text-green-300 mb-2">Career Path Recommender</h3>
-            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm mb-4">
-              <li>Explore your AI career path</li>
-              <li>Get personalized role suggestions</li>
-            </ul>
-            <div className="flex justify-center">
-              <img src="/images/card/Card-2.png" alt="Career Path" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
             </div>
           </aside>
         </div>
