@@ -513,19 +513,26 @@ export default function CommunityPage() {
         </div>
         {/* Right-side column for both section bars */}
   <div className="hidden md:flex flex-col gap-8" style={{ position: 'absolute', right: '25px', top: '72px', width: '28vw', minWidth: '18rem', maxWidth: '32vw' }}>
-          {/* Career Path Recommender Section Bar */}
-          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-green-200">
-            <h3 className="text-lg font-bold text-green-600 dark:text-green-300 mb-2">Career Path Recommender</h3>
-            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm mb-4">
-              <li>Explore your AI career path</li>
-              <li>Get personalized role suggestions</li>
+          {/* Trending Skills Section Bar */}
+          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-purple-200 transition-transform duration-200 hover:scale-105 hover:shadow-2xl">
+            <h3 className="text-lg font-bold text-purple-600 dark:text-purple-300 mb-2">Trending Skills</h3>
+            <ul className="pl-2 text-gray-700 dark:text-gray-200 text-base mb-4 flex flex-col gap-4">
+              <li className="flex items-center gap-3 rounded-lg transition-colors duration-200 hover:bg-purple-100 dark:hover:bg-purple-900 cursor-pointer">
+                <span role="img" aria-label="ML">🤖</span> Machine Learning
+              </li>
+              <li className="flex items-center gap-3 rounded-lg transition-colors duration-200 hover:bg-purple-100 dark:hover:bg-purple-900 cursor-pointer">
+                <span role="img" aria-label="Cybersecurity">🛡️</span> Cybersecurity
+              </li>
+              <li className="flex items-center gap-3 rounded-lg transition-colors duration-200 hover:bg-purple-100 dark:hover:bg-purple-900 cursor-pointer">
+                <span role="img" aria-label="Data Science">📊</span> Data Science
+              </li>
+              <li className="flex items-center gap-3 rounded-lg transition-colors duration-200 hover:bg-purple-100 dark:hover:bg-purple-900 cursor-pointer">
+                <span role="img" aria-label="Cloud">☁️</span> Cloud Computing
+              </li>
             </ul>
-            <div className="flex justify-center">
-              <img src="/images/card/Card-2.png" alt="Career Path" className="rounded-xl shadow w-24 h-24 object-cover transition-transform duration-300 hover:scale-110" />
-            </div>
           </aside>
           {/* Social Feature & Recommendation Section Bar */}
-          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100">
+          <aside className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100 transition-transform duration-200 hover:scale-105 hover:shadow-2xl">
             <div className="mb-8">
               <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Social Feature</h3>
               <div className="flex items-center gap-4 mb-4">
