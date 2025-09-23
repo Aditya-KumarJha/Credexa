@@ -5,7 +5,7 @@ const CredentialSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     title: { type: String, required: true, trim: true },
     issuer: { type: String, required: true, trim: true },
-    type: { type: String, enum: ['certificate', 'course', 'degree', 'license', 'badge'], required: true },
+    type: { type: String, enum: ['certificate', 'degree', 'license', 'badge'], required: true },
     status: { type: String, enum: ['verified', 'pending', 'expired'], default: 'pending' },
     issueDate: { type: Date, required: true },
     expiryDate: { type: Date },

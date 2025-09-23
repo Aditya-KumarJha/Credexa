@@ -59,7 +59,10 @@ export default function LeaderboardPage() {
   const [category, setCategory] = useState<string>("all");
   const [course, setCourse] = useState<string>("all");
   const [courses, setCourses] = useState<{ label: string; value: string }[]>([
-    { label: "All Courses", value: "all" },
+    { label: "All Skills", value: "all" },
+  ]);
+  const [credentialTypes, setCredentialTypes] = useState<{ label: string; value: string }[]>([
+    { label: "All Types", value: "all" },
   ]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
@@ -92,18 +95,36 @@ export default function LeaderboardPage() {
     ][i],
   })));
 
-  // Attempt to fetch leaderboard and course options from backend (graceful fallback to mock)
+  // Attempt to fetch leaderboard and skill categories from backend (graceful fallback to mock)
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoadingLeaderboard(true);
+      const token = localStorage.getItem("authToken");
       try {
         const res = await api.get("/api/leaderboard", {
           params: { q: query || undefined, timeframe, category, course: course === "all" ? undefined : course },
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (Array.isArray(res.data)) {
-          setData(res.data as LeaderItem[]);
+          console.log('Leaderboard data received:', res.data);
+          console.log('First item structure:', res.data[0]);
+          // Clean the data to ensure it matches our expected structure
+          const cleanedData = res.data.map((item: any) => ({
+            id: String(item.id),
+            rank: Number(item.rank),
+            name: String(item.name || 'Unknown'),
+            institute: String(item.institute || 'Unknown'),
+            avatar: String(item.avatar || ''),
+            points: Number(item.points || 0),
+            credentials: Number(item.credentials || 0),
+            skills: Number(item.skills || 0),
+            course: String(item.course || 'General')
+          }));
+          console.log('Cleaned data:', cleanedData[0]);
+          setData(cleanedData as LeaderItem[]);
         }
       } catch (e) {
+        console.log("Using mock leaderboard data:", e);
         // Silently keep mock data
       } finally {
         setLoadingLeaderboard(false);
@@ -114,22 +135,30 @@ export default function LeaderboardPage() {
   }, [query, timeframe, category, course]);
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchSkillCategories = async () => {
+      const token = localStorage.getItem("authToken");
       try {
-        const res = await api.get("/api/courses");
-        if (Array.isArray(res.data)) {
-          setCourses([{ label: "All Courses", value: "all" }, ...res.data.map((c: any) => ({ label: c.name || c.title || String(c), value: c.slug || c.id || c.name || String(c) }))]);
-        } else {
-          // derive from data
-          const unique = Array.from(new Set(data.map((d) => d.course).filter(Boolean))) as string[];
-          setCourses([{ label: "All Courses", value: "all" }, ...unique.map((c) => ({ label: c, value: c }))]);
+        const res = await api.get("/api/skills", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data?.credentialTypes) {
+          setCredentialTypes(res.data.credentialTypes);
         }
-      } catch {
-        const unique = Array.from(new Set(data.map((d) => d.course).filter(Boolean))) as string[];
-        setCourses([{ label: "All Courses", value: "all" }, ...unique.map((c) => ({ label: c, value: c }))]);
+        if (res.data?.allSkills) {
+          setCourses([
+            { label: "All Skills", value: "all" },
+            ...res.data.allSkills.map((skill: string) => ({
+              label: skill,
+              value: skill
+            }))
+          ]);
+        }
+      } catch (e) {
+        console.log("Using default skill categories:", e);
+        // Keep default categories and courses
       }
     };
-    fetchCourses();
+    fetchSkillCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -291,12 +320,7 @@ export default function LeaderboardPage() {
                             className="w-40"
                             value={category}
                             onChange={setCategory}
-                            options={[
-                              { value: "all", label: "All Categories" },
-                              { value: "credentials", label: "Credentials" },
-                              { value: "skills", label: "Skills" },
-                              { value: "points", label: "Points" },
-                            ]}
+                            options={credentialTypes}
                           />
                           <Select
                             className="w-56"

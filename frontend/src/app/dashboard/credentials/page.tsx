@@ -46,7 +46,7 @@ import dayjs from "dayjs";
 import { useTheme } from "next-themes";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 
-type CredentialType = "certificate" | "course" | "degree" | "license" | "badge";
+type CredentialType = "certificate" | "degree" | "license" | "badge";
 type CredentialStatus = "verified" | "pending" | "expired";
 
 interface Credential {
@@ -96,6 +96,12 @@ function CredentialsPageContent() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<any>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [skillsData, setSkillsData] = useState<{
+    categories: any;
+    allSkills: string[];
+    filterCategories: any[];
+  }>({ categories: {}, allSkills: [], filterCategories: [] });
+  const [loadingSkills, setLoadingSkills] = useState(false);
 
   // Simple catalog of supported platforms for the selector UI
   const platforms: { key: string; name: string; logo: string }[] = [
@@ -126,6 +132,24 @@ function CredentialsPageContent() {
       message.error("Failed to load credentials");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSkills = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    
+    setLoadingSkills(true);
+    try {
+      const res = await api.get("/api/skills", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSkillsData(res.data);
+    } catch (e: any) {
+      console.error("Failed to load skills data:", e);
+      // Don't show error message as this is not critical
+    } finally {
+      setLoadingSkills(false);
     }
   };
 
@@ -173,6 +197,7 @@ function CredentialsPageContent() {
 
   useEffect(() => {
     fetchItems();
+    fetchSkills();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -550,7 +575,6 @@ function CredentialsPageContent() {
               <Select value={typeFilter} onChange={setTypeFilter} className="w-full" options={[
                 { value: "all", label: "All Types" },
                 { value: "certificate", label: "Certificate" },
-                { value: "course", label: "Course" },
                 { value: "degree", label: "Degree" },
                 { value: "license", label: "License" },
                 { value: "badge", label: "Badge" },
@@ -793,7 +817,6 @@ function CredentialsPageContent() {
                     <Select
                       options={[
                         { value: "certificate", label: "Certificate" },
-                        { value: "course", label: "Course" },
                         { value: "degree", label: "Degree" },
                         { value: "license", label: "License" },
                         { value: "badge", label: "Badge" },
@@ -835,8 +858,22 @@ function CredentialsPageContent() {
               </Form.Item>
               <Row gutter={12}>
                 <Col span={12}>
-                  <Form.Item name="skills" label="Skills (comma separated)">
-                    <Input placeholder="e.g., React, Node.js, MongoDB" />
+                  <Form.Item name="skills" label="Skills">
+                    <Select
+                      mode="multiple"
+                      placeholder="Select or type skills"
+                      allowClear
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={skillsData.allSkills.map(skill => ({
+                        value: skill,
+                        label: skill
+                      }))}
+                      loading={loadingSkills}
+                      disabled={loadingSkills}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
