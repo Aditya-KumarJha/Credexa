@@ -11,7 +11,7 @@ async function uploadFile(file, filename) {
     const response = await imagekit.upload({
         file: file,
         fileName: filename,
-        folder: "veri-learn"
+        folder: "credexa"
     });
     
     return response;
