@@ -364,7 +364,7 @@ const revokeSession = async (req, res) => {
 // Update privacy settings
 const updatePrivacy = async (req, res) => {
   try {
-    const { profileVisibility, showEmail, showCredentials, allowProfileIndexing } = req.body;
+    const { profileVisibility, showEmail, showCredentials, allowProfileIndexing, showInLeaderboard } = req.body;
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -391,6 +391,9 @@ const updatePrivacy = async (req, res) => {
     }
     if (allowProfileIndexing !== undefined) {
       user.settings.privacy.allowProfileIndexing = allowProfileIndexing;
+    }
+    if (showInLeaderboard !== undefined) {
+      user.settings.privacy.showInLeaderboard = showInLeaderboard;
     }
 
     await user.save();

@@ -39,7 +39,6 @@ const createCredential = async (req, res) => {
       type: body.type,
       status: body.status || 'pending',
       issueDate: body.issueDate,
-      expiryDate: body.expiryDate || undefined,
       description: body.description || '',
       skills: Array.isArray(body.skills)
         ? body.skills
@@ -78,7 +77,7 @@ const updateCredential = async (req, res) => {
 
     const body = req.body;
     const fields = [
-      'title','issuer','type','status','issueDate','expiryDate','description','credentialUrl','nsqfLevel','blockchainAddress','transactionHash','issuerLogo','credentialId','creditPoints'
+      'title','issuer','type','status','issueDate','description','credentialUrl','nsqfLevel','blockchainAddress','transactionHash','issuerLogo','credentialId','creditPoints'
     ];
     fields.forEach((f) => {
       if (body[f] !== undefined) cred[f] = body[f];

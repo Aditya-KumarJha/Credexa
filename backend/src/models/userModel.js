@@ -69,6 +69,11 @@ const userSchema = new mongoose.Schema(
           marketing: { type: Boolean, default: false },
           security: { type: Boolean, default: true },
         },
+        privacy: {
+          profileVisibility: { type: String, enum: ["public", "private"], default: "public" },
+          showInLeaderboard: { type: Boolean, default: true },
+          allowDirectMessages: { type: Boolean, default: true },
+        },
         timezone: { type: String, default: "UTC" },
       },
       security: {

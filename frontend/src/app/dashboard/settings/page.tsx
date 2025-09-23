@@ -119,6 +119,7 @@ export default function SettingsPage() {
             showEmail: userData.settings.privacy.showEmail ?? false,
             showCredentials: userData.settings.privacy.showCredentials ?? true,
             allowProfileIndexing: userData.settings.privacy.allowProfileIndexing ?? true,
+            showInLeaderboard: userData.settings.privacy.showInLeaderboard ?? true,
           });
         }
       }
@@ -821,6 +822,17 @@ export default function SettingsPage() {
                               <Text type="secondary">Allow search engines to index your profile</Text>
                             </div>
                             <Form.Item name="allowProfileIndexing" valuePropName="checked" noStyle>
+                              <Switch />
+                            </Form.Item>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <Text strong>Show in Leaderboard</Text>
+                              <br />
+                              <Text type="secondary">Appear in public leaderboards and rankings</Text>
+                            </div>
+                            <Form.Item name="showInLeaderboard" valuePropName="checked" noStyle>
                               <Switch />
                             </Form.Item>
                           </div>
