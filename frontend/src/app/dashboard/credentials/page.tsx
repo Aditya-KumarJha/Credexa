@@ -223,21 +223,22 @@ function CredentialsPageContent() {
       formData.append('certificateFile', file);
       
       // Show loading message
-      console.log('Extracting certificate information...');
+      message.loading({ content: 'Extracting certificate information...', key: 'extract' });
       
       const response = await api.post('/api/credentials/extract', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           // Don't set Content-Type, let axios set it with boundary for multipart
         },
+        timeout: 30000, // 30 second timeout for extraction
       });
 
-      console.log('Certificate information extracted successfully!');
+      message.success({ content: 'Certificate information extracted successfully!', key: 'extract' });
       
       if (response.data && response.data.success && response.data.extracted) {
         return response.data.extracted;
       } else {
-        throw new Error(response.data?.message || 'Failed to extract information');
+        throw new Error(response.data?.error || response.data?.message || 'Failed to extract information');
       }
     } catch (error: any) {
       console.error('Extraction error details:', {
@@ -247,7 +248,22 @@ function CredentialsPageContent() {
         data: error.response?.data,
         config: error.config
       });
-      console.error('Failed to extract certificate information:', error.response?.data?.message || error.message);
+      
+      let errorMessage = 'Failed to extract certificate information';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Extraction timed out. Please try again with a clearer image.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.error || 'Invalid image file. Please upload a clear certificate image.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Extraction service error. Please try again or fill the form manually.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      message.error({ content: errorMessage, key: 'extract' });
       return null;
     }
   };
@@ -353,7 +369,7 @@ function CredentialsPageContent() {
         type: editing.type,
         issueDate: editing.issueDate ? dayjs(editing.issueDate) : undefined,
         description: editing.description,
-        skills: (editing.skills || []).join(", "),
+        skills: editing.skills || [],
         credentialUrl: editing.credentialUrl,
         nsqfLevel: editing.nsqfLevel,
         blockchainAddress: editing.blockchainAddress,
@@ -411,10 +427,12 @@ function CredentialsPageContent() {
         
         console.log('Using stored form values:', values);
         
-        const skillArray = String(values.skills || "")
-          .split(",")
-          .map((s: string) => s.trim())
-          .filter(Boolean);
+        const skillArray = Array.isArray(values.skills) 
+          ? values.skills 
+          : String(values.skills || "")
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean);
         payload = {
           title: values.title,
           issuer: values.issuer || "Unknown",
@@ -482,18 +500,14 @@ function CredentialsPageContent() {
     if (!token) return router.replace("/login");
 
     try {
-      // Step 1: Generate hash for the credential
-      const hashRes = await api.post(`/api/credentials/${editing._id}/generate-hash`, null, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const { hash } = hashRes.data;
-
-      // Step 2: Anchor the hash to blockchain
-      const anchorRes = await api.post('/api/credentials/anchor', { hash }, {
+      message.loading({ content: 'Anchoring on the blockchain...', key: 'anchor' });
+      
+      // Use the existing anchor endpoint that works
+      const anchorRes = await api.post(`/api/credentials/${editing._id}/anchor`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Step 3: Update the credential with transaction hash
+      // Update the credential with transaction hash
       if (anchorRes.data.transactionHash) {
         const credRes = await api.put(`/api/credentials/${editing._id}`, {
           transactionHash: anchorRes.data.transactionHash,
@@ -502,12 +516,13 @@ function CredentialsPageContent() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setItems((prev) => prev.map((x) => (x._id === credRes.data._id ? credRes.data : x)));
-        message.success("Credential anchored successfully!");
+        message.success({ content: 'Credential anchored successfully!', key: 'anchor' });
         setIsModalOpen(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Anchor Error:', err);
-      message.error("Failed to anchor credential");
+      const errorMessage = err.response?.data?.error || "Failed to anchor credential";
+      message.error({ content: errorMessage, key: 'anchor' });
     }
   };
 
@@ -646,7 +661,7 @@ function CredentialsPageContent() {
                 <div className="relative z-30">
                   <Select value={statusFilter} onChange={setStatusFilter} className="w-full" options={[
                     { value: "all", label: "All Status" },
-                    { value: "verified", label: "Verified" },
+                    { value: "verified", label: "Blockchain Verified" },
                     { value: "pending", label: "Pending" },
                   ]} />
                 </div>
@@ -713,37 +728,35 @@ function CredentialsPageContent() {
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         {statusTag(c.status)}
-                        {c.transactionHash && (
-                          <span className="px-2 py-0.5 text-xs rounded-md inline-flex items-center gap-1 border bg-blue-500/10 text-blue-500 border-blue-500/20">
-                            <Shield className="w-3 h-3" /> Blockchain Verified
-                          </span>
-                        )}
                       </div>
                       {/* Action Buttons - Positioned in header with proper z-index */}
                       <div className="relative z-50">
                         <Space size="small">
-                          {c.transactionHash && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="bg-white/90 backdrop-blur-sm hover:bg-blue-50 shadow-sm border-gray-200 text-blue-600 hover:text-blue-700" 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleViewDetails(c._id);
-                              }}
-                              disabled={loadingDetails}
-                            >
-                              {loadingDetails ? (
-                                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                              ) : (
-                                <Eye className="w-3 h-3" />
-                              )}
-                            </Button>
-                          )}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={`bg-white/90 backdrop-blur-sm shadow-sm border-gray-200 hover:shadow-md transition-all ${
+                              c.transactionHash 
+                                ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300" 
+                                : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                            }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleViewDetails(c._id);
+                            }}
+                            disabled={loadingDetails}
+                            title={c.transactionHash ? "View blockchain-verified details" : "View credential details"}
+                          >
+                            {loadingDetails ? (
+                              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <Eye className="w-3 h-3" />
+                            )}
+                          </Button>
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -1124,12 +1137,24 @@ function CredentialsPageContent() {
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-600" />
               <span>Credential Details</span>
+              {viewingDetails?.credential?.transactionHash && (
+                <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full border border-green-200">
+                  Blockchain Verified
+                </span>
+              )}
             </div>
           }
           footer={null}
           width={800}
+          loading={loadingDetails}
         >
-          {viewingDetails && (
+          {loadingDetails ? (
+            <div className="space-y-6">
+              <Skeleton active paragraph={{ rows: 4 }} />
+              <Skeleton active paragraph={{ rows: 3 }} />
+              <Skeleton active paragraph={{ rows: 2 }} />
+            </div>
+          ) : viewingDetails && (
             <div className="space-y-6">
               {/* Basic Information */}
               <div className="border border-border rounded-lg p-4 bg-card">

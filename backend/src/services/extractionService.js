@@ -2,7 +2,7 @@ const FormData = require('form-data');
 const axios = require('axios');
 
 // Configuration for the Flask extraction API
-const EXTRACTION_API_URL = process.env.EXTRACTION_API_URL || 'http://localhost:5000';
+const EXTRACTION_API_URL = process.env.EXTRACTION_API_URL || 'http://localhost:5001';
 
 /**
  * Extract credential information from certificate image using Flask OCR service
