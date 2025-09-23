@@ -88,7 +88,7 @@ export default function CommunityPage() {
   // ...existing code...
 
   // ...existing code...
-  const [section, setSection] = useState<string>("discussion");
+  const [section, setSection] = useState<string>("peer-groups");
   // Discussion Section
   const [posts, setPosts] = useState<Post[]>([]);
   const [text, setText] = useState<string>("");
@@ -228,7 +228,7 @@ export default function CommunityPage() {
               </h2>
               <div className="flex flex-col gap-2 mb-4">
                 <textarea
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
+                          className="w-full p-2 border border-gray-300 dark:border-white bg-white dark:bg-black text-gray-900 dark:text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2 resize-none"
                   rows={2}
                   placeholder="Share your thoughts..."
                   value={text}
@@ -316,7 +316,7 @@ export default function CommunityPage() {
                             </div>
                             <div className="mt-2 ml-2" style={{ maxHeight: '70px', overflowY: 'auto' }}>
                               {post.comments.length > 0 ? post.comments.map((c, idx) => (
-                                <div key={idx} className="text-black dark:text-white text-xs mb-1">{c.text}</div>
+                                <div key={idx} className="text-black text-xs mb-1 font-bold">{c.text}</div>
                               )) : <span className="text-gray-400 text-xs">No comments yet.</span>}
                             </div>
                           </div>
