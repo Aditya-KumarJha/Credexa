@@ -15,6 +15,7 @@ const CredentialSchema = new mongoose.Schema(
     nsqfLevel: { type: Number },
     blockchainAddress: { type: String },
     transactionHash: { type: String },
+    credentialHash: { type: String, index: true, unique: true, sparse: true },
     issuerLogo: { type: String },
     credentialId: { type: String },
     creditPoints: { type: Number },
