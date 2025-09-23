@@ -1,45 +1,23 @@
 "use client";
 
+<<<<<<< Updated upstream
 import { useEffect, useMemo, useState, useCallback } from "react";
+=======
+import { useEffect, useState } from "react";
+>>>>>>> Stashed changes
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar"), { ssr: false });
 
-import {
-  ConfigProvider,
-  theme as antdTheme,
-  Table,
-  Input,
-  Select,
-  Card,
-  Avatar,
-  Space,
-  Tag,
-  Tooltip,
-  Button as AntButton,
-  Tabs,
-  Row,
-  Col,
-  Progress,
-  Statistic,
-  Empty,
-} from "antd";
-import { Trophy, Medal, Star, Award, Crown } from "lucide-react";
-import api from "@/utils/axios";
+import { ConfigProvider, theme as antdTheme, Tabs } from "antd";
 
-type LeaderItem = {
-  id: string;
-  rank: number;
-  name: string;
-  institute: string;
-  avatar: string;
-  points: number;
-  credentials: number;
-  skills: number;
-  course?: string;
-};
+import LeaderboardFilters from "@/components/leaderboard/LeaderboardFilters";
+import TopThreeCards from "@/components/leaderboard/TopThreeCards";
+import LeaderboardTable from "@/components/leaderboard/LeaderboardTable";
+import ProgressSummary from "@/components/leaderboard/ProgressSummary";
+import { useCoursesOptions, useLeaderboardData, useMyProgress } from "@/components/leaderboard/hooks";
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -61,6 +39,7 @@ export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<string>("month");
   const [category, setCategory] = useState<string>("all");
   const [course, setCourse] = useState<string>("all");
+<<<<<<< Updated upstream
   const [sortField, setSortField] = useState<string>("points");
   const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("descend");
   const [courses, setCourses] = useState<{ label: string; value: string }[]>([
@@ -284,6 +263,13 @@ export default function LeaderboardPage() {
       isMounted = false;
     };
   }, []);
+=======
+  // Leaderboard data and filters
+  const { data, loading: loadingLeaderboard, filtered } = useLeaderboardData({ query, timeframe, category, course });
+  const courses = useCoursesOptions(data);
+  // My progress
+  const { progress, loading: loadingProgress } = useMyProgress();
+>>>>>>> Stashed changes
 
   if (!mounted) return null;
 
@@ -358,6 +344,7 @@ export default function LeaderboardPage() {
                 label: "Leaderboard",
                 children: (
                   <>
+<<<<<<< Updated upstream
                     <Card className="mb-8 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur" styles={{ body: { background: "transparent" } }}>
                       <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
                         <Input
@@ -579,6 +566,23 @@ export default function LeaderboardPage() {
                       />
                     </Card>
                     </div>
+=======
+                    <LeaderboardFilters
+                      query={query}
+                      setQuery={setQuery}
+                      timeframe={timeframe}
+                      setTimeframe={setTimeframe}
+                      category={category}
+                      setCategory={setCategory}
+                      course={course}
+                      setCourse={setCourse}
+                      courses={courses}
+                    />
+
+                    <TopThreeCards list={filtered} />
+
+                    <LeaderboardTable list={filtered} loading={loadingLeaderboard} isDark={isDark} />
+>>>>>>> Stashed changes
                   </>
                 ),
               },
@@ -587,6 +591,7 @@ export default function LeaderboardPage() {
                 label: "My Progress",
                 children: (
                   <>
+<<<<<<< Updated upstream
                     <Row gutter={[16, 16]}>
                       <Col xs={24} md={12}>
                         <Card className="border-0 shadow-lg">
@@ -651,6 +656,9 @@ export default function LeaderboardPage() {
                         </Card>
                       </Col>
                     </Row>
+=======
+                    <ProgressSummary progress={progress} loading={loadingProgress} />
+>>>>>>> Stashed changes
                   </>
                 ),
               },

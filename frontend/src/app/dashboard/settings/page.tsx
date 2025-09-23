@@ -1,53 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar"), { ssr: false });
-import api from "@/utils/axios";
-import {
-  Button as AntButton,
-} from "@/components/ui/button";
-import {
-  Card,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  Tabs,
-  Space,
-  message,
-  ConfigProvider,
-  theme as antdTheme,
-  Divider,
-  Typography,
-  List,
-  Avatar,
-  Popconfirm,
-  Button,
-} from "antd";
-import {
-  Settings,
-  User,
-  Palette,
-  Shield,
-  Eye,
-  Smartphone,
-  Monitor,
-  Globe,
-  Bell,
-  Lock,
-  Trash2,
-  QrCode,
-} from "lucide-react";
-import { useTheme } from "next-themes";
-import toast from "react-hot-toast";
-import ThemeToggleButton from "@/components/ui/theme-toggle-button";
+import { Card, Tabs, ConfigProvider, theme as antdTheme, Typography } from "antd";
+import { User, Palette, Shield, Eye } from "lucide-react";
+import { useSettingsData } from "@/components/settings/hooks";
+import SettingsHeader from "@/components/settings/SettingsHeader";
+import ProfileForm from "@/components/settings/ProfileForm";
+import PreferencesForm from "@/components/settings/PreferencesForm";
+import SecurityForm from "@/components/settings/SecurityForm";
+import PrivacyForm from "@/components/settings/PrivacyForm";
+import TwoFAModal from "@/components/settings/TwoFAModal";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 export default function SettingsPage() {
+<<<<<<< Updated upstream
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -352,6 +320,33 @@ export default function SettingsPage() {
       toast.error("Failed to clear all sessions");
     }
   };
+=======
+  const {
+    loading,
+    mounted,
+    isDark,
+    profileForm,
+    preferencesForm,
+    securityForm,
+    privacyForm,
+    twoFactorModal,
+    setTwoFactorModal,
+    qrCode,
+    twoFactorSecret,
+    verificationCode,
+    setVerificationCode,
+    activeSessions,
+    updateProfile,
+    updatePreferences,
+    updateSecurity,
+    updatePrivacy,
+    handleEnable2FA,
+    handleDisable2FA,
+    handleVerify2FA,
+    handleRevokeSession,
+    handleClearAllSessions,
+  } = useSettingsData();
+>>>>>>> Stashed changes
 
   if (!mounted) return null;
 
@@ -402,6 +397,7 @@ export default function SettingsPage() {
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
           <div className="max-w-4xl">
+<<<<<<< Updated upstream
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <Title level={2} className="flex items-center gap-2 !mb-0">
@@ -412,6 +408,9 @@ export default function SettingsPage() {
               </div>
               <Text type="secondary">Manage your account settings and preferences</Text>
             </div>
+=======
+            <SettingsHeader />
+>>>>>>> Stashed changes
 
             <Card className="shadow-lg border-0">
               <Tabs 
@@ -426,96 +425,7 @@ export default function SettingsPage() {
                         Profile
                       </span>
                     ),
-                    children: (
-                      <Form
-                        form={profileForm}
-                        layout="vertical"
-                        onFinish={updateProfile}
-                        className="max-w-2xl"
-                      >
-                        <Title level={4}>Personal Information</Title>
-                        <Space direction="vertical" size="large" className="w-full">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Form.Item
-                              name="firstName"
-                              label="First Name"
-                              rules={[{ required: true, message: "First name is required" }]}
-                            >
-                              <Input placeholder="Enter your first name" />
-                            </Form.Item>
-                            <Form.Item
-                              name="lastName"
-                              label="Last Name"
-                              rules={[{ required: true, message: "Last name is required" }]}
-                            >
-                              <Input placeholder="Enter your last name" />
-                            </Form.Item>
-                          </div>
-                          <Form.Item
-                            name="email"
-                            label="Email Address"
-                            rules={[
-                              { required: true, message: "Email is required" },
-                              { type: "email", message: "Invalid email format" },
-                            ]}
-                          >
-                            <Input placeholder="Enter your email address" />
-                          </Form.Item>
-
-                          <Divider />
-
-                          <Title level={4}>Change Password</Title>
-                          <Form.Item
-                            name="currentPassword"
-                            label="Current Password"
-                          >
-                            <Input.Password placeholder="Enter current password" />
-                          </Form.Item>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Form.Item
-                              name="newPassword"
-                              label="New Password"
-                              rules={[
-                                ({ getFieldValue }) => ({
-                                  validator(_, value) {
-                                    if (!value || getFieldValue("currentPassword")) {
-                                      if (value && value.length < 6) {
-                                        return Promise.reject(new Error("Password must be at least 6 characters"));
-                                      }
-                                      return Promise.resolve();
-                                    }
-                                    return Promise.reject(new Error("Current password is required"));
-                                  },
-                                }),
-                              ]}
-                            >
-                              <Input.Password placeholder="Enter new password" />
-                            </Form.Item>
-                            <Form.Item
-                              name="confirmPassword"
-                              label="Confirm New Password"
-                              dependencies={["newPassword"]}
-                              rules={[
-                                ({ getFieldValue }) => ({
-                                  validator(_, value) {
-                                    if (!value || getFieldValue("newPassword") === value) {
-                                      return Promise.resolve();
-                                    }
-                                    return Promise.reject(new Error("Passwords do not match"));
-                                  },
-                                }),
-                              ]}
-                            >
-                              <Input.Password placeholder="Confirm new password" />
-                            </Form.Item>
-                          </div>
-
-                          <Button type="primary" htmlType="submit" size="large">
-                            Save Changes
-                          </Button>
-                        </Space>
-                      </Form>
-                    )
+                    children: (<ProfileForm form={profileForm} onSubmit={updateProfile} />)
                   },
                   {
                     key: "preferences",
@@ -525,113 +435,7 @@ export default function SettingsPage() {
                         Preferences
                       </span>
                     ),
-                    children: (
-                      <Form
-                        form={preferencesForm}
-                        layout="vertical"
-                        onFinish={updatePreferences}
-                        className="max-w-2xl"
-                      >
-                        <Title level={4}>Appearance</Title>
-                        <Space direction="vertical" size="large" className="w-full">
-                          <Form.Item name="theme" label="Theme">
-                            <Select>
-                              <Select.Option value="light">
-                                <Space>
-                                  <Monitor className="w-4 h-4" />
-                                  Light
-                                </Space>
-                              </Select.Option>
-                              <Select.Option value="dark">
-                                <Space>
-                                  <Monitor className="w-4 h-4" />
-                                  Dark
-                                </Space>
-                              </Select.Option>
-                              <Select.Option value="system">
-                                <Space>
-                                  <Smartphone className="w-4 h-4" />
-                                  System
-                                </Space>
-                              </Select.Option>
-                            </Select>
-                          </Form.Item>
-
-                          <Divider />
-
-                          <Title level={4}>Localization</Title>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Form.Item name="language" label="Language">
-                              <Select>
-                                <Select.Option value="en">English</Select.Option>
-                                <Select.Option value="es">Spanish</Select.Option>
-                                <Select.Option value="fr">French</Select.Option>
-                                <Select.Option value="de">German</Select.Option>
-                              </Select>
-                            </Form.Item>
-                            <Form.Item name="timezone" label="Timezone">
-                              <Select>
-                                <Select.Option value="UTC">UTC</Select.Option>
-                                <Select.Option value="America/New_York">Eastern Time</Select.Option>
-                                <Select.Option value="America/Los_Angeles">Pacific Time</Select.Option>
-                                <Select.Option value="Europe/London">GMT</Select.Option>
-                                <Select.Option value="Asia/Tokyo">JST</Select.Option>
-                              </Select>
-                            </Form.Item>
-                          </div>
-
-                          <Divider />
-
-                          <Title level={4}>Notifications</Title>
-                          <Space direction="vertical" className="w-full">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <Text strong>Email Notifications</Text>
-                                <br />
-                                <Text type="secondary">Receive notifications via email</Text>
-                              </div>
-                              <Form.Item name="emailNotifications" valuePropName="checked" noStyle>
-                                <Switch />
-                              </Form.Item>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <Text strong>Push Notifications</Text>
-                                <br />
-                                <Text type="secondary">Receive push notifications in browser</Text>
-                              </div>
-                              <Form.Item name="pushNotifications" valuePropName="checked" noStyle>
-                                <Switch />
-                              </Form.Item>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <Text strong>Marketing Communications</Text>
-                                <br />
-                                <Text type="secondary">Receive updates about new features</Text>
-                              </div>
-                              <Form.Item name="marketingNotifications" valuePropName="checked" noStyle>
-                                <Switch />
-                              </Form.Item>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <Text strong>Security Notifications</Text>
-                                <br />
-                                <Text type="secondary">Important security updates</Text>
-                              </div>
-                              <Form.Item name="securityNotifications" valuePropName="checked" noStyle>
-                                <Switch />
-                              </Form.Item>
-                            </div>
-                          </Space>
-
-                          <Button type="primary" htmlType="submit" size="large">
-                            Save Preferences
-                          </Button>
-                        </Space>
-                      </Form>
-                    )
+                    children: (<PreferencesForm form={preferencesForm} onSubmit={updatePreferences} />)
                   },
                   {
                     key: "security",
@@ -642,111 +446,15 @@ export default function SettingsPage() {
                       </span>
                     ),
                     children: (
-                      <Form
+                      <SecurityForm
                         form={securityForm}
-                        layout="vertical"
-                        onFinish={updateSecurity}
-                        className="max-w-2xl"
-                      >
-                        <Title level={4}>Two-Factor Authentication</Title>
-                        <Space direction="vertical" size="large" className="w-full">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <Text strong>Two-Factor Authentication</Text>
-                              <br />
-                              <Text type="secondary">
-                                Add an extra layer of security to your account
-                              </Text>
-                            </div>
-                            <Form.Item name="twoFactorEnabled" valuePropName="checked" noStyle>
-                              <Switch
-                                onChange={(checked) => {
-                                  if (checked) {
-                                    handleEnable2FA();
-                                  } else {
-                                    handleDisable2FA();
-                                  }
-                                }}
-                              />
-                            </Form.Item>
-                          </div>
-
-                          <Divider />
-
-                          <Title level={4}>Session Management</Title>
-                          <Form.Item
-                            name="sessionTimeout"
-                            label="Session Timeout (minutes)"
-                            rules={[{ required: true, message: "Session timeout is required" }]}
-                          >
-                            <Select>
-                              <Select.Option value={15}>15 minutes</Select.Option>
-                              <Select.Option value={30}>30 minutes</Select.Option>
-                              <Select.Option value={60}>1 hour</Select.Option>
-                              <Select.Option value={240}>4 hours</Select.Option>
-                              <Select.Option value={480}>8 hours</Select.Option>
-                            </Select>
-                          </Form.Item>
-
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <Text strong>Login Notifications</Text>
-                              <br />
-                              <Text type="secondary">Get notified when you log in from a new device</Text>
-                            </div>
-                            <Form.Item name="loginNotifications" valuePropName="checked" noStyle>
-                              <Switch />
-                            </Form.Item>
-                          </div>
-
-                          <Divider />
-
-                          <Title level={4}>Active Sessions</Title>
-                          <div className="flex justify-between items-center mb-4">
-                            <Text type="secondary">Manage your active login sessions</Text>
-                            <Popconfirm
-                              title="Clear all active sessions?"
-                              description="This will log you out from all devices. You'll need to login again."
-                              onConfirm={handleClearAllSessions}
-                            >
-                              <Button danger size="small">
-                                Clear All Sessions
-                              </Button>
-                            </Popconfirm>
-                          </div>
-                          <List
-                            dataSource={activeSessions}
-                            renderItem={(session) => (
-                              <List.Item
-                                actions={[
-                                  <Popconfirm
-                                    title="Revoke this session?"
-                                    onConfirm={() => handleRevokeSession(session.sessionId)}
-                                    key="revoke"
-                                  >
-                                    <Button type="text" danger icon={<Trash2 className="w-4 h-4" />}>
-                                      Revoke
-                                    </Button>
-                                  </Popconfirm>
-                                ]}
-                              >
-                                <List.Item.Meta
-                                  avatar={<Avatar icon={<Monitor className="w-4 h-4" />} />}
-                                  title={session.deviceInfo || "Unknown Device"}
-                                  description={`IP: ${session.ipAddress} • Last active: ${new Date(
-                                    session.lastActive
-                                  ).toLocaleString()}`}
-                                />
-                              </List.Item>
-                            )}
-                            locale={{ emptyText: "No active sessions" }}
-                          />
-
-                          <Button type="primary" htmlType="submit" size="large">
-                            Save Security Settings
-                          </Button>
-                        </Space>
-                      </Form>
+                        onSubmit={updateSecurity}
+                        onEnable2FA={handleEnable2FA}
+                        onDisable2FA={handleDisable2FA}
+                        sessions={activeSessions}
+                        onRevokeSession={handleRevokeSession}
+                        onClearAll={handleClearAllSessions}
+                      />
                     )
                   },
                   {
@@ -757,6 +465,7 @@ export default function SettingsPage() {
                         Privacy
                       </span>
                     ),
+<<<<<<< Updated upstream
                     children: (
                       <Form
                         form={privacyForm}
@@ -843,6 +552,9 @@ export default function SettingsPage() {
                         </Space>
                       </Form>
                     )
+=======
+                    children: (<PrivacyForm form={privacyForm} onSubmit={updatePrivacy} />)
+>>>>>>> Stashed changes
                   }
                 ]}
               />
@@ -850,56 +562,15 @@ export default function SettingsPage() {
           </div>
         </main>
 
-        {/* 2FA Setup Modal */}
-        <Modal
+        <TwoFAModal
           open={twoFactorModal}
-          onCancel={() => setTwoFactorModal(false)}
-          title={
-            <span className="flex items-center gap-2">
-              <QrCode className="w-5 h-5" />
-              Set up Two-Factor Authentication
-            </span>
-          }
-          footer={null}
-          width={500}
-        >
-          <Space direction="vertical" size="large" className="w-full">
-            <div className="text-center">
-              <Text>
-                Scan this QR code with your authenticator app (like Google Authenticator, Authy, or
-                1Password)
-              </Text>
-            </div>
-            {qrCode && (
-              <div className="flex justify-center">
-                <img src={qrCode} alt="2FA QR Code" className="max-w-xs" />
-              </div>
-            )}
-            <div>
-              <Text strong>Or enter this secret key manually:</Text>
-              <br />
-              <Text code copyable>
-                {twoFactorSecret}
-              </Text>
-            </div>
-            <Input
-              placeholder="Enter 6-digit verification code"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              maxLength={6}
-            />
-            <div className="flex justify-end gap-2">
-              <Button onClick={() => setTwoFactorModal(false)}>Cancel</Button>
-              <Button
-                type="primary"
-                onClick={handleVerify2FA}
-                disabled={verificationCode.length !== 6}
-              >
-                Verify & Enable
-              </Button>
-            </div>
-          </Space>
-        </Modal>
+          onClose={() => setTwoFactorModal(false)}
+          qrCode={qrCode}
+          secret={twoFactorSecret}
+          code={verificationCode}
+          setCode={setVerificationCode}
+          onVerify={handleVerify2FA}
+        />
       </div>
     </ConfigProvider>
   );
