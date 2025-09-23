@@ -179,7 +179,7 @@ export default function CommunityPage() {
   return (
     <div className="bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 min-h-screen">
       {/* Fixed nav bar at top */}
-      <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between px-6 py-2 shadow-md">
+  <div className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between px-6 py-2 shadow-md">
         <div className="flex items-center gap-2">
           <ArrowRight
             className="h-5 w-5 text-blue-500 dark:text-blue-400 rotate-180 cursor-pointer"
@@ -195,8 +195,10 @@ export default function CommunityPage() {
       {/* Spacer for fixed nav bar */}
       <div className="h-12" />
       {/* Horizontal tab navigation, left-aligned below nav bar */}
-      <div className="w-full flex flex-col items-start mt-6 mb-8 px-8">
-        <nav className="flex gap-4 bg-white dark:bg-zinc-800 px-6 py-3 shadow-md rounded-xl border border-gray-200 dark:border-zinc-700">
+      <div className="w-full flex flex-row items-start mt-6 mb-8 px-8 gap-8">
+        <div style={{ width: '60vw' }}>
+  <div className="flex-1 flex flex-col">
+          <nav className="flex gap-4 bg-white dark:bg-zinc-800 px-6 py-3 shadow-md rounded-xl border border-gray-200 dark:border-zinc-700">
           {[ 
             { key: "discussion", label: "Discussion" },
             { key: "peer-groups", label: "Peer Groups" },
@@ -216,9 +218,9 @@ export default function CommunityPage() {
             </button>
           ))}
         </nav>
-        {/* Only the selected tab's content will appear below the nav */}
-        {section === "discussion" && (
-          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 w-1/2 px-6 py-3 mt-10">
+          {/* Only the selected tab's content will appear below the nav */}
+          {section === "discussion" && (
+          <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 px-6 py-3 mt-10" style={{ width: '60vw' }}>
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
             >
@@ -326,7 +328,7 @@ export default function CommunityPage() {
             </div>
           </div>
         )}
-        {section === "peer-groups" && (
+          {section === "peer-groups" && (
           <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
@@ -428,7 +430,7 @@ export default function CommunityPage() {
             )}
           </div>
         )}
-        {section === "events" && (
+          {section === "events" && (
           <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 mb-10 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-2xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
@@ -454,7 +456,7 @@ export default function CommunityPage() {
             <div className="text-gray-500 text-center">Click RSVP to register and set a reminder for upcoming events!</div>
           </div>
         )}
-        {section === "gamification" && (
+          {section === "gamification" && (
           <div className="mb-10 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-blue-100 w-1/2 px-6 py-3 mt-10">
             <h2
               className="text-xl font-bold mb-4 text-black dark:text-white transition-colors duration-200 hover:text-blue-400 cursor-pointer"
@@ -507,6 +509,29 @@ export default function CommunityPage() {
             <div className="text-gray-500 text-center">Earn badges and points by posting, commenting, and helping others!</div>
           </div>
         )}
+        </div>
+  {/* Right-side section bar: Social Feature & Recommendation */}
+  <aside className="hidden md:flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 border border-blue-100 mt-2" style={{ position: 'fixed', right: '10px', top: '80px', width: '28vw', minWidth: '18rem', maxWidth: '32vw', zIndex: 40 }}>
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Social Feature</h3>
+            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+              <li>Connect with peers</li>
+              <li>Share achievements</li>
+              <li>Direct messaging</li>
+              <li>Group chats</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-300 mb-2">Recommendation</h3>
+            <ul className="list-disc pl-4 text-gray-700 dark:text-gray-200 text-sm">
+              <li>Suggested groups</li>
+              <li>Trending topics</li>
+              <li>Events for you</li>
+              <li>Top contributors</li>
+            </ul>
+          </div>
+        </aside>
+        </div>
       </div>
     </div>
   );
