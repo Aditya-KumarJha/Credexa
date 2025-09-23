@@ -58,6 +58,57 @@ const userSchema = new mongoose.Schema(
       isVerified: { type: Boolean, default: true }, // false if manually added, pending admin approval
     },
     
+    // Platform sync information
+    platformSync: {
+      coursera: {
+        profileUrl: { type: String, trim: true },
+        isConnected: { type: Boolean, default: false },
+        verified: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+        lastSyncAt: { type: Date },
+        pendingVerification: {
+          token: { type: String },
+          expiresAt: { type: Date },
+          profileUrl: { type: String, trim: true },
+        },
+      },
+      udemy: {
+        profileUrl: { type: String, trim: true },
+        isConnected: { type: Boolean, default: false },
+        verified: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+        lastSyncAt: { type: Date },
+      },
+      nptel: {
+        profileUrl: { type: String, trim: true },
+        isConnected: { type: Boolean, default: false },
+        verified: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+        lastSyncAt: { type: Date },
+      },
+      edx: {
+        profileUrl: { type: String, trim: true },
+        isConnected: { type: Boolean, default: false },
+        verified: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+        lastSyncAt: { type: Date },
+      },
+      linkedinLearning: {
+        profileUrl: { type: String, trim: true },
+        isConnected: { type: Boolean, default: false },
+        verified: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+        lastSyncAt: { type: Date },
+      },
+      google: {
+        profileUrl: { type: String, trim: true },
+        isConnected: { type: Boolean, default: false },
+        verified: { type: Boolean, default: false },
+        verifiedAt: { type: Date },
+        lastSyncAt: { type: Date },
+      },
+    },
+    
     // Settings fields
     settings: {
       preferences: {

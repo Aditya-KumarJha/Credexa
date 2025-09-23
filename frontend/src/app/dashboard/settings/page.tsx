@@ -19,6 +19,7 @@ export default function SettingsPage() {
     loading,
     mounted,
     isDark,
+    user,
     profileForm,
     preferencesForm,
     securityForm,
@@ -39,6 +40,8 @@ export default function SettingsPage() {
     handleVerify2FA,
     handleRevokeSession,
     handleClearAllSessions,
+    updatePlatformSync,
+    disconnectPlatform,
   } = useSettingsData();
 
   if (!mounted) return null;
@@ -105,7 +108,15 @@ export default function SettingsPage() {
                         Profile
                       </span>
                     ),
-                    children: (<ProfileForm form={profileForm} onSubmit={updateProfile} />)
+                    children: (
+                      <ProfileForm 
+                        form={profileForm} 
+                        onSubmit={updateProfile}
+                        user={user}
+                        onConnectPlatform={updatePlatformSync}
+                        onDisconnectPlatform={disconnectPlatform}
+                      />
+                    )
                   },
                   {
                     key: "preferences",

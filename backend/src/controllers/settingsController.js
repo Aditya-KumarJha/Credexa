@@ -440,6 +440,112 @@ const clearAllSessions = async (req, res) => {
   }
 };
 
+// Update platform sync settings
+const updatePlatformSync = async (req, res) => {
+  try {
+    const { platform, profileUrl } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Validate platform
+    const allowedPlatforms = ['coursera', 'udemy', 'nptel', 'edx', 'linkedinLearning', 'google'];
+    if (!allowedPlatforms.includes(platform)) {
+      return res.status(400).json({ message: "Invalid platform" });
+    }
+
+    // Validate URL
+    if (!profileUrl || !profileUrl.trim()) {
+      return res.status(400).json({ message: "Profile URL is required" });
+    }
+
+    // Basic URL validation
+    try {
+      new URL(profileUrl);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid URL format" });
+    }
+
+    // Initialize platformSync if it doesn't exist
+    if (!user.platformSync) {
+      user.platformSync = {};
+    }
+    if (!user.platformSync[platform]) {
+      user.platformSync[platform] = {};
+    }
+
+    // Update platform sync settings
+    const prevUrl = user.platformSync[platform].profileUrl || "";
+    const prevVerified = !!user.platformSync[platform].verified;
+    const nextUrl = profileUrl.trim();
+
+    user.platformSync[platform].profileUrl = nextUrl;
+    user.platformSync[platform].isConnected = true;
+    // Preserve verified state if URL unchanged and already verified (e.g., post-challenge refresh)
+    if (!(prevVerified && prevUrl === nextUrl)) {
+      user.platformSync[platform].verified = false;
+      user.platformSync[platform].verifiedAt = null;
+    }
+    user.platformSync[platform].lastSyncAt = new Date();
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `${platform} profile connected successfully`,
+      data: user.platformSync[platform],
+    });
+  } catch (error) {
+    console.error("Update platform sync error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Disconnect platform
+const disconnectPlatform = async (req, res) => {
+  try {
+    const { platform } = req.params;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Validate platform
+    const allowedPlatforms = ['coursera', 'udemy', 'nptel', 'edx', 'linkedinLearning', 'google'];
+    if (!allowedPlatforms.includes(platform)) {
+      return res.status(400).json({ message: "Invalid platform" });
+    }
+
+    // Initialize platformSync if it doesn't exist
+    if (!user.platformSync) {
+      user.platformSync = {};
+    }
+    if (!user.platformSync[platform]) {
+      user.platformSync[platform] = {};
+    }
+
+    // Disconnect platform
+    user.platformSync[platform].profileUrl = "";
+    user.platformSync[platform].isConnected = false;
+  user.platformSync[platform].verified = false;
+  user.platformSync[platform].verifiedAt = null;
+    user.platformSync[platform].lastSyncAt = null;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `${platform} profile disconnected successfully`,
+    });
+  } catch (error) {
+    console.error("Disconnect platform error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getSettings,
   updateProfile,
@@ -450,4 +556,6 @@ module.exports = {
   revokeSession,
   updatePrivacy,
   clearAllSessions,
+  updatePlatformSync,
+  disconnectPlatform,
 };

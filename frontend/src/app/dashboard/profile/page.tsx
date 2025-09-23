@@ -8,6 +8,7 @@ import { Camera, Mail, Loader2, ShieldAlert, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import InstituteSelector from "@/components/InstituteSelector";
+import PlatformSync from "@/components/profile/PlatformSync";
 
 interface UserProfile {
   _id: string;
@@ -15,6 +16,14 @@ interface UserProfile {
   email: string | null;
   profilePic: string;
   provider: string;
+  platformSync?: {
+    [key: string]: {
+      profileUrl: string;
+      isConnected: boolean;
+      lastSyncAt?: string;
+      verified?: boolean;
+    };
+  };
 }
 
 export default function ProfilePage() {
@@ -182,6 +191,51 @@ export default function ProfilePage() {
     }
   };
 
+  // Platform sync functions
+  const handleConnectPlatform = async (platform: string, profileUrl: string) => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.put("/api/settings/platform-sync", { platform, profileUrl }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        if (platform !== 'coursera') toast.success(`${platform} connected successfully`);
+        // Refresh user data to get updated platform sync settings
+        const userResponse = await api.get("/api/users/me", { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
+        setUser(userResponse.data);
+      }
+    } catch (error: any) {
+      console.error("Connect platform error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to connect platform";
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
+  const handleDisconnectPlatform = async (platform: string) => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.delete(`/api/settings/platform-sync/${platform}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        toast.success("Platform disconnected successfully");
+        // Refresh user data to get updated platform sync settings
+        const userResponse = await api.get("/api/users/me", { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
+        setUser(userResponse.data);
+      }
+    } catch (error: any) {
+      console.error("Disconnect platform error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to disconnect platform";
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
 
   if (loading) {
     return (
@@ -257,7 +311,15 @@ export default function ProfilePage() {
             <div className="mb-8">
               <InstituteSelector />
             </div>
-            <div className="flex justify-end">
+
+            {/* Platform Sync Section */}
+            <PlatformSync
+              platformSync={user?.platformSync || {}}
+              onConnectPlatform={handleConnectPlatform as any}
+              onDisconnectPlatform={handleDisconnectPlatform as any}
+            />
+
+            <div className="flex justify-end mt-8">
               <button type="submit" disabled={!isFormDirty || isSubmitting} className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg shadow-md transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center">
                 {isSubmitting ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
                 {isSubmitting ? "Saving..." : "Save Changes"}

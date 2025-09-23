@@ -1,10 +1,23 @@
 "use client";
 import React from "react";
 import { Button, Divider, Form, Input, Space, Typography } from "antd";
+import PlatformSyncForm from "./PlatformSyncForm";
 
 const { Title } = Typography;
 
-export default function ProfileForm({ form, onSubmit }: { form: any; onSubmit: (values: any) => void }) {
+export default function ProfileForm({ 
+  form, 
+  onSubmit, 
+  user,
+  onConnectPlatform,
+  onDisconnectPlatform 
+}: { 
+  form: any; 
+  onSubmit: (values: any) => void;
+  user: any;
+  onConnectPlatform: (platform: string, profileUrl: string) => Promise<void>;
+  onDisconnectPlatform: (platform: string) => Promise<void>;
+}) {
   return (
     <Form form={form} layout="vertical" onFinish={onSubmit} className="max-w-2xl">
       <Title level={4}>Personal Information</Title>
@@ -62,6 +75,15 @@ export default function ProfileForm({ form, onSubmit }: { form: any; onSubmit: (
         <Button type="primary" htmlType="submit" size="large">
           Save Changes
         </Button>
+        
+        <Divider />
+        
+        {/* Platform Sync Section */}
+        <PlatformSyncForm
+          platformSync={user?.platformSync || {}}
+          onConnectPlatform={onConnectPlatform}
+          onDisconnectPlatform={onDisconnectPlatform}
+        />
       </Space>
     </Form>
   );

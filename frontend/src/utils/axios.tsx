@@ -1,7 +1,15 @@
 import axios from "axios";
 
+// Fallback baseURL in dev if NEXT_PUBLIC_API_URL is not provided
+const inferDevBaseUrl = () => {
+  if (typeof window === "undefined") return undefined;
+  const { protocol, hostname } = window.location;
+  // Assume backend runs on 4000 in dev
+  return `${protocol}//${hostname}:4000`;
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || inferDevBaseUrl(),
   withCredentials: true,
 });
 

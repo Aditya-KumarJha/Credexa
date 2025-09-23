@@ -9,6 +9,8 @@ const {
   revokeSession,
   updatePrivacy,
   clearAllSessions,
+  updatePlatformSync,
+  disconnectPlatform,
 } = require("../controllers/settingsController");
 const { protect } = require("../middlewares/authMiddleware");
 const { trackSession } = require("../middlewares/sessionMiddleware");
@@ -36,5 +38,9 @@ router.delete("/security/sessions", clearAllSessions);
 
 // Privacy settings
 router.put("/privacy", updatePrivacy);
+
+// Platform sync settings
+router.put("/platform-sync", updatePlatformSync);
+router.delete("/platform-sync/:platform", disconnectPlatform);
 
 module.exports = router;
