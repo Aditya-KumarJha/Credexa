@@ -286,6 +286,42 @@ export function useSettingsData() {
     }
   };
 
+  // Platform sync functions
+  const updatePlatformSync = async (platform: string, profileUrl: string) => {
+    try {
+      const response = await api.put("/api/settings/platform-sync", {
+        platform,
+        profileUrl,
+      });
+      if (response.data.success) {
+        toast.success(`${platform} connected successfully`);
+        // Refresh user data to get updated platform sync info
+        fetchSettings();
+      }
+    } catch (error: any) {
+      console.error("Update platform sync error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to connect platform";
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
+  const disconnectPlatform = async (platform: string) => {
+    try {
+      const response = await api.delete(`/api/settings/platform-sync/${platform}`);
+      if (response.data.success) {
+        toast.success("Platform disconnected successfully");
+        // Refresh user data to get updated platform sync info
+        fetchSettings();
+      }
+    } catch (error: any) {
+      console.error("Disconnect platform error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to disconnect platform";
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
   return {
     // state
     loading,
@@ -316,5 +352,8 @@ export function useSettingsData() {
     handleVerify2FA,
     handleRevokeSession,
     handleClearAllSessions,
+    // platform sync
+    updatePlatformSync,
+    disconnectPlatform,
   };
 }

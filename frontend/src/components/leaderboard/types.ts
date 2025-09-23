@@ -12,9 +12,9 @@ export type LeaderItem = {
 
 export type MyProgress = {
   total: number;
-  verified: number;
-  pending: number;
-  expired: number;
+  verified: number; // Credentials with blockchain proof (transactionHash)
+  pending: number;  // Credentials without blockchain proof
+  expired: number;  // Not used in blockchain system
   points: number;
   topSkills: { name: string; count: number }[];
 };

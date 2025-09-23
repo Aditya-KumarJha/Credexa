@@ -18,8 +18,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, score, onBookmark, isBookmarked 
     return salaryRange;
   };
 
-  const getExperienceColor = (level: string) => {
-    switch (level) {
+  const getExperienceColor = (level?: string) => {
+    if (!level) return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+    switch (level.toLowerCase()) {
       case "entry": return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
       case "mid": return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
       case "senior": return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";
@@ -27,13 +28,24 @@ const JobCard: React.FC<JobCardProps> = ({ job, score, onBookmark, isBookmarked 
     }
   };
 
-  const getWorkTypeColor = (type: string) => {
-    switch (type) {
+  const getWorkTypeColor = (type?: string) => {
+    if (!type) return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+    switch (type.toLowerCase()) {
       case "remote": return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300";
       case "hybrid": return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300";
       case "onsite": return "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300";
       default: return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
     }
+  };
+
+  const formatExperienceLevel = (level?: string) => {
+    if (!level) return "Mid Level"; // Default fallback
+    return level.charAt(0).toUpperCase() + level.slice(1) + " Level";
+  };
+
+  const formatWorkType = (type?: string) => {
+    if (!type) return "Hybrid"; // Default fallback
+    return type.charAt(0).toUpperCase() + type.slice(1);
   };
 
   return (
@@ -101,7 +113,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, score, onBookmark, isBookmarked 
             <span
               className={`px-2 py-1 rounded-full text-xs font-medium ${getWorkTypeColor(job.work_type)}`}
             >
-              {job.work_type.charAt(0).toUpperCase() + job.work_type.slice(1)}
+              {formatWorkType(job.work_type)}
             </span>
           )}
         </div>
@@ -115,7 +127,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, score, onBookmark, isBookmarked 
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium ${getExperienceColor(job.experience_level)}`}
           >
-            {job.experience_level.charAt(0).toUpperCase() + job.experience_level.slice(1)} Level
+            {formatExperienceLevel(job.experience_level)}
           </span>
         </div>
 

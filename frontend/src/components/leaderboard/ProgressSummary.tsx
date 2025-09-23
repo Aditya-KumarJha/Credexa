@@ -18,17 +18,13 @@ export default function ProgressSummary({ progress, loading }: { progress: MyPro
             <Statistic title="Total Credentials" value={progress.total} />
             <div className="mt-4">
               <div className="flex items-center justify-between text-sm mb-2">
-                <span>Verified</span>
+                <span>On-Chain Proof</span>
                 <span className="font-medium">{progress.verified}</span>
               </div>
               <Progress percent={percentVerified} status="active" />
               <div className="flex items-center justify-between text-sm mt-2">
-                <span>Pending</span>
+                <span>No On-Chain Proof</span>
                 <span className="font-medium">{progress.pending}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm mt-1">
-                <span>Expired</span>
-                <span className="font-medium">{progress.expired}</span>
               </div>
             </div>
           </Card>

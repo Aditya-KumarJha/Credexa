@@ -131,9 +131,9 @@ export function useMyProgress() {
         
         const creds = Array.isArray(res.data) ? res.data : [];
         const total = creds.length;
-        const verified = creds.filter((c: any) => c.status === "verified").length;
-        const pending = creds.filter((c: any) => c.status === "pending").length;
-        const expired = creds.filter((c: any) => c.status === "expired").length;
+        const verified = creds.filter((c: any) => c.transactionHash && c.transactionHash.trim() !== "").length;
+        const pending = creds.filter((c: any) => !c.transactionHash || c.transactionHash.trim() === "").length;
+        const expired = 0; // We don't track expired status anymore
         const points = creds.reduce((sum: number, c: any) => sum + (Number(c.creditPoints) || 10), 0);
         const skillCounts: Record<string, number> = {};
         creds.forEach((c: any) => {
