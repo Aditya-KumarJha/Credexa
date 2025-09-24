@@ -20,9 +20,7 @@ const listCredentials = async (req, res) => {
 const createCredential = async (req, res) => {
   try {
     const body = req.body;
-    console.log('Received body:', body);
-    console.log('Body type:', typeof body);
-    console.log('Body keys:', Object.keys(body));
+    console.log('Creating credential with body keys:', Object.keys(body));
     
     if (!body.title) {
       return res.status(400).json({
@@ -57,7 +55,8 @@ const createCredential = async (req, res) => {
       const uploaded = await uploadFile(req.file.buffer, `credential_${Date.now()}`);
       payload.imageUrl = uploaded.url;
     } else if (body.imageUrl) {
-      payload.imageUrl = body.imageUrl;
+      // Handle imageUrl - it might be an array from frontend, so take the first value
+      payload.imageUrl = Array.isArray(body.imageUrl) ? body.imageUrl[0] : body.imageUrl;
     }
 
     const created = await Credential.create(payload);

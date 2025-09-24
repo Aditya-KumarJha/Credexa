@@ -33,6 +33,14 @@ app.use(cookieParser());
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  if (req.method === 'POST' && req.path.includes('/credentials')) {
+    console.log('POST /credentials request details:', {
+      path: req.path,
+      contentType: req.headers['content-type'],
+      hasAuth: !!req.headers.authorization,
+      bodyKeys: req.body ? Object.keys(req.body) : 'No body yet'
+    });
+  }
   if (req.method === 'DELETE') {
     console.log('DELETE request details:', {
       path: req.path,
@@ -52,6 +60,7 @@ const instituteRoutes = require('./routes/instituteRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const platformsRoutes = require('./routes/platformsRoutes');
 const jobRoutes = require('./routes/jobRoutes');
+const certificateRoutes = require('./routes/certificateRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -61,6 +70,7 @@ app.use('/api/institute', instituteRoutes);
 app.use('/api', leaderboardRoutes);
 app.use('/api/platforms', platformsRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 app.get('/', (req, res) => res.send('API is running'));
 

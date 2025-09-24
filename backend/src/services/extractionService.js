@@ -8,9 +8,10 @@ const EXTRACTION_API_URL = process.env.EXTRACTION_API_URL || 'http://localhost:5
  * Extract credential information from certificate image using Flask OCR service
  * @param {Buffer} fileBuffer - Image file buffer
  * @param {string} filename - Original filename
+ * @param {string} platform - Platform hint for extraction rules (optional)
  * @returns {Promise<Object>} Extracted credential data
  */
-async function extractCredentialInfo(fileBuffer, filename) {
+async function extractCredentialInfo(fileBuffer, filename, platform) {
   try {
     // Create form data for the Flask API
     const formData = new FormData();
@@ -18,6 +19,11 @@ async function extractCredentialInfo(fileBuffer, filename) {
       filename: filename,
       contentType: 'image/jpeg' // Default, Flask should handle various image types
     });
+    
+    // Add platform hint if provided
+    if (platform) {
+      formData.append('platform', platform);
+    }
 
     // Call the Flask extraction API
     const response = await axios.post(`${EXTRACTION_API_URL}/extract`, formData, {

@@ -45,6 +45,8 @@ router.post('/extract', upload.single('certificateFile'), extractCertificateInfo
 // --- EXISTING DATABASE ROUTES (UNCHANGED) ---
 router.get('/', listCredentials);
 router.get('/:id', getCredentialDetails);
+
+// Main credential creation route with multer middleware
 router.post('/', upload.single('certificateFile'), createCredential);
 router.put('/:id', updateCredential);
 router.delete('/:id', deleteCredential);

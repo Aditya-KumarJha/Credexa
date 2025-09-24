@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { Modal, Steps, Button as AntButton, Form, Input, Select, Row, Col, DatePicker, Upload, Space } from "antd";
+import { Modal, Steps, Button as AntButton, Form, Input, Select, Row, Col, DatePicker, Upload, Space, Spin, Alert } from "antd";
 import { Button } from "@/components/ui/button";
 import { extractCertificateInfo, platforms } from "@/utils/credentialUtils";
 import { AddMethod, Platform, CredentialFormValues } from "@/types/credentials";
+import { importCertificateFromUrl, isSupportedCertificateUrl } from "@/services/certificateService";
 import dayjs from "dayjs";
 
 interface CredentialModalProps {
@@ -50,6 +51,13 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
   form,
 }) => {
   // Initialize or reset form only when the Form is actually rendered (step 1)
+  const [extractingFromUrl, setExtractingFromUrl] = useState(false);
+  const [extractingFromImage, setExtractingFromImage] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [extractionSuccess, setExtractionSuccess] = useState<string | null>(null);
+  const [urlExtractionTimeout, setUrlExtractionTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [autoImageUrl, setAutoImageUrl] = useState<string | null>(null);
+  const [currentUrl, setCurrentUrl] = useState<string>("");
   useEffect(() => {
     if (!isOpen || currentStep !== 1) return;
     if (editing) {
@@ -71,6 +79,49 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
       form.resetFields();
     }
   }, [isOpen, currentStep, editing, form]);
+
+  const handleCertificateUrlExtraction = async (url: string) => {
+    if (!url || !isSupportedCertificateUrl(url)) {
+      setExtractionError(null);
+      setExtractionSuccess(null);
+      setAutoImageUrl(null);
+      return;
+    }
+    setExtractingFromUrl(true);
+    setExtractionError(null);
+    setExtractionSuccess(null);
+    try {
+      const result = await importCertificateFromUrl(url);
+      if (result?.success && result.data) {
+        const d = result.data;
+        const values: any = {
+          credentialUrl: url,
+          title: d.title || '',
+          issuer: d.issuer || '',
+          type: 'certificate',
+          credentialId: d.credentialId || '',
+          description: d.description || '',
+        };
+        if (d.completionDate) values.issueDate = dayjs(d.completionDate);
+        if (d.storedImageUrl) {
+          values.imageUrl = d.storedImageUrl;
+          setAutoImageUrl(d.storedImageUrl);
+        }
+        form.setFieldsValue(values);
+        if (d.ocrAvailable) {
+          setExtractionSuccess('Certificate downloaded and parsed automatically.');
+        } else {
+          setExtractionError('Certificate image attached. OCR service unavailable, so fields could not be auto-filled. You can fill them manually or start the OCR service.');
+        }
+      } else {
+        setExtractionError(result?.message || 'Failed to import certificate');
+      }
+    } catch (e: any) {
+      setExtractionError(e?.message || 'Failed to import certificate');
+    } finally {
+      setExtractingFromUrl(false);
+    }
+  };
 
   const handleContinueToReview = async () => {
     try {
@@ -103,7 +154,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
             {[
               { key: "sync", title: "Sync from Platform", desc: "Connect your account to import credentials", icon: "🌐" },
               { key: "upload", title: "Upload Certificate", desc: "Upload PDF/PNG/JPG with OCR parsing", icon: "⬆️" },
-              { key: "manual", title: "Add Manually", desc: "Fill in the details using a form", icon: "📝" },
+              { key: "manual", title: "Upload using URL", desc: "Import certificate from a shareable URL", icon: "�" },
             ].map((m) => (
               <button
                 key={m.key}
@@ -150,16 +201,21 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           <Upload
             beforeUpload={async (f) => {
               setFile(f);
-
-              // Extract certificate information
-              const extracted = await extractCertificateInfo(f);
-              if (extracted) {
-                // Auto-fill form fields with extracted data
-                form.setFieldsValue({
-                  title: extracted.title || '',
-                  issuer: extracted.issuer || '',
-                  issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
-                });
+              setExtractingFromImage(true);
+              
+              try {
+                // Extract certificate information
+                const extracted = await extractCertificateInfo(f);
+                if (extracted) {
+                  // Auto-fill form fields with extracted data
+                  form.setFieldsValue({
+                    title: extracted.title || '',
+                    issuer: extracted.issuer || '',
+                    issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                  });
+                }
+              } finally {
+                setExtractingFromImage(false);
               }
 
               return false;
@@ -169,6 +225,12 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           >
             <Button variant="outline" className="bg-transparent">Upload File</Button>
           </Upload>
+          {extractingFromImage && (
+            <div className="flex items-center justify-center mt-3 text-sm text-blue-600">
+              <Spin size="small" className="mr-2" />
+              Certificate extraction and parsing...
+            </div>
+          )}
           <div className="flex justify-between">
             <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>
             <Button onClick={() => setCurrentStep(2)}>Continue</Button>
@@ -239,12 +301,58 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item name="credentialUrl" label="Verification URL">
-                <Input placeholder="https://..." />
-              </Form.Item>
-            </Col>
+            {addMethod === "manual" && (
+              <Col span={12}>
+                <Form.Item name="credentialUrl" label="Verification URL">
+                  <Input
+                    placeholder="https://"
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setCurrentUrl(url);
+                      if (urlExtractionTimeout) clearTimeout(urlExtractionTimeout);
+                      if (url && isSupportedCertificateUrl(url)) {
+                        const t = setTimeout(() => handleCertificateUrlExtraction(url), 1200);
+                        setUrlExtractionTimeout(t);
+                      } else {
+                        setExtractionError(null);
+                        setExtractionSuccess(null);
+                        setAutoImageUrl(null);
+                      }
+                    }}
+                    suffix={(
+                      <div style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ visibility: (extractingFromUrl || isSupportedCertificateUrl(currentUrl)) ? 'visible' : 'hidden' }}>
+                          {extractingFromUrl ? (
+                            <Spin size="small" />
+                          ) : isSupportedCertificateUrl(currentUrl) ? (
+                            <span style={{ color: '#52c41a', fontSize: 12 }}>✓</span>
+                          ) : null}
+                        </span>
+                      </div>
+                    )}
+                  />
+                </Form.Item>
+                {extractingFromUrl && (
+                  <div className="flex items-center mt-2 text-sm text-blue-600">
+                    <Spin size="small" className="mr-2" />
+                    Extracting certificate...
+                  </div>
+                )}
+              </Col>
+            )}
           </Row>
+          {autoImageUrl ? (
+            <>
+              <Form.Item name="imageUrl" style={{ display: 'none' }}>
+                <Input type="hidden" />
+              </Form.Item>
+              <div className="mt-2">
+                <div className="text-sm text-muted-foreground mb-2">Certificate image attached from URL</div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={autoImageUrl} alt="Certificate" className="w-full max-h-72 object-contain rounded border" />
+              </div>
+            </>
+          ) : null}
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="credentialId" label="Credential ID">
@@ -257,31 +365,50 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
               </Form.Item>
             </Col>
           </Row>
-          {addMethod === "upload" && (
-            <Form.Item label="Certificate File">
-              <Upload
-                beforeUpload={async (f) => {
-                  setFile(f);
+          {!autoImageUrl && addMethod === "upload" && (
+            <>
+              <Form.Item label="Certificate File">
+                <Upload
+                  beforeUpload={async (f) => {
+                    setFile(f);
+                    setExtractingFromImage(true);
+                    
+                    try {
+                      // Extract certificate information
+                      const extracted = await extractCertificateInfo(f);
+                      if (extracted) {
+                        // Auto-fill form fields with extracted data
+                        form.setFieldsValue({
+                          title: extracted.title || '',
+                          issuer: extracted.issuer || '',
+                          issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                        });
+                      }
+                    } finally {
+                      setExtractingFromImage(false);
+                    }
 
-                  // Extract certificate information
-                  const extracted = await extractCertificateInfo(f);
-                  if (extracted) {
-                    // Auto-fill form fields with extracted data
-                    form.setFieldsValue({
-                      title: extracted.title || '',
-                      issuer: extracted.issuer || '',
-                      issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
-                    });
-                  }
-
-                  return false;
-                }}
-                maxCount={1}
-                accept="image/*,application/pdf"
-              >
-                <Button variant="outline" className="bg-transparent">Upload</Button>
-              </Upload>
-            </Form.Item>
+                    return false;
+                  }}
+                  maxCount={1}
+                  accept="image/*,application/pdf"
+                >
+                  <Button variant="outline" className="bg-transparent">Upload</Button>
+                </Upload>
+              </Form.Item>
+              {extractingFromImage && (
+                <div className="flex items-center justify-center mt-2 text-sm text-blue-600">
+                  <Spin size="small" className="mr-2" />
+                  Certificate extraction and parsing...
+                </div>
+              )}
+            </>
+          )}
+          {extractionSuccess && (
+            <Alert message={extractionSuccess} type="success" showIcon style={{ marginBottom: 16 }} />
+          )}
+          {extractionError && (
+            <Alert message={extractionError} type="error" showIcon style={{ marginBottom: 16 }} />
           )}
           <div className="flex justify-between">
             <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>

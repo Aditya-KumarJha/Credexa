@@ -93,15 +93,27 @@ def format_date(date_str):
         return year_match.group(1)
     return date_str
 
-def extract_info(text):
+def extract_info(text, platform_hint=None):
     text_lower = text.lower()
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     platform = None
-    # First, try extraction_rules keys
-    for key in extraction_rules:
-        if key in text_lower:
-            platform = key
-            break
+    
+    # If platform hint is provided, try to use it first
+    if platform_hint:
+        platform_hint_lower = platform_hint.lower()
+        # Check if the hint matches our extraction rules
+        if platform_hint_lower in extraction_rules:
+            platform = platform_hint_lower
+        elif platform_hint_lower == 'coursera' and 'coursera' in extraction_rules:
+            platform = 'coursera'
+    
+    # If no platform from hint, try extraction_rules keys in text
+    if not platform:
+        for key in extraction_rules:
+            if key in text_lower:
+                platform = key
+                break
+    
     # If not found, check for Udemy OCR errors
     if not platform:
         if 'udemy' in text_lower or 'vaemy' in text_lower or '#beable' in text_lower:
@@ -248,10 +260,13 @@ def extract():
     if file.filename == '':
         return jsonify({'success': False, 'message': 'No file selected'}), 400
     
+    # Get platform hint if provided
+    platform_hint = request.form.get('platform', None)
+    
     try:
         img = Image.open(file.stream)
         text = pytesseract.image_to_string(img)
-        info = extract_info(text)
+        info = extract_info(text, platform_hint)
         
         return jsonify({
             'success': True,
@@ -265,8 +280,12 @@ def extract():
         }), 500
 
 @app.route('/')
-def serve_home():
-    return send_from_directory('.', 'cert_extractor.html')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Certificate Extraction Service',
+        'version': '1.0.0'
+    })
 
 @app.route('/cert_extractor.html')
 def serve_html():

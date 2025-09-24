@@ -1,13 +1,27 @@
 const ImageKit = require("imagekit");
 
-var imagekit = new ImageKit({
-    publicKey : process.env.IMAGEKIT_PUBLIC_KEY,
-    privateKey : process.env.IMAGEKIT_PRIVATE_KEY,
-    urlEndpoint : process.env.IMAGEKIT_URL_ENDPOINT
-});
+let imagekit = null;
+const hasImageKitConfig = Boolean(
+    process.env.IMAGEKIT_PUBLIC_KEY &&
+    process.env.IMAGEKIT_PRIVATE_KEY &&
+    process.env.IMAGEKIT_URL_ENDPOINT
+);
+
+if (hasImageKitConfig) {
+    imagekit = new ImageKit({
+        publicKey : process.env.IMAGEKIT_PUBLIC_KEY,
+        privateKey : process.env.IMAGEKIT_PRIVATE_KEY,
+        urlEndpoint : process.env.IMAGEKIT_URL_ENDPOINT
+    });
+} else {
+    console.warn("ImageKit not configured: set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT in backend/.env");
+}
 
 async function uploadFile(file, filename) {
     try {
+        if (!imagekit) {
+            throw new Error('ImageKit not configured. Please set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT');
+        }
         console.log('Uploading file to ImageKit:', filename);
         console.log('File size:', file.length);
         console.log('ImageKit config check:', {
@@ -33,6 +47,10 @@ async function uploadFile(file, filename) {
 async function deleteFile(imageUrl) {
     try {
         if (!imageUrl) return;
+        if (!imagekit) {
+            console.warn('ImageKit not configured, skipping delete for URL:', imageUrl);
+            return;
+        }
         
         console.log('Attempting to delete ImageKit file:', imageUrl);
         

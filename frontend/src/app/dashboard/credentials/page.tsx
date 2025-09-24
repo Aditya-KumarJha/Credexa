@@ -177,6 +177,7 @@ function CredentialsPageContent() {
           transactionHash: values.transactionHash || "",
           credentialId: values.credentialId || "",
           creditPoints: values.creditPoints || "",
+          imageUrl: values.imageUrl || "",
           skills: skillArray.join(", "),
         };
       }
@@ -185,7 +186,12 @@ function CredentialsPageContent() {
         if (v !== undefined && v !== null) fd.append(k, String(v));
       });
       if (modalHook.file) fd.append("certificateFile", modalHook.file);
-      if (!modalHook.file && modalHook.editing?.imageUrl) fd.append("imageUrl", modalHook.editing.imageUrl);
+      // Handle imageUrl for both editing and new credentials (e.g., from URL import)
+      if (!modalHook.file && modalHook.editing?.imageUrl) {
+        fd.append("imageUrl", modalHook.editing.imageUrl);
+      } else if (!modalHook.file && payload.imageUrl) {
+        fd.append("imageUrl", payload.imageUrl);
+      }
 
       if (modalHook.editing?._id) {
         const res = await api.put(`/api/credentials/${modalHook.editing._id}`, fd, {
