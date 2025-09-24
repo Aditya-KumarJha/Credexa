@@ -181,36 +181,85 @@ const verifyCredentialController = async (req, res) => {
         const { hash } = req.params;
         console.log('Verifying credential hash:', hash);
         
-        // First try to verify on blockchain
+        // First, find the credential in the database to get full details
+        let credential = null;
+        let user = null;
+        
+        try {
+            credential = await Credential.findOne({ credentialHash: hash }).populate('user', 'fullName email profilePic institute');
+            if (credential) {
+                user = credential.user;
+                console.log('Found credential in database:', credential.title);
+            }
+        } catch (dbError) {
+            console.log('Database lookup failed:', dbError.message);
+        }
+
+        // Try to verify on blockchain
+        let blockchainData = null;
         try {
             const credentialData = await verifyCredential(hash);
-
             if (credentialData && credentialData.timestamp !== 0n) {
-                const responseData = {
+                blockchainData = {
                     issuer: credentialData.issuer,
-                    timestamp: Number(credentialData.timestamp)
+                    timestamp: Number(credentialData.timestamp),
+                    verified: true
                 };
-                console.log('Blockchain verification successful:', responseData);
-                return res.status(200).json(responseData);
+                console.log('Blockchain verification successful');
             }
         } catch (blockchainError) {
             console.log('Blockchain verification failed:', blockchainError.message);
         }
 
-        // If blockchain verification fails, check if credential exists in database (for testing)
-        try {
-            const credential = await Credential.findOne({ credentialHash: hash });
-            if (credential) {
-                console.log('Found credential in database:', credential.title);
-                const responseData = {
-                    issuer: credential.issuer,
+        // If we have credential data, return comprehensive information
+        if (credential) {
+            const responseData = {
+                // Blockchain verification status
+                verified: !!blockchainData,
+                blockchain: blockchainData || {
+                    verified: false,
                     timestamp: Math.floor(new Date(credential.issueDate).getTime() / 1000),
-                    source: 'database' // Indicate this is from database for testing
-                };
-                return res.status(200).json(responseData);
-            }
-        } catch (dbError) {
-            console.log('Database verification failed:', dbError.message);
+                    source: 'database'
+                },
+                
+                // Credential details
+                credential: {
+                    id: credential._id,
+                    title: credential.title,
+                    issuer: credential.issuer,
+                    type: credential.type,
+                    status: credential.status,
+                    issueDate: credential.issueDate,
+                    description: credential.description,
+                    skills: credential.skills,
+                    nsqfLevel: credential.nsqfLevel,
+                    creditPoints: credential.creditPoints,
+                    credentialId: credential.credentialId,
+                    imageUrl: credential.imageUrl,
+                    issuerLogo: credential.issuerLogo,
+                    transactionHash: credential.transactionHash
+                },
+                
+                // User details (only public information)
+                user: user ? {
+                    fullName: user.fullName,
+                    firstName: user.fullName?.firstName,
+                    lastName: user.fullName?.lastName,
+                    profilePic: user.profilePic,
+                    institute: user.institute ? {
+                        name: user.institute.name,
+                        state: user.institute.state,
+                        district: user.institute.district,
+                        university_name: user.institute.university_name
+                    } : null
+                } : null,
+                
+                // Verification metadata
+                verifiedAt: new Date().toISOString(),
+                credentialHash: hash
+            };
+            
+            return res.status(200).json(responseData);
         }
 
         // If neither blockchain nor database has the credential

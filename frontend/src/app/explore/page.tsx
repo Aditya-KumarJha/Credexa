@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import ThemeToggleButton from "../../components/ui/theme-toggle-button";
 import JobSearchModal from "../../components/jobs/JobSearchModal";
+import api from "../../utils/axios";
 
 interface Skill { name: string; icon: LucideIcon; }
 const popularSkills: Skill[] = [
@@ -118,6 +119,24 @@ const CredentialCard: React.FC<CredentialCardProps> = ({ name, issuer, nsqfLevel
 
 const App: React.FC = () => {
   const [isJobSearchOpen, setIsJobSearchOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Fetch current user data
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        if (token) {
+          const response = await api.get("/api/users/me");
+          setCurrentUser(response.data);
+        }
+      } catch (error) {
+        console.log("Not logged in or token expired");
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
 
   return (
     <div className="bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans antialiased">
@@ -152,9 +171,30 @@ const App: React.FC = () => {
             <Search className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-300" />
           </div>
 
-          <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+          <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS2x1t/giphy.gif" />
 
-          <img src="https://placehold.co/40x40/5A6B7E/FFFFFF?text=U" alt="User Avatar" className="rounded-full cursor-pointer" />
+          {currentUser ? (
+            <div className="flex items-center space-x-3">
+              <img 
+                src={currentUser.profilePic || "https://placehold.co/40x40/5A6B7E/FFFFFF?text=" + (currentUser.fullName?.firstName?.charAt(0) || "U")} 
+                alt="User Avatar" 
+                className="w-10 h-10 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all object-cover border-2 border-gray-200 dark:border-gray-600" 
+              />
+              <div className="hidden lg:block">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {currentUser.fullName?.firstName && currentUser.fullName?.lastName 
+                    ? `${currentUser.fullName.firstName} ${currentUser.fullName.lastName}`
+                    : currentUser.email?.split('@')[0] || 'User'
+                  }
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {currentUser.email}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <img src="https://placehold.co/40x40/5A6B7E/FFFFFF?text=U" alt="User Avatar" className="rounded-full cursor-pointer" />
+          )}
         </div>
       </motion.header>
 

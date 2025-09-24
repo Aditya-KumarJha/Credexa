@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
@@ -35,12 +35,30 @@ export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<string>("month");
   const [category, setCategory] = useState<string>("all");
   const [course, setCourse] = useState<string>("all");
+  const [sortedLeaderboardData, setSortedLeaderboardData] = useState<any[]>([]);
+  const [currentSortType, setCurrentSortType] = useState<'rank' | 'points' | 'credentials' | 'skills'>('rank');
 
   // Leaderboard data and filters
   const { data, loading: loadingLeaderboard, filtered } = useLeaderboardData({ query, timeframe, category, course });
   const courses = useCoursesOptions(data);
   // My progress
   const { progress, loading: loadingProgress } = useMyProgress();
+
+  const handleSortedDataChange = useCallback((sortedData: any[]) => {
+    setSortedLeaderboardData(sortedData);
+    // Detect sort type based on first few items - this is a simple heuristic
+    if (sortedData.length > 1) {
+      const first = sortedData[0];
+      const second = sortedData[1];
+      if (first.points >= second.points) setCurrentSortType('points');
+      else if (first.credentials >= second.credentials) setCurrentSortType('credentials');
+      else if (first.skills >= second.skills) setCurrentSortType('skills');
+      else setCurrentSortType('rank');
+    }
+  }, []);
+
+  // Use sorted data for top cards if available, otherwise use filtered data
+  const displayData = sortedLeaderboardData.length > 0 ? sortedLeaderboardData : filtered;
 
   if (!mounted) return null;
 
@@ -98,10 +116,10 @@ export default function LeaderboardPage() {
         <main className="flex-1 p-6 md:p-10">
           <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-                Leaderboard
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent">
+                🏆 Leaderboard
               </h1>
-              <p className="text-sm text-muted-foreground">Top performers by points, credentials, and skills</p>
+              <p className="text-sm text-muted-foreground">Compete, learn, and climb the ranks • Updated in real-time</p>
             </div>
             <ThemeToggleButton
               variant="gif"
@@ -128,9 +146,14 @@ export default function LeaderboardPage() {
                       courses={courses}
                     />
 
-                    <TopThreeCards list={filtered} />
+                    <TopThreeCards list={displayData} sortType={currentSortType} />
 
-                    <LeaderboardTable list={filtered} loading={loadingLeaderboard} isDark={isDark} />
+                    <LeaderboardTable 
+                      list={filtered} 
+                      loading={loadingLeaderboard} 
+                      isDark={isDark} 
+                      onSortedDataChange={handleSortedDataChange}
+                    />
                   </>
                 ),
               },
