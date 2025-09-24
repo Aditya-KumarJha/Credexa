@@ -23,6 +23,14 @@ except ImportError:
     print("⚠️  Web scraping libraries not available. Using sample data only.")
     SCRAPING_AVAILABLE = False
 
+# Import dynamic job generator
+try:
+    from .dynamic_job_generator import job_generator
+    DYNAMIC_GENERATOR_AVAILABLE = True
+except ImportError:
+    print("⚠️  Dynamic job generator not available. Using basic fallback.")
+    DYNAMIC_GENERATOR_AVAILABLE = False
+
 
 @dataclass
 class JobPosting:
@@ -57,6 +65,28 @@ class JobPosting:
             "posted_date": self.posted_date,
             "source": self.source
         }
+
+
+def get_dynamic_sample_jobs(query: str, location: str, limit: int, source: str) -> List[JobPosting]:
+    """Get dynamic job postings for any source using the dynamic job generator."""
+    if DYNAMIC_GENERATOR_AVAILABLE:
+        return job_generator.generate_jobs(query, location, limit, source=source)
+    else:
+        # Basic fallback if dynamic generator is not available
+        return [
+            JobPosting(
+                title=f"{query.title()} Specialist",
+                company=f"{source.title()} Company",
+                location=location or "Remote",
+                description=f"Looking for a {query} professional with relevant experience.",
+                skills_required=[query.lower(), "communication", "problem-solving"],
+                experience_level="mid",
+                salary_range="$80,000 - $120,000",
+                job_type="full-time",
+                work_type="remote" if not location else "hybrid",
+                source=source
+            )
+        ]
 
 
 class JobScraper:
@@ -317,183 +347,8 @@ class IndeedScraper(JobScraper):
             return None
 
     def _get_sample_indeed_jobs(self, query: str, location: str, limit: int) -> List[JobPosting]:
-        """Get sample Indeed jobs when scraping is not available - enhanced with query-specific results."""
-        
-        # Create a comprehensive job database based on common queries
-        all_sample_jobs = {
-            "data scientist": [
-                JobPosting(
-                    title="Data Scientist",
-                    company="TechCorp",
-                    location="San Francisco, CA",
-                    description="Looking for a Data Scientist with Python, SQL, and machine learning experience. Work on exciting AI projects with large datasets.",
-                    skills_required=["python", "sql", "machine learning", "pandas", "scikit-learn", "tensorflow"],
-                    experience_level="mid",
-                    salary_range="$90,000 - $130,000",
-                    job_type="full-time",
-                    work_type="hybrid",
-                    source="indeed"
-                ),
-                JobPosting(
-                    title="Senior Data Scientist",
-                    company="Meta",
-                    location="Menlo Park, CA",
-                    description="Lead data science initiatives for social media analytics. Expertise in deep learning, Python, and big data required.",
-                    skills_required=["python", "deep learning", "pytorch", "sql", "spark", "aws"],
-                    experience_level="senior",
-                    salary_range="$150,000 - $200,000",
-                    job_type="full-time",
-                    work_type="onsite",
-                    source="indeed"
-                ),
-                JobPosting(
-                    title="Junior Data Scientist",
-                    company="StartupAI",
-                    location="Austin, TX",
-                    description="Entry-level data scientist role focusing on predictive analytics and business intelligence.",
-                    skills_required=["python", "sql", "tableau", "statistics", "excel"],
-                    experience_level="entry",
-                    salary_range="$70,000 - $90,000",
-                    job_type="full-time",
-                    work_type="remote",
-                    source="indeed"
-                )
-            ],
-            "software engineer": [
-                JobPosting(
-                    title="Software Engineer",
-                    company="Google",
-                    location="Mountain View, CA",
-                    description="Full-stack software engineer position working on large-scale distributed systems. Strong coding skills required.",
-                    skills_required=["java", "python", "javascript", "kubernetes", "docker", "git"],
-                    experience_level="mid",
-                    salary_range="$120,000 - $160,000",
-                    job_type="full-time",
-                    work_type="hybrid",
-                    source="indeed"
-                ),
-                JobPosting(
-                    title="Frontend Software Engineer",
-                    company="Netflix",
-                    location="Los Gatos, CA",
-                    description="Build engaging user interfaces for millions of users. React, TypeScript, and modern web technologies.",
-                    skills_required=["react", "typescript", "javascript", "css", "html", "redux"],
-                    experience_level="mid",
-                    salary_range="$110,000 - $150,000",
-                    job_type="full-time",
-                    work_type="hybrid",
-                    source="indeed"
-                ),
-                JobPosting(
-                    title="Backend Software Engineer",
-                    company="Stripe",
-                    location="San Francisco, CA",
-                    description="Design and build scalable payment infrastructure. Experience with microservices and cloud platforms.",
-                    skills_required=["python", "go", "postgresql", "redis", "aws", "microservices"],
-                    experience_level="senior",
-                    salary_range="$140,000 - $180,000",
-                    job_type="full-time",
-                    work_type="remote",
-                    source="indeed"
-                )
-            ],
-            "python developer": [
-                JobPosting(
-                    title="Python Developer",
-                    company="WebTech Inc",
-                    location="Austin, TX",
-                    description="Python Developer for web applications. Django, Flask, PostgreSQL experience required.",
-                    skills_required=["python", "django", "flask", "postgresql", "javascript", "git"],
-                    experience_level="mid",
-                    salary_range="$85,000 - $120,000",
-                    job_type="full-time",
-                    work_type="hybrid",
-                    source="indeed"
-                ),
-                JobPosting(
-                    title="Senior Python Developer",
-                    company="Spotify",
-                    location="New York, NY",
-                    description="Senior Python developer for music streaming backend. Large-scale systems and API development.",
-                    skills_required=["python", "fastapi", "postgresql", "redis", "docker", "aws"],
-                    experience_level="senior",
-                    salary_range="$130,000 - $170,000",
-                    job_type="full-time",
-                    work_type="remote",
-                    source="indeed"
-                ),
-                JobPosting(
-                    title="Python Backend Developer",
-                    company="Shopify",
-                    location="Ottawa, ON",
-                    description="Build e-commerce platform features using Python and modern frameworks.",
-                    skills_required=["python", "django", "celery", "postgresql", "redis", "graphql"],
-                    experience_level="mid",
-                    salary_range="$90,000 - $130,000",
-                    job_type="full-time",
-                    work_type="hybrid",
-                    source="indeed"
-                )
-            ]
-        }
-        
-        # Default jobs for any query
-        default_jobs = [
-            JobPosting(
-                title="Software Developer",
-                company="TechStartup",
-                location="Seattle, WA",
-                description="Full-stack developer position working with modern technologies and agile methodologies.",
-                skills_required=["javascript", "react", "node.js", "mongodb", "git"],
-                experience_level="mid",
-                salary_range="$80,000 - $110,000",
-                job_type="full-time",
-                work_type="remote",
-                source="indeed"
-            ),
-            JobPosting(
-                title="Data Analyst",
-                company="Finance Solutions",
-                location="New York, NY",
-                description="Data Analyst role focusing on business intelligence and reporting. SQL, Excel, Tableau required.",
-                skills_required=["sql", "excel", "tableau", "python", "statistics"],
-                experience_level="entry",
-                salary_range="$60,000 - $80,000",
-                job_type="full-time",
-                work_type="onsite",
-                source="indeed"
-            )
-        ]
-        
-        # Find relevant jobs based on query
-        query_lower = query.lower()
-        relevant_jobs = []
-        
-        # Check for exact matches in our database
-        for key, jobs in all_sample_jobs.items():
-            if key in query_lower or any(word in query_lower for word in key.split()):
-                relevant_jobs.extend(jobs)
-        
-        # If no specific matches, use fuzzy matching
-        if not relevant_jobs:
-            for key, jobs in all_sample_jobs.items():
-                if any(word in key for word in query_lower.split()) or any(word in query_lower for word in key.split()):
-                    relevant_jobs.extend(jobs[:2])  # Add fewer jobs from partial matches
-        
-        # Add some default jobs to pad the results
-        if len(relevant_jobs) < limit:
-            relevant_jobs.extend(default_jobs[:limit - len(relevant_jobs)])
-        
-        # Filter by location if specified
-        if location and location.strip():
-            location_filtered = []
-            for job in relevant_jobs:
-                if location.lower() in job.location.lower() or job.work_type == "remote":
-                    location_filtered.append(job)
-            if location_filtered:
-                relevant_jobs = location_filtered
-        
-        return relevant_jobs[:limit]
+        """Get dynamic Indeed jobs using the dynamic job generator."""
+        return get_dynamic_sample_jobs(query, location, limit, "indeed")
 
 
 class LinkedInScraper(JobScraper):
@@ -514,62 +369,8 @@ class LinkedInScraper(JobScraper):
         return self._get_sample_linkedin_jobs(query, location, limit)
     
     def _get_sample_linkedin_jobs(self, query: str, location: str, limit: int) -> List[JobPosting]:
-        """Generate sample LinkedIn job postings for demonstration."""
-        sample_jobs = [
-            JobPosting(
-                title="Senior Data Scientist",
-                company="Tech Corp",
-                location="San Francisco, CA",
-                description="We are looking for a Senior Data Scientist with expertise in Python, machine learning, and statistical analysis. You will work on cutting-edge AI projects and collaborate with cross-functional teams.",
-                skills_required=["python", "machine learning", "sql", "pandas", "scikit-learn", "statistics"],
-                experience_level="senior",
-                salary_range="$120,000 - $180,000",
-                job_type="full-time",
-                work_type="hybrid",
-                source="linkedin"
-            ),
-            JobPosting(
-                title="Machine Learning Engineer",
-                company="AI Startup",
-                location="Remote",
-                description="Join our team as a Machine Learning Engineer. Requirements include Python, TensorFlow, Docker, and cloud platforms. Experience with MLOps and model deployment preferred.",
-                skills_required=["python", "tensorflow", "docker", "aws", "kubernetes", "mlops"],
-                experience_level="mid",
-                salary_range="$100,000 - $150,000",
-                job_type="full-time",
-                work_type="remote",
-                source="linkedin"
-            ),
-            JobPosting(
-                title="Data Analyst",
-                company="Finance Company",
-                location="New York, NY",
-                description="Seeking a Data Analyst to work with large datasets, create visualizations, and provide business insights. SQL, Python, and Tableau experience required.",
-                skills_required=["sql", "python", "tableau", "excel", "data analysis", "statistics"],
-                experience_level="entry",
-                salary_range="$70,000 - $90,000",
-                job_type="full-time",
-                work_type="onsite",
-                source="linkedin"
-            )
-        ]
-        
-        # Filter by query relevance and return up to limit
-        relevant_jobs = []
-        query_words = query.lower().split()
-        
-        for job in sample_jobs:
-            relevance_score = 0
-            job_text = f"{job.title} {job.description}".lower()
-            
-            for word in query_words:
-                if word in job_text:
-                    relevance_score += 1
-            
-            if relevance_score > 0:
-                relevant_jobs.append(job)
-        
-        return relevant_jobs[:limit]
+        """Generate dynamic LinkedIn job postings using the dynamic job generator."""
+        return get_dynamic_sample_jobs(query, location, limit, "linkedin")
 
 
 class GlassdoorScraper(JobScraper):
@@ -1392,8 +1193,8 @@ class LinkedInAPIClient:
     def search_jobs(self, query: str, location: str = "", limit: int = 50) -> List[JobPosting]:
         """Search jobs using LinkedIn API."""
         if not self.access_token:
-            print("LinkedIn API: No valid access token, using enhanced sample data")
-            return self._get_linkedin_api_sample_data(query, location, limit)
+            print("LinkedIn API: No valid access token, using dynamic sample data")
+            return get_dynamic_sample_jobs(query, location, limit, "linkedin-api")
         
         try:
             import requests
