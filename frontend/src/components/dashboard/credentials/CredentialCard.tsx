@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Space, Popconfirm } from "antd";
+import { Space, Popconfirm, Modal, App } from "antd";
 import {
   Award,
   Edit,
@@ -13,9 +13,13 @@ import {
   Eye,
   Link,
   Anchor,
+  Share2,
+  QrCode,
+  Copy,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { Credential, CredentialStatus } from "@/types/credentials";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface CredentialCardProps {
   credential: Credential;
@@ -54,6 +58,59 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
   anchoringId,
   loadingDetails,
 }) => {
+  const { message } = App.useApp();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  const handleShare = () => {
+    if (!c.credentialHash) {
+      message.warning("This credential needs to be anchored to the blockchain before it can be shared for verification.");
+      return;
+    }
+    setShareModalOpen(true);
+  };
+
+  // Create structured QR data instead of just URL
+  const qrData = c.credentialHash ? {
+    type: "CREDEXA_CREDENTIAL_VERIFICATION",
+    version: "1.0",
+    credentialHash: c.credentialHash,
+    transactionHash: c.transactionHash,
+    blockchain: {
+      network: "ethereum-sepolia",
+      explorer: `https://sepolia.etherscan.io/tx/${c.transactionHash}`
+    },
+    credential: {
+      id: c._id,
+      title: c.title,
+      issuer: c.issuer,
+      type: c.type,
+      issueDate: c.issueDate,
+      nsqfLevel: c.nsqfLevel,
+      creditPoints: c.creditPoints
+    },
+    verification: {
+      url: `${typeof window !== "undefined" ? window.location.origin : ""}/verify?hash=${c.credentialHash}`,
+      timestamp: new Date().toISOString()
+    }
+  } : null;
+
+  const qrValue = qrData ? JSON.stringify(qrData) : "";
+
+  const verificationUrl = c.credentialHash 
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/verify?hash=${c.credentialHash}`
+    : "";
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(verificationUrl);
+    message.success("Verification link copied to clipboard!");
+  };
+
+  const handleCopyQRData = () => {
+    if (qrValue) {
+      navigator.clipboard.writeText(qrValue);
+      message.success("QR data copied to clipboard!");
+    }
+  };
   return (
     <div className="h-full border-0 shadow-lg bg-card/80 p-0 rounded-lg">
       {/* Card Header */}
@@ -69,6 +126,21 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
           {/* Action Buttons */}
           <div className="relative z-50">
             <Space size="small">
+              {c.credentialHash && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/90 backdrop-blur-sm hover:bg-green-50 shadow-sm border-gray-200 text-green-600 hover:text-green-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleShare();
+                  }}
+                  title="Share verification link"
+                >
+                  <Share2 className="w-3 h-3" />
+                </Button>
+              )}
               {c.transactionHash && (
                 <Button
                   variant="outline"
@@ -142,9 +214,10 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
               target="_blank"
               rel="noreferrer"
               href={c.credentialUrl}
-              className="text-sm text-primary hover:underline flex items-center gap-1.5"
+              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 hover:underline flex items-center gap-1.5 font-medium"
             >
-              <Download className="w-4 h-4" /> View Original
+              <Download className="w-4 h-4" /> 
+              <span className="text-blue-600 dark:text-blue-300">View Original</span>
             </a>
           )}
 
@@ -154,14 +227,15 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
                 target="_blank"
                 rel="noreferrer"
                 href={`https://sepolia.etherscan.io/tx/${c.transactionHash}`}
-                className="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline flex items-center gap-1.5 font-medium"
+                className="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200 hover:underline flex items-center gap-1.5 font-medium"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Shield className="w-4 h-4 bg-amber-50" /> <span className="font-medium text-black dark:text-white">On-Chain Proof</span>
+                <Shield className="w-4 h-4" /> 
+                <span className="text-emerald-600 dark:text-emerald-300">On-Chain Proof</span>
               </a>
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -174,7 +248,7 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
                   onShowOnChainDetails(c);
                 }}
               >
-                View Details
+                <span className="text-blue-600 dark:text-blue-300">View Details</span>
               </button>
             </div>
           )}
@@ -247,12 +321,131 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
         
         <div className="flex gap-2 pt-2">
           {c.credentialUrl && (
-            <a target="_blank" rel="noreferrer" href={c.credentialUrl} className="text-primary hover:underline flex items-center gap-1">
-              <Download className="w-4 h-4" /> View Credential
+            <a target="_blank" rel="noreferrer" href={c.credentialUrl} className="text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 hover:underline flex items-center gap-1 font-medium">
+              <Download className="w-4 h-4" /> 
+              <span className="text-blue-600 dark:text-blue-300">View Credential</span>
             </a>
           )}
         </div>
       </div>
+
+      {/* Share Modal */}
+      <Modal
+        title={
+          <span className="flex items-center gap-2">
+            <Share2 className="w-5 h-5" />
+            Share Credential Verification
+          </span>
+        }
+        open={shareModalOpen}
+        onCancel={() => setShareModalOpen(false)}
+        footer={null}
+        centered
+        width={500}
+      >
+        <div className="text-center p-4">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">{c.title}</h3>
+            <p className="text-gray-600 dark:text-gray-200 text-sm">
+              Scan this QR code with any QR scanner to view complete blockchain verification details, or use the URL for web verification.
+            </p>
+          </div>
+          
+          {qrValue && (
+            <>
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200 inline-block mb-6">
+                <QRCodeCanvas 
+                  value={qrValue} 
+                  size={220}
+                  level="M"
+                  includeMargin={true}
+                />
+              </div>
+              
+              <div className="space-y-4">
+                {/* QR Data Preview */}
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg text-left">
+                  <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">QR Code Contains:</h4>
+                  <div className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex justify-between">
+                      <span>Credential Hash:</span>
+                      <span className="font-mono bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
+                        {c.credentialHash?.substring(0, 10)}...
+                      </span>
+                    </div>
+                    {c.transactionHash && (
+                      <div className="flex justify-between">
+                        <span>Transaction:</span>
+                        <span className="font-mono bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
+                          {c.transactionHash.substring(0, 10)}...
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Blockchain:</span>
+                      <span className="font-semibold">Ethereum Sepolia</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Issuer:</span>
+                      <span className="font-semibold">{c.issuer}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Issue Date:</span>
+                      <span>{c.issueDate ? dayjs(c.issueDate).format("MMM D, YYYY") : "-"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyQRData}
+                    className="flex-1"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy QR Data
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyLink}
+                    className="flex-1"
+                  >
+                    <Link className="w-4 h-4 mr-2" />
+                    Copy URL
+                  </Button>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-white block mb-2">
+                    Web Verification URL:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={verificationUrl}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-gray-50 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded text-sm text-blue-700 dark:text-blue-300">
+                  <div className="flex items-start gap-2">
+                    <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong>Secure & Private:</strong> The QR code contains blockchain verification data. 
+                      No personal information is exposed. Anyone can verify the credential's authenticity by scanning.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
