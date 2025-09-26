@@ -127,7 +127,7 @@ export default function SidebarComponent() {
   ];
 
   return (
-    <div className="relative sticky top-0 h-screen">
+    <div className="sticky top-0 h-screen">
       {/* Toggle button */}
       <button
         onClick={toggleLock}
