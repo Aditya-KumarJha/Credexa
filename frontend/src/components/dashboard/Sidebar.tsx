@@ -222,16 +222,18 @@ export default function SidebarComponent() {
 export const Logo = () => {
   return (
     <div
-      className="relative z-20 flex items-center space-x-3 py-2 text-sm font-normal text-black cursor-pointer"
+      className="relative z-20 flex items-center space-x-3 py-2 text-sm font-normal text-black cursor-pointer notranslate"
+      translate="no"
       onClick={() => window.location.href = "/dashboard"}
     >
       <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
-        <span className="text-white font-bold text-lg">CX</span>
+        <span className="text-white font-bold text-lg notranslate" translate="no">CX</span>
       </div>
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="font-semibold whitespace-pre text-black dark:text-white text-xl"
+        className="font-semibold whitespace-pre text-black dark:text-white text-xl notranslate"
+        translate="no"
       >
         Credexa
       </motion.span>
@@ -242,11 +244,12 @@ export const Logo = () => {
 export const LogoIcon = () => {
   return (
     <div
-      className="relative z-20 flex items-center justify-center py-2 text-sm font-normal text-black cursor-pointer w-full"
+      className="relative z-20 flex items-center justify-center py-2 text-sm font-normal text-black cursor-pointer w-full notranslate"
+      translate="no"
       onClick={() => window.location.href = "/dashboard"}
     >
       <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
-        <span className="text-white font-bold text-lg">CX</span>
+        <span className="text-white font-bold text-lg notranslate" translate="no">CX</span>
       </div>
     </div>
   );

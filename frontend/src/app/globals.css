@@ -132,6 +132,18 @@
   }
 }
 
+/* Hide Google Translate native UI and top banner */
+#google_translate_element { display: none !important; }
+.skiptranslate iframe { display: none !important; }
+body { top: 0 !important; }
+
+/* Ensure brand names are never translated */
+.notranslate, .notranslate * {
+  unicode-bidi: plaintext; /* avoid Google wrapping affecting text flow */
+}
+/* Google sometimes injects span.google-src-text inside; ensure not translated */
+.notranslate .google-src-text, .notranslate .VIpgJd-yAWNEb-VIpgJd-fmcmS, .notranslate .VIpgJd-yAWNEb-VIpgJd-b7T6qe { display: inline; }
+
 /* AntD dark-mode visibility tweaks: keep tab/pagination text visible on hover/active */
 .dark .ant-tabs .ant-tabs-tab-btn,
 .dark .ant-pagination .ant-pagination-item a,

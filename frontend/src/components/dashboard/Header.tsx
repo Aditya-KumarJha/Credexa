@@ -2,6 +2,7 @@
 
 import { Wallet } from "lucide-react";
 import ThemeToggleButton from "../ui/theme-toggle-button";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Cover } from "@/components/ui/cover";
 
 interface HeaderProps {
@@ -24,6 +25,7 @@ export default function Header({ user, onConnectWallet }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        <LanguageSwitcher />
         <ThemeToggleButton
           variant="gif"
           url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif"
