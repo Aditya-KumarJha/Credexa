@@ -1,28 +1,38 @@
-const nodemailer = require("nodemailer");
+const sgMail = require('@sendgrid/mail');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: process.env.EMAIL_SECURE === "true", 
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+if (!process.env.SENDGRID_API_KEY) {
+  console.warn('⚠️  SENDGRID_API_KEY not found. Email functionality will not work.');
+} else {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('✅ SendGrid configured successfully');
+}
 
-const sendEmail = async (to, text, subject = "Credexa Notification") => {
+const sendEmail = async (to, text, subject = "Credexa Notification", html = null) => {
+  if (!to || !text) {
+    throw new Error('Email recipient and content are required');
+  }
+
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SendGrid API key not configured');
+  }
+
+  const msg = {
+    to,
+    from: {
+      email: process.env.SENDGRID_FROM_EMAIL || 'credexaowns@gmail.com',
+      name: 'Credexa'
+    },
+    subject,
+    text,
+    html: html || `<p>${text.replace(/\n/g, '<br>')}</p>`,
+  };
+
   try {
-    const mailOptions = {
-      from: `"Credexa" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      text,
-    };
-
-    await transporter.sendMail(mailOptions);
+    await sgMail.send(msg);
+    console.log(`✅ Email sent to ${to} via SendGrid`);
   } catch (error) {
-    console.error("Error sending email:", error);
-    throw new Error("Email sending failed");
+    console.error('❌ SendGrid error:', error.response?.body || error);
+    throw new Error(`Email sending failed: ${error.message}`);
   }
 };
 
