@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema(
       enum: ["email", "google", "github", "facebook", "web3", "discord", "linkedin"],
       default: "email",
     },
+    role: {
+      type: String,
+      enum: ["learner", "employer", "institute"],
+      default: null, 
+    },
     isVerified: { type: Boolean, default: false },
 
     otp: {

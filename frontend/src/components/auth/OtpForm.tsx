@@ -91,7 +91,15 @@ export default function OtpForm({ email, context, onVerified }: Props) {
         }
       } else {
         localStorage.setItem("authToken", res.data.token);
-        router.push("/dashboard");
+        
+        // Check if user has a role, if not redirect to role selection
+        const userRole = res.data.user?.role;
+        
+        if (!userRole) {
+          router.push("/select-role");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (err: any) {
       setServerError(err.response?.data?.message || "OTP verification failed.");

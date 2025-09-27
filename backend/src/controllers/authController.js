@@ -40,6 +40,7 @@ const register = async (req, res) => {
 
     const otpCode = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    console.log("Signup OTP:", otpCode); 
 
     await PendingUser.create({
       firstName,
@@ -84,6 +85,7 @@ const login = async (req, res) => {
 
     const otpCode = generateOtp();
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+    console.log("Login OTP:", otpCode);
 
     user.otp = { code: otpCode, expiresAt, lastSentAt: now };
     await user.save();
@@ -261,6 +263,7 @@ const verifyOtp = async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
+        role: user.role,
         provider: user.provider,
         profilePic: user.profilePic,
         isVerified: user.isVerified,
@@ -487,6 +490,44 @@ const verifyWeb3Signature = async (req, res) => {
   }
 };
 
+const selectRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const userId = req.user.id;
+
+    if (!role || !["learner", "employer", "institute"].includes(role)) {
+      return res.status(400).json({ message: "Valid role is required (learner, employer, institute)" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true }
+    ).select("-password -otp -resetPasswordToken -refreshToken");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Role updated successfully",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        provider: user.provider,
+        profilePic: user.profilePic,
+        isVerified: user.isVerified,
+      },
+    });
+
+  } catch (error) {
+    console.error("Select Role Error:", error);
+    res.status(500).json({ message: "Server error during role selection." });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -496,5 +537,6 @@ module.exports = {
   resendOtp,
   generateWeb3Challenge,
   verifyWeb3Signature,
+  selectRole,
 };
 
