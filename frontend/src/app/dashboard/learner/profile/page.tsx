@@ -52,7 +52,7 @@ export default function ProfilePage() {
 
     api.get("/api/users/me", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        const userData = res.data;
+        const userData = res.data.user;
         setUser(userData);
         setFormData({
           firstName: userData.fullName?.firstName || "",

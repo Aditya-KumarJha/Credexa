@@ -26,7 +26,7 @@ export default function Dashboard() {
     // Fetch user data
     api
       .get("/api/users/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setUser(res.data))
+      .then((res) => setUser(res.data.user))
       .catch(() => {
         localStorage.removeItem("authToken");
         router.replace("/login?error=session_expired");
