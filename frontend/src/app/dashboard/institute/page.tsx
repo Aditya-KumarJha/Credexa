@@ -23,6 +23,7 @@ import {
 import InstituteSidebar from "@/components/dashboard/institute/InstituteSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 export default function InstituteDashboard() {
   const stats = [
@@ -115,11 +116,12 @@ export default function InstituteDashboard() {
   ];
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10 flex relative overflow-hidden">
+    <RoleGuard allowedRole="institute">
+      <div className="h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10 flex relative overflow-hidden">
 
-      <InstituteSidebar />
-      
-      <div className="flex-1 overflow-y-auto relative">
+        <InstituteSidebar />
+        
+        <div className="flex-1 overflow-y-auto relative">
         {/* Top Bar with Theme Toggle */}
         <div className="flex items-center justify-end p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
@@ -298,7 +300,8 @@ export default function InstituteDashboard() {
             </div>
           </motion.div>
         </div>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }

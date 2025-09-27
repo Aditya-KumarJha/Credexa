@@ -414,10 +414,14 @@ function CredentialsPageContent() {
   );
 }
 
+import RoleGuard from "@/components/auth/RoleGuard";
+
 export default function CredentialsPage() {
   return (
-    <App>
-      <CredentialsPageContent />
-    </App>
+    <RoleGuard allowedRole="learner">
+      <App>
+        <CredentialsPageContent />
+      </App>
+    </RoleGuard>
   );
 }

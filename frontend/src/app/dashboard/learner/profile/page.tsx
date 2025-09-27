@@ -4,6 +4,7 @@ import { useEffect, useState, ChangeEvent, FormEvent, KeyboardEvent } from "reac
 import { useRouter } from "next/navigation";
 import api from "@/utils/axios";
 import toast from "react-hot-toast";
+import RoleGuard from "@/components/auth/RoleGuard";
 import { Camera, Mail, Loader2, ShieldAlert, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
@@ -246,12 +247,13 @@ export default function ProfilePage() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 flex">
-      <Sidebar />
-      <main className="flex-1 p-6 md:p-10">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Your Profile</h1>
-          <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+    <RoleGuard allowedRole="learner">
+      <div className="min-h-screen bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 flex">
+        <Sidebar />
+        <main className="flex-1 p-6 md:p-10">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">Your Profile</h1>
+            <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
         </div>
 
         {emailVerificationRequired && (
@@ -329,6 +331,7 @@ export default function ProfilePage() {
         </div>
       </main>
     </div>
+    </RoleGuard>
   );
 }
 

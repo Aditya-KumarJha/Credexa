@@ -22,6 +22,7 @@ import {
 import EmployerSidebar from "@/components/dashboard/employer/EmployerSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 export default function EmployerDashboard() {
   const stats = [
@@ -114,11 +115,12 @@ export default function EmployerDashboard() {
   ];
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/10 flex relative overflow-hidden">
+    <RoleGuard allowedRole="employer">
+      <div className="h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/10 flex relative overflow-hidden">
 
-      <EmployerSidebar />
-      
-      <div className="flex-1 overflow-y-auto relative">
+        <EmployerSidebar />
+        
+        <div className="flex-1 overflow-y-auto relative">
         {/* Top Bar with Theme Toggle */}
         <div className="flex items-center justify-end p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
@@ -310,7 +312,8 @@ export default function EmployerDashboard() {
             </div>
           </motion.div>
         </div>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }

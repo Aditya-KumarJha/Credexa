@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
+import RoleGuard from "@/components/auth/RoleGuard";
 const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar"), { ssr: false });
 
 import { ConfigProvider, theme as antdTheme, Tabs } from "antd";
@@ -63,15 +64,16 @@ export default function LeaderboardPage() {
   if (!mounted) return null;
 
   return (
-    <ConfigProvider
-      key={`leaderboard-${isDark ? 'dark' : 'light'}`}
-      theme={{
-        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        token: {
-          colorBgBase: "var(--color-background)",
-          colorText: "var(--color-foreground)",
-          colorTextSecondary: "var(--color-muted-foreground)",
-          colorBorder: "var(--color-border)",
+    <RoleGuard allowedRole="learner">
+      <ConfigProvider
+        key={`leaderboard-${isDark ? 'dark' : 'light'}`}
+        theme={{
+          algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgBase: "var(--color-background)",
+            colorText: "var(--color-foreground)",
+            colorTextSecondary: "var(--color-muted-foreground)",
+            colorBorder: "var(--color-border)",
           colorPrimary: "var(--color-primary)",
           colorBgContainer: "var(--color-card)",
           colorBgElevated: "var(--color-card)",
@@ -171,5 +173,6 @@ export default function LeaderboardPage() {
         </main>
       </div>
     </ConfigProvider>
+    </RoleGuard>
   );
 }

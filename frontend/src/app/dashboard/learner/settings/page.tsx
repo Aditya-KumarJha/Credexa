@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 const Sidebar = dynamic(() => import("@/components/dashboard/Sidebar"), { ssr: false });
 import { Card, Tabs, ConfigProvider, theme as antdTheme, Typography } from "antd";
+import RoleGuard from "@/components/auth/RoleGuard";
 import { User, Palette, Shield, Eye } from "lucide-react";
 import { useSettingsData } from "@/components/settings/hooks";
 import SettingsHeader from "@/components/settings/SettingsHeader";
@@ -75,18 +76,19 @@ export default function SettingsPage() {
   }
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        token: {
-          colorBgBase: "var(--color-background)",
-          colorText: "var(--color-foreground)",
-          colorTextSecondary: "var(--color-muted-foreground)",
-          colorBorder: "var(--color-border)",
-          colorPrimary: "var(--color-primary)",
-          colorBgContainer: "var(--color-card)",
-          borderRadius: 12,
-        },
+    <RoleGuard allowedRole="learner">
+      <ConfigProvider
+        theme={{
+          algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgBase: "var(--color-background)",
+            colorText: "var(--color-foreground)",
+            colorTextSecondary: "var(--color-muted-foreground)",
+            colorBorder: "var(--color-border)",
+            colorPrimary: "var(--color-primary)",
+            colorBgContainer: "var(--color-card)",
+            borderRadius: 12,
+          },
       }}
     >
       <div className="min-h-screen bg-background text-foreground flex">
@@ -175,5 +177,6 @@ export default function SettingsPage() {
         />
       </div>
     </ConfigProvider>
+    </RoleGuard>
   );
 }
