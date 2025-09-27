@@ -49,13 +49,11 @@ export default function SidebarComponent() {
   const getSelectedKey = () => {
     if (!pathname) return "home";
     if (pathname === "/") return "home";
-    if (pathname.startsWith("/dashboard/profile")) return "update-profile";
-    if (pathname.startsWith("/dashboard/credentials")) return "my-credentials";
-    if (pathname.startsWith("/dashboard/skills")) return "skill-tracker";
-    if (pathname.startsWith("/dashboard/learning-path")) return "learning-path";
-    if (pathname.startsWith("/dashboard/leaderboard")) return "leaderboard";
-    if (pathname.startsWith("/dashboard/settings")) return "settings";
-    if (pathname === "/dashboard") return "dashboard";
+    if (pathname.startsWith("/dashboard/learner/profile")) return "update-profile";
+    if (pathname.startsWith("/dashboard/learner/credentials")) return "my-credentials";
+    if (pathname.startsWith("/dashboard/learner/leaderboard")) return "leaderboard";
+    if (pathname.startsWith("/dashboard/learner/settings")) return "settings";
+    if (pathname === "/dashboard/learner" || pathname === "/dashboard") return "dashboard";
     return "dashboard";
   };
 
@@ -74,7 +72,7 @@ export default function SidebarComponent() {
       icon: (
         <LayoutDashboard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard"),
+      onClick: () => handleNavigate("/dashboard/learner"),
     },
     {
       label: "Update Profile",
@@ -82,7 +80,7 @@ export default function SidebarComponent() {
       icon: (
         <UserRound className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/profile"),
+      onClick: () => handleNavigate("/dashboard/learner/profile"),
     },
     {
       label: "My Credentials",
@@ -90,23 +88,7 @@ export default function SidebarComponent() {
       icon: (
         <Award className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/credentials"),
-    },
-    {
-      label: "Skill Tracker",
-      href: "#",
-      icon: (
-        <Activity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
-      ),
-      onClick: () => handleNavigate("/dashboard/skills"),
-    },
-    {
-      label: "Learning Path",
-      href: "#",
-      icon: (
-        <BarChart2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
-      ),
-      onClick: () => handleNavigate("/dashboard/learning-path"),
+      onClick: () => handleNavigate("/dashboard/learner/credentials"),
     },
     {
       label: "Leaderboard",
@@ -114,7 +96,7 @@ export default function SidebarComponent() {
       icon: (
         <Trophy className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/leaderboard"),
+      onClick: () => handleNavigate("/dashboard/learner/leaderboard"),
     },
     {
       label: "Settings",
@@ -122,7 +104,7 @@ export default function SidebarComponent() {
       icon: (
         <Settings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/settings"),
+      onClick: () => handleNavigate("/dashboard/learner/settings"),
     },
   ];
 
@@ -224,7 +206,7 @@ export const Logo = () => {
     <div
       className="relative z-20 flex items-center space-x-3 py-2 text-sm font-normal text-black cursor-pointer notranslate"
       translate="no"
-      onClick={() => window.location.href = "/dashboard"}
+      onClick={() => window.location.href = "/dashboard/learner"}
     >
       <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
         <span className="text-white font-bold text-lg notranslate" translate="no">CX</span>
@@ -246,7 +228,7 @@ export const LogoIcon = () => {
     <div
       className="relative z-20 flex items-center justify-center py-2 text-sm font-normal text-black cursor-pointer w-full notranslate"
       translate="no"
-      onClick={() => window.location.href = "/dashboard"}
+      onClick={() => window.location.href = "/dashboard/learner"}
     >
       <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
         <span className="text-white font-bold text-lg notranslate" translate="no">CX</span>
