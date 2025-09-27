@@ -69,7 +69,15 @@ const socialAuthSuccess = (req, res) => {
   const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE,
   });
-  res.redirect(`${FRONTEND_URL}/auth/success?token=${token}`);
+  
+  // Check if user has a role
+  if (req.user.role) {
+    // User has role, redirect to dashboard
+    res.redirect(`${FRONTEND_URL}/auth/success?token=${token}&hasRole=true`);
+  } else {
+    // User needs to select role
+    res.redirect(`${FRONTEND_URL}/auth/success?token=${token}&hasRole=false`);
+  }
 };
 
 router.get(

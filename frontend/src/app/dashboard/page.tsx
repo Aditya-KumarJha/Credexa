@@ -50,8 +50,9 @@ export default function DashboardPage() {
         const user = responseData.user;
         setUserData(user);
 
-        if (!user.role) {
+        if (!user.role || user.role === "" || user.role === null) {
           // User hasn't selected a role yet, redirect to role selection
+          console.log("User without role detected, redirecting to role selection");
           setRedirecting(true);
           setTimeout(() => {
             router.replace("/select-role");
