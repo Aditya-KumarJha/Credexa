@@ -2,7 +2,7 @@ const { ethers } = require("ethers");
 const crypto = require("crypto");
 const { nanoid } = require("nanoid");
 const challenges = require("../utils/challengeStore");
-const uploadFile = require("../services/storageService");
+const { uploadFile } = require("../services/storageService");
 const sendEmail = require("../utils/emailService");
 const User = require("../models/userModel");
 
