@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { uploadFile } = require('../services/storageService');
 const { extractCredentialInfo, isExtractionServiceAvailable } = require('../services/extractionService');
+const generateDetails = require('../services/aiService');
 
 function pickImageFromHtml($) {
   const og = $('meta[property="og:image"]').attr('content');
@@ -100,4 +101,96 @@ async function importCertificateFromUrl(req, res) {
   }
 }
 
-module.exports = { importCertificateFromUrl };
+// POST /api/certificates/analyze-image
+async function analyzeCertificateImage(req, res) {
+  try {
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No image file uploaded. Please upload a certificate image.' 
+      });
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid file type. Please upload a JPEG, PNG, or WebP image.' 
+      });
+    }
+
+    // Convert buffer to base64
+    const base64Image = req.file.buffer.toString('base64');
+
+    // Call AI service to analyze the certificate
+    console.log('Calling AI service to analyze certificate...');
+    const aiResponse = await generateDetails(base64Image);
+    console.log('AI Response received:', aiResponse);
+
+    // Try to parse JSON response from AI
+    let extractedData;
+    try {
+      // Check if response is the "not my expertise" message
+      if (aiResponse.includes("Sorry, this is not my expertise")) {
+        return res.status(400).json({
+          success: false,
+          message: "This image doesn't appear to be an educational certificate. Please upload a valid certificate image."
+        });
+      }
+
+      // Clean the response - remove any markdown formatting or extra text
+      let cleanResponse = aiResponse.trim();
+      
+      // If response contains JSON within backticks, extract it
+      const jsonMatch = cleanResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        cleanResponse = jsonMatch[1];
+      }
+      
+      // If response starts with text before JSON, try to extract JSON
+      const jsonStart = cleanResponse.indexOf('{');
+      const jsonEnd = cleanResponse.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanResponse = cleanResponse.substring(jsonStart, jsonEnd + 1);
+      }
+
+      // Try to parse JSON response
+      extractedData = JSON.parse(cleanResponse);
+      
+      // Validate that required fields exist
+      if (!extractedData || typeof extractedData !== 'object') {
+        throw new Error('Invalid data structure');
+      }
+
+    } catch (parseError) {
+      console.error('AI Response parsing error:', parseError);
+      console.error('Raw AI Response:', aiResponse);
+      
+      // If JSON parsing fails, return a more helpful error with the raw response
+      return res.status(500).json({
+        success: false,
+        message: "AI service returned an invalid response format. Please try again or contact support.",
+        error: parseError.message,
+        rawResponse: aiResponse.substring(0, 500) // Limit raw response length
+      });
+    }
+
+    // Return successful response with extracted data
+    return res.json({
+      success: true,
+      data: extractedData,
+      message: "Certificate analyzed successfully"
+    });
+
+  } catch (error) {
+    console.error('Certificate analysis error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to analyze certificate'
+    });
+  }
+}
+
+module.exports = { importCertificateFromUrl, analyzeCertificateImage };
