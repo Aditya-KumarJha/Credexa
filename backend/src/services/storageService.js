@@ -17,23 +17,29 @@ if (hasImageKitConfig) {
     console.warn("ImageKit not configured: set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT in backend/.env");
 }
 
-async function uploadFile(file, filename) {
+async function uploadFile(file, filename, fileType = 'image') {
     try {
         if (!imagekit) {
             throw new Error('ImageKit not configured. Please set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT');
         }
         console.log('Uploading file to ImageKit:', filename);
         console.log('File size:', file.length);
+        console.log('File type:', fileType);
         console.log('ImageKit config check:', {
             publicKey: process.env.IMAGEKIT_PUBLIC_KEY ? 'SET' : 'MISSING',
             privateKey: process.env.IMAGEKIT_PRIVATE_KEY ? 'SET' : 'MISSING',
             urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT ? 'SET' : 'MISSING'
         });
         
+        // Determine folder based on file type
+        const folder = fileType === 'resume' ? 'credexa/resumes' : 'credexa';
+        
         const response = await imagekit.upload({
             file: file,
             fileName: filename,
-            folder: "credexa"
+            folder: folder,
+            // For non-image files, we still need to upload them but they won't be transformed
+            useUniqueFileName: true
         });
         
         console.log('ImageKit upload successful:', response.url);
@@ -42,6 +48,10 @@ async function uploadFile(file, filename) {
         console.error('ImageKit upload failed:', error);
         throw error;
     }
+}
+
+async function uploadResume(file, filename) {
+    return uploadFile(file, filename, 'resume');
 }
 
 async function deleteFile(imageUrl) {
@@ -89,5 +99,6 @@ async function deleteFile(imageUrl) {
 
 module.exports = {
     uploadFile,
+    uploadResume,
     deleteFile
 };

@@ -6,6 +6,16 @@ const userSchema = new mongoose.Schema(
       firstName: { type: String, trim: true },
       lastName: { type: String, trim: true },
     },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+      minlength: 3,
+      maxlength: 30,
+      match: /^[a-zA-Z0-9_-]+$/
+    },
     email: {
       type: String,
       unique: true,
@@ -14,6 +24,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, minlength: 6 },
+    phone: {
+      type: String,
+      trim: true,
+      match: /^[\+]?[\d\s\-\(\)]+$/
+    },
 
     googleId: { type: String, unique: true, sparse: true },
     githubId: { type: String, unique: true, sparse: true },
@@ -23,14 +38,21 @@ const userSchema = new mongoose.Schema(
     walletAddress: { type: String, unique: true, sparse: true },
 
     profilePic: { type: String, default: "" },
-    resumeUrl: { type: String, default: "" },
-    resumeFileName: { type: String, default: "" },
-    bio: { type: String, default: "" },
-    phone: { type: String, default: "" },
-    location: { type: String, default: "" },
-    skills: { type: Object, default: {} }, // Object to store skill:level pairs
-    certifications: { type: Array, default: [] },
-    experience: { type: Array, default: [] },
+    resume: {
+      fileName: { type: String, trim: true },
+      fileUrl: { type: String, trim: true },
+      fileType: { type: String, trim: true },
+      uploadedAt: { type: Date },
+      fileSize: { type: Number }
+    },
+    socialLinks: {
+      linkedin: { type: String, trim: true },
+      github: { type: String, trim: true },
+      twitter: { type: String, trim: true },
+      portfolio: { type: String, trim: true },
+      instagram: { type: String, trim: true },
+      facebook: { type: String, trim: true }
+    },
     provider: {
       type: String,
       enum: ["email", "google", "github", "facebook", "web3", "discord", "linkedin"],

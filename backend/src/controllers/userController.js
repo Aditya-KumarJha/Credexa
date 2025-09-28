@@ -2,7 +2,7 @@ const { ethers } = require("ethers");
 const crypto = require("crypto");
 const { nanoid } = require("nanoid");
 const challenges = require("../utils/challengeStore");
-const { uploadFile } = require("../services/storageService");
+const { uploadFile, uploadResume, deleteFile } = require("../services/storageService");
 const sendEmail = require("../utils/emailService");
 const User = require("../models/userModel");
 const Credential = require("../models/credentialModel");
@@ -18,13 +18,19 @@ const getUserProfile = async (req, res) => {
       user: {
         _id: user._id,
         fullName: user.fullName,
+        username: user.username,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         profilePic: user.profilePic,
         provider: user.provider,
         walletAddress: user.walletAddress,
         isVerified: user.isVerified,
+        socialLinks: user.socialLinks,
+        resume: user.resume,
         createdAt: user.createdAt,
+        platformSync: user.platformSync,
+        institute: user.institute,
       }
     });
   } else {
@@ -35,7 +41,7 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
     try {
         const user = req.user;
-        const { firstName, lastName, email } = req.body;
+        const { firstName, lastName, email, username, phone, socialLinks } = req.body;
 
         const isSocialProvider = !['email', 'web3'].includes(user.provider);
 
@@ -66,33 +72,37 @@ const updateUserProfile = async (req, res) => {
             await sendEmail(newEmail, `Your email verification OTP is: ${otpCode}`, "Verify Your New Email Address");
         }
 
-        if (firstName) user.fullName.firstName = firstName;
-        if (lastName) user.fullName.lastName = lastName;
-        
-        // Handle file uploads
-        if (req.files) {
-            // Handle profile picture upload
-            if (req.files.profilePic && req.files.profilePic[0]) {
-                const file = req.files.profilePic[0];
-                const uniqueFilename = `profile_${user._id}_${nanoid()}`;
-                const uploadResponse = await uploadFile(file.buffer, uniqueFilename);
-                user.profilePic = uploadResponse.url;
+        // Check username uniqueness if provided
+        if (username) {
+            const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+            if (!usernameRegex.test(username)) {
+                return res.status(400).json({ message: "Username can only contain letters, numbers, hyphens, and underscores." });
+            }
+            if (username.length < 3 || username.length > 30) {
+                return res.status(400).json({ message: "Username must be between 3 and 30 characters." });
             }
             
-            // Handle resume upload
-            if (req.files.resume && req.files.resume[0]) {
-                const file = req.files.resume[0];
-                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-                
-                if (!allowedTypes.includes(file.mimetype)) {
-                    return res.status(400).json({ message: "Resume must be a PDF, DOC, or DOCX file." });
-                }
-                
-                const uniqueFilename = `resume_${user._id}_${nanoid()}`;
-                const uploadResponse = await uploadFile(file.buffer, uniqueFilename);
-                user.resumeUrl = uploadResponse.url;
-                user.resumeFileName = file.originalname;
+            const existingUser = await User.findOne({ username: username.toLowerCase() });
+            if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                return res.status(400).json({ message: "This username is already taken." });
             }
+            user.username = username.toLowerCase();
+        }
+
+        if (firstName) user.fullName.firstName = firstName;
+        if (lastName) user.fullName.lastName = lastName;
+        if (phone) user.phone = phone;
+        
+        // Update social links
+        if (socialLinks) {
+            const parsedSocialLinks = typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks;
+            user.socialLinks = { ...user.socialLinks, ...parsedSocialLinks };
+        }
+        
+        if (req.file) {
+            const uniqueFilename = `profile_${user._id}_${nanoid()}`;
+            const uploadResponse = await uploadFile(req.file.buffer, uniqueFilename);
+            user.profilePic = uploadResponse.url;
         }
 
         const updatedUser = await user.save();
@@ -107,12 +117,14 @@ const updateUserProfile = async (req, res) => {
         res.status(200).json({
             _id: updatedUser._id,
             fullName: updatedUser.fullName,
+            username: updatedUser.username,
             email: updatedUser.email,
+            phone: updatedUser.phone,
             profilePic: updatedUser.profilePic,
-            resumeUrl: updatedUser.resumeUrl,
-            resumeFileName: updatedUser.resumeFileName,
             provider: updatedUser.provider,
             walletAddress: updatedUser.walletAddress,
+            socialLinks: updatedUser.socialLinks,
+            resume: updatedUser.resume,
             createdAt: updatedUser.createdAt,
         });
 
@@ -239,15 +251,150 @@ const linkWalletAddress = async (req, res) => {
         res.status(200).json({
           _id: user._id,
           fullName: user.fullName,
+          username: user.username,
           email: user.email,
+          phone: user.phone,
           profilePic: user.profilePic,
           provider: user.provider,
           walletAddress: user.walletAddress,
+          socialLinks: user.socialLinks,
+          resume: user.resume,
           createdAt: user.createdAt,
         });
     } catch (error) {
         console.error("Link Wallet Error:", error);
         res.status(500).json({ message: "Server error during wallet linking." });
+    }
+};
+
+const checkUsernameAvailability = async (req, res) => {
+    try {
+        const { username } = req.params;
+        const currentUserId = req.user._id;
+        
+        if (!username || username.length < 3 || username.length > 30) {
+            return res.status(400).json({ 
+                available: false, 
+                message: "Username must be between 3 and 30 characters." 
+            });
+        }
+        
+        const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+        if (!usernameRegex.test(username)) {
+            return res.status(400).json({ 
+                available: false, 
+                message: "Username can only contain letters, numbers, hyphens, and underscores." 
+            });
+        }
+        
+        const existingUser = await User.findOne({ username: username.toLowerCase() });
+        const isAvailable = !existingUser || existingUser._id.toString() === currentUserId.toString();
+        
+        res.status(200).json({
+            available: isAvailable,
+            message: isAvailable ? "Username is available" : "Username is already taken"
+        });
+    } catch (error) {
+        console.error("Check Username Error:", error);
+        res.status(500).json({ message: "Server error while checking username." });
+    }
+};
+
+const uploadResumeFile = async (req, res) => {
+    try {
+        const user = req.user;
+        
+        if (!req.file) {
+            return res.status(400).json({ message: "Resume file is required." });
+        }
+        
+        // Check file type
+        const allowedTypes = [
+            'application/pdf', 
+            'application/msword', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 
+            'image/png', 
+            'image/gif'
+        ];
+        
+        if (!allowedTypes.includes(req.file.mimetype)) {
+            return res.status(400).json({ 
+                message: "Invalid file type. Please upload PDF, DOC, DOCX, or image files only." 
+            });
+        }
+        
+        // Check file size (max 10MB)
+        if (req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({ message: "File size too large. Maximum 10MB allowed." });
+        }
+        
+        let oldResumeInfo = null;
+        
+        // Store old resume info for deletion after successful upload
+        if (user.resume && user.resume.fileUrl) {
+            oldResumeInfo = {
+                fileName: user.resume.fileName,
+                fileUrl: user.resume.fileUrl
+            };
+        }
+        
+        // Upload new resume first
+        const uniqueFilename = `resume_${user._id}_${nanoid()}.${req.file.originalname.split('.').pop()}`;
+        const uploadResponse = await uploadResume(req.file.buffer, uniqueFilename);
+        
+        // Update user with new resume info
+        user.resume = {
+            fileName: req.file.originalname,
+            fileUrl: uploadResponse.url,
+            fileType: req.file.mimetype,
+            uploadedAt: new Date(),
+            fileSize: req.file.size
+        };
+        
+        await user.save();
+        
+        // Delete old resume from ImageKit after successful save
+        if (oldResumeInfo) {
+            try {
+                await deleteFile(oldResumeInfo.fileUrl);
+                console.log(`Successfully deleted old resume: ${oldResumeInfo.fileName}`);
+            } catch (deleteError) {
+                console.error("Failed to delete old resume file:", deleteError);
+                // Don't fail the request if old file deletion fails
+            }
+        }
+        
+        const message = oldResumeInfo 
+            ? `Resume replaced successfully. Old resume "${oldResumeInfo.fileName}" has been deleted.`
+            : "Resume uploaded successfully";
+        
+        res.status(200).json({
+            message: message,
+            resume: user.resume
+        });
+    } catch (error) {
+        console.error("Upload Resume Error:", error);
+        res.status(500).json({ message: "Server error while uploading resume." });
+    }
+};
+
+const deleteResumeFile = async (req, res) => {
+    try {
+        const user = req.user;
+        
+        if (!user.resume || !user.resume.fileUrl) {
+            return res.status(404).json({ message: "No resume found to delete." });
+        }
+        
+        await deleteFile(user.resume.fileUrl);
+        user.resume = undefined;
+        await user.save();
+        
+        res.status(200).json({ message: "Resume deleted successfully" });
+    } catch (error) {
+        console.error("Delete Resume Error:", error);
+        res.status(500).json({ message: "Server error while deleting resume." });
     }
 };
 
@@ -258,6 +405,9 @@ module.exports = {
   resendEmailUpdateOtp,
   generateLinkChallenge,
   linkWalletAddress,
+  checkUsernameAvailability,
+  uploadResumeFile,
+  deleteResumeFile,
 };
 
 // --- Public/Employer APIs ---
