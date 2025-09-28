@@ -68,10 +68,31 @@ const updateUserProfile = async (req, res) => {
 
         if (firstName) user.fullName.firstName = firstName;
         if (lastName) user.fullName.lastName = lastName;
-        if (req.file) {
-            const uniqueFilename = `profile_${user._id}_${nanoid()}`;
-            const uploadResponse = await uploadFile(req.file.buffer, uniqueFilename);
-            user.profilePic = uploadResponse.url;
+        
+        // Handle file uploads
+        if (req.files) {
+            // Handle profile picture upload
+            if (req.files.profilePic && req.files.profilePic[0]) {
+                const file = req.files.profilePic[0];
+                const uniqueFilename = `profile_${user._id}_${nanoid()}`;
+                const uploadResponse = await uploadFile(file.buffer, uniqueFilename);
+                user.profilePic = uploadResponse.url;
+            }
+            
+            // Handle resume upload
+            if (req.files.resume && req.files.resume[0]) {
+                const file = req.files.resume[0];
+                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                
+                if (!allowedTypes.includes(file.mimetype)) {
+                    return res.status(400).json({ message: "Resume must be a PDF, DOC, or DOCX file." });
+                }
+                
+                const uniqueFilename = `resume_${user._id}_${nanoid()}`;
+                const uploadResponse = await uploadFile(file.buffer, uniqueFilename);
+                user.resumeUrl = uploadResponse.url;
+                user.resumeFileName = file.originalname;
+            }
         }
 
         const updatedUser = await user.save();
@@ -88,6 +109,8 @@ const updateUserProfile = async (req, res) => {
             fullName: updatedUser.fullName,
             email: updatedUser.email,
             profilePic: updatedUser.profilePic,
+            resumeUrl: updatedUser.resumeUrl,
+            resumeFileName: updatedUser.resumeFileName,
             provider: updatedUser.provider,
             walletAddress: updatedUser.walletAddress,
             createdAt: updatedUser.createdAt,
@@ -469,6 +492,84 @@ const getPublicProfile = async (req, res) => {
     }
 };
 
+// Get student credentials for institute dashboard
+const getUserCredentials = async (req, res) => {
+    try {
+        const { id } = req.params; // Changed from userId to id
+
+        // Find the user
+        const user = await User.findById(id)
+            .select('fullName email skills certifications experience location phone bio resumeUrl institute');
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Get user's credentials - try both user and userId fields for compatibility
+        const credentials = await Credential.find({ 
+            $or: [
+                { user: user._id },
+                { userId: user._id }
+            ]
+        })
+            .select('title issuer issueDate description status verified transactionHash skills nsqfLevel type')
+            .sort({ issueDate: -1 });
+
+        // Process skills data - convert object to radar chart format
+        const skillsData = [];
+        if (user.skills && typeof user.skills === 'object') {
+            Object.entries(user.skills).forEach(([skill, level]) => {
+                if (typeof level === 'number') {
+                    skillsData.push({
+                        skill: skill,
+                        value: level
+                    });
+                }
+            });
+        }
+
+        // Format the response
+        const response = {
+            success: true,
+            student: {
+                id: user._id.toString(),
+                name: `${user.fullName?.firstName || ''} ${user.fullName?.lastName || ''}`.trim() || 'N/A',
+                fullName: user.fullName || { firstName: '', lastName: '' },
+                email: user.email,
+                phone: user.phone,
+                location: user.location || '',
+                bio: user.bio || '',
+                skills: user.skills || {},
+                skillsData: skillsData, // Formatted for radar chart
+                certifications: user.certifications || [],
+                experience: user.experience || [],
+                resumeUrl: user.resumeUrl || null,
+                institute: user.institute || {
+                    name: "Unknown Institute",
+                    aishe_code: "UNK001"
+                },
+                credentials: credentials.map(cred => ({
+                    _id: cred._id.toString(),
+                    title: cred.title,
+                    issuer: cred.issuer,
+                    type: cred.type || 'certificate',
+                    issueDate: cred.issueDate,
+                    description: cred.description || '',
+                    skills: cred.skills || [],
+                    nsqfLevel: cred.nsqfLevel,
+                    status: cred.status || (cred.verified ? 'verified' : 'pending') // Handle both status field and verified field
+                }))
+            }
+        };
+
+        res.status(200).json(response);
+    } catch (err) {
+        console.error('Get user credentials error:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch user credentials' });
+    }
+};
+
 // Extend exports
 module.exports.searchLearners = searchLearners;
 module.exports.getPublicProfile = getPublicProfile;
+module.exports.getUserCredentials = getUserCredentials;

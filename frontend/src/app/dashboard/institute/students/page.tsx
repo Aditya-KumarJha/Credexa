@@ -18,6 +18,7 @@ import InstituteSidebar from "@/components/dashboard/institute/InstituteSidebar"
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
+import StudentProfileModal from "@/components/dashboard/institute/StudentProfileModal";
 import toast from "react-hot-toast";
 
 interface Student {
@@ -27,10 +28,25 @@ interface Student {
     lastName: string;
   };
   email: string;
-  profilePic: string;
+  profilePic?: string;
+  institute: {
+    name: string;
+    aishe_code: string;
+  };
+  role: string;
   createdAt: string;
   isVerified: boolean;
   credentialsCount: number;
+  credentials?: any[];
+  skills?: any; // Backend sends object with skill:level pairs
+  skillsData?: Array<{skill: string, value: number}>; // Formatted for radar chart
+  phone?: string;
+  location?: string;
+  bio?: string;
+  projects?: any[];
+  experience?: any[];
+  resumeUrl?: string;
+  resumeFileName?: string;
 }
 
 export default function StudentsPage() {
@@ -41,6 +57,8 @@ export default function StudentsPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -88,6 +106,75 @@ export default function StudentsPage() {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
+  };
+
+  const fetchStudentDetails = async (studentId: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      // Find the original student data from our students array
+      const originalStudent = students.find(s => s._id === studentId);
+      if (!originalStudent) return;
+
+      // Fetch student's credentials
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${studentId}/credentials`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.student) {
+          // Transform backend response to match our Student interface
+          const backendStudent = data.student;
+          const studentWithDetails: Student = {
+            _id: originalStudent._id,
+            fullName: backendStudent.fullName || originalStudent.fullName,
+            email: backendStudent.email || originalStudent.email,
+            profilePic: originalStudent.profilePic,
+            institute: backendStudent.institute || originalStudent.institute || {
+              name: "Unknown Institute",
+              aishe_code: "UNK001"
+            },
+            role: originalStudent.role || "learner",
+            createdAt: originalStudent.createdAt,
+            isVerified: originalStudent.isVerified,
+            credentialsCount: backendStudent.credentials?.length || originalStudent.credentialsCount,
+            credentials: backendStudent.credentials || [],
+            skills: backendStudent.skills,
+            skillsData: backendStudent.skillsData, // For radar chart
+            phone: backendStudent.phone,
+            location: backendStudent.location,
+            bio: backendStudent.bio,
+            projects: backendStudent.projects,
+            experience: backendStudent.experience,
+            resumeUrl: backendStudent.resumeUrl,
+            resumeFileName: backendStudent.resumeFileName
+          };
+          setSelectedStudent(studentWithDetails);
+          setIsModalOpen(true);
+        } else {
+          // Fallback if API response is not in expected format
+          throw new Error('Invalid response format');
+        }
+      } else {
+        toast.error('Failed to fetch student details');
+      }
+    } catch (error) {
+      console.error("Error fetching student details:", error);
+      toast.error("Failed to load student details");
+    }
+  };
+
+  const handleViewStudent = (student: Student) => {
+    fetchStudentDetails(student._id);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStudent(null);
   };
 
   return (
@@ -302,10 +389,17 @@ export default function StudentsPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              <button className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300">
+                              <button 
+                                onClick={() => handleViewStudent(student)}
+                                className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 p-1 rounded hover:bg-purple-100 dark:hover:bg-purple-900 transition-colors"
+                                title="View Profile"
+                              >
                                 <Eye className="h-4 w-4" />
                               </button>
-                              <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                              <button 
+                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                                title="Send Email"
+                              >
                                 <Mail className="h-4 w-4" />
                               </button>
                             </div>
@@ -361,6 +455,13 @@ export default function StudentsPage() {
             </div>
           </div>
         </div>
+
+        {/* Student Profile Modal */}
+        <StudentProfileModal
+          student={selectedStudent}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
       </div>
     </RoleGuard>
   );

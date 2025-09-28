@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "@/utils/axios";
 import toast from "react-hot-toast";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { Camera, Mail, Loader2, ShieldAlert, X } from "lucide-react";
+import { Camera, Mail, Loader2, ShieldAlert, X, Upload, FileText } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import InstituteSelector from "@/components/InstituteSelector";
@@ -16,6 +16,8 @@ interface UserProfile {
   fullName: { firstName: string; lastName: string; };
   email: string | null;
   profilePic: string;
+  resumeUrl?: string;
+  resumeFileName?: string;
   provider: string;
   platformSync?: {
     [key: string]: {
@@ -39,6 +41,7 @@ export default function ProfilePage() {
 
   const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "" });
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFormDirty, setIsFormDirty] = useState(false);
   
@@ -73,9 +76,9 @@ export default function ProfilePage() {
       formData.firstName !== (user.fullName?.firstName || "") ||
       formData.lastName !== (user.fullName?.lastName || "") ||
       formData.email !== (user.email || "");
-    const hasFileChanged = !!profilePicFile;
+    const hasFileChanged = !!profilePicFile || !!resumeFile;
     setIsFormDirty(hasTextChanged || hasFileChanged);
-  }, [formData, profilePicFile, user]);
+  }, [formData, profilePicFile, resumeFile, user]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -95,6 +98,28 @@ export default function ProfilePage() {
       const file = e.target.files[0];
       setProfilePicFile(file);
       setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleResumeChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Please upload a PDF, DOC, or DOCX file.");
+        return;
+      }
+      
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB.");
+        return;
+      }
+      
+      setResumeFile(file);
+      toast.success(`Resume "${file.name}" selected`);
     }
   };
 
@@ -122,6 +147,7 @@ export default function ProfilePage() {
     if (formData.lastName !== (user.fullName?.lastName || "")) formPayload.append("lastName", formData.lastName);
     if (formData.email !== (user.email || "")) formPayload.append("email", formData.email);
     if (profilePicFile) formPayload.append("profilePic", profilePicFile);
+    if (resumeFile) formPayload.append("resume", resumeFile);
 
     try {
       const response = await api.put("/api/users/me", formPayload, {
@@ -143,6 +169,7 @@ export default function ProfilePage() {
     } finally {
       setIsSubmitting(false);
       setProfilePicFile(null);
+      setResumeFile(null);
     }
   };
 
@@ -306,6 +333,55 @@ export default function ProfilePage() {
                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                    <input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} disabled={isSubmitting || isEmailLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                    {isEmailLocked && <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1"><ShieldAlert size={12}/>Your email is managed by your social provider.</p>}
+                </div>
+                
+                {/* Resume Upload */}
+                <div className="md:col-span-2">
+                  <label htmlFor="resume" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resume/CV</label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label htmlFor="resumeInput" className="flex items-center justify-center w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <div className="text-center">
+                          <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {resumeFile ? (
+                              <span className="text-cyan-600 dark:text-cyan-400 flex items-center justify-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                {resumeFile.name}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="font-medium">Click to upload resume</span>
+                                <p className="text-xs mt-1">PDF, DOC, DOCX up to 10MB</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <input
+                          id="resumeInput"
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={handleResumeChange}
+                          disabled={isSubmitting}
+                        />
+                      </label>
+                    </div>
+                    {user?.resumeUrl && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        <span>Current: {user.resumeFileName || 'Resume.pdf'}</span>
+                        <a
+                          href={user.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-600 dark:text-cyan-400 hover:underline"
+                        >
+                          View
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
             </div>
             

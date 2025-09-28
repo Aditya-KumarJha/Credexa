@@ -23,6 +23,14 @@ const userSchema = new mongoose.Schema(
     walletAddress: { type: String, unique: true, sparse: true },
 
     profilePic: { type: String, default: "" },
+    resumeUrl: { type: String, default: "" },
+    resumeFileName: { type: String, default: "" },
+    bio: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    location: { type: String, default: "" },
+    skills: { type: Object, default: {} }, // Object to store skill:level pairs
+    certifications: { type: Array, default: [] },
+    experience: { type: Array, default: [] },
     provider: {
       type: String,
       enum: ["email", "google", "github", "facebook", "web3", "discord", "linkedin"],
