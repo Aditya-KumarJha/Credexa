@@ -490,35 +490,78 @@ const verifyWeb3Signature = async (req, res) => {
 
 const selectRole = async (req, res) => {
   try {
-    const { role } = req.body;
+    const { role, institute } = req.body;
     const userId = req.user.id;
 
     if (!role || !["learner", "employer", "institute"].includes(role)) {
       return res.status(400).json({ message: "Valid role is required (learner, employer, institute)" });
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { role },
-      { new: true }
-    ).select("-password -otp -resetPasswordToken -refreshToken");
+    // For institute role, validate institute information
+    if (role === "institute") {
+      if (!institute || !institute.aishe_code || !institute.name) {
+        return res.status(400).json({ message: "Institute information is required for institute role" });
+      }
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { 
+          role,
+          institute: {
+            aishe_code: institute.aishe_code,
+            name: institute.name,
+            state: institute.state,
+            district: institute.district,
+            university_name: institute.university_name,
+            addedAt: institute.addedAt || new Date(),
+            isVerified: institute.isVerified || false
+          }
+        },
+        { new: true }
+      ).select("-password -otp -resetPasswordToken -refreshToken");
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json({
+        message: "Role and institute updated successfully",
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          institute: user.institute,
+          provider: user.provider,
+          profilePic: user.profilePic,
+          isVerified: user.isVerified,
+        },
+      });
+    } else {
+      // For other roles, just update the role
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { role },
+        { new: true }
+      ).select("-password -otp -resetPasswordToken -refreshToken");
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json({
+        message: "Role updated successfully",
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          provider: user.provider,
+          profilePic: user.profilePic,
+          isVerified: user.isVerified,
+        },
+      });
     }
-
-    res.status(200).json({
-      message: "Role updated successfully",
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        provider: user.provider,
-        profilePic: user.profilePic,
-        isVerified: user.isVerified,
-      },
-    });
 
   } catch (error) {
     console.error("Select Role Error:", error);

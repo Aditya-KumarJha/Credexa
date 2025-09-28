@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useState } from "react";
 import { 
   Users, 
   Award, 
@@ -24,63 +25,103 @@ import InstituteSidebar from "@/components/dashboard/institute/InstituteSidebar"
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
+import toast from "react-hot-toast";
 
 export default function InstituteDashboard() {
-  const stats = [
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    studentsChange: "Loading...",
+    credentialsIssued: 0,
+    credentialsChange: "Loading...",
+    activeCourses: 0,
+    coursesChange: "Loading...",
+    nsqfCompliance: "Loading...",
+    complianceChange: "Loading..."
+  });
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      // Fetch dashboard stats
+      const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institute/dashboard/stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData.stats);
+      }
+
+      // Fetch recent activities
+      const activitiesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institute/dashboard/activities`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (activitiesResponse.ok) {
+        const activitiesData = await activitiesResponse.json();
+        setActivities(activitiesData.activities);
+      }
+
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsData = [
     {
       title: "Total Students",
-      value: "2,847",
-      change: "+145 this semester",
+      value: loading ? "Loading..." : stats.totalStudents.toString(),
+      change: stats.studentsChange,
       icon: <Users className="h-6 w-6" />,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
       title: "Credentials Issued",
-      value: "1,923",
-      change: "+89 this month",
+      value: loading ? "Loading..." : stats.credentialsIssued.toString(),
+      change: stats.credentialsChange,
       icon: <Award className="h-6 w-6" />,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
     },
     {
       title: "Active Courses",
-      value: "156",
-      change: "+12 new courses",
+      value: loading ? "Loading..." : stats.activeCourses.toString(),
+      change: stats.coursesChange,
       icon: <BookOpen className="h-6 w-6" />,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
       title: "NSQF Compliance",
-      value: "98.5%",
-      change: "+2.3% improvement",
+      value: loading ? "Loading..." : stats.nsqfCompliance,
+      change: stats.complianceChange,
       icon: <Shield className="h-6 w-6" />,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },
   ];
 
-  const recentActivities = [
+  const recentActivities = activities.length > 0 ? activities : [
     {
-      action: "50 certificates issued for Data Science course",
-      time: "1 hour ago",
-      type: "issuance",
-    },
-    {
-      action: "New course 'AI Fundamentals' approved",
-      time: "3 hours ago",
-      type: "course",
-    },
-    {
-      action: "Student batch completed Web Development program",
-      time: "1 day ago",
-      type: "completion",
-    },
-    {
-      action: "NSQF compliance report submitted",
-      time: "2 days ago",
-      type: "compliance",
+      action: "Loading recent activities...",
+      time: "",
+      type: "loading",
     },
   ];
 
@@ -159,7 +200,7 @@ export default function InstituteDashboard() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           >
-            {stats.map((stat, index) => (
+            {statsData.map((stat, index) => (
               <div
                 key={index}
                 className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
