@@ -10,9 +10,13 @@ export type ImportResult = {
     title?: string;
     issuer?: string;
     completionDate?: string | null;
+    issueDate?: string | null;
     credentialId?: string;
     description?: string;
+    nsqfLevel?: string | null;
+    creditPoints?: string | null;
     ocrAvailable?: boolean;
+    aiExtracted?: boolean;
   };
 };
 

@@ -58,6 +58,35 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
   const [urlExtractionTimeout, setUrlExtractionTimeout] = useState<NodeJS.Timeout | null>(null);
   const [autoImageUrl, setAutoImageUrl] = useState<string | null>(null);
   const [currentUrl, setCurrentUrl] = useState<string>("");
+  // Clear messages when modal is closed or step changes
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear all states when modal is closed
+      setExtractionError(null);
+      setExtractionSuccess(null);
+      setAutoImageUrl(null);
+      setCurrentUrl("");
+      setExtractingFromUrl(false);
+      setExtractingFromImage(false);
+    }
+  }, [isOpen]);
+
+  // Clear messages when step changes or method changes
+  useEffect(() => {
+    if (currentStep === 0 || currentStep === 2) {
+      // Clear messages when going back to method selection or forward to creation
+      setExtractionError(null);
+      setExtractionSuccess(null);
+    }
+  }, [currentStep]);
+
+  // Clear messages when add method changes
+  useEffect(() => {
+    setExtractionError(null);
+    setExtractionSuccess(null);
+    setAutoImageUrl(null);
+  }, [addMethod]);
+
   useEffect(() => {
     if (!isOpen || currentStep !== 1) return;
     if (editing) {
@@ -101,17 +130,21 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           type: 'certificate',
           credentialId: d.credentialId || '',
           description: d.description || '',
+          nsqfLevel: d.nsqfLevel || '',
+          creditPoints: d.creditPoints || '',
         };
-        if (d.completionDate) values.issueDate = dayjs(d.completionDate);
+        if (d.completionDate || d.issueDate) {
+          values.issueDate = dayjs(d.completionDate || d.issueDate);
+        }
         if (d.storedImageUrl) {
           values.imageUrl = d.storedImageUrl;
           setAutoImageUrl(d.storedImageUrl);
         }
         form.setFieldsValue(values);
-        if (d.ocrAvailable) {
-          setExtractionSuccess('Certificate downloaded and parsed automatically.');
+        if (d.aiExtracted) {
+          setExtractionSuccess('Certificate downloaded and analyzed with AI! Form fields have been auto-filled.');
         } else {
-          setExtractionError('Certificate image attached. OCR service unavailable, so fields could not be auto-filled. You can fill them manually or start the OCR service.');
+          setExtractionError('Certificate image attached but AI analysis failed. Please fill the fields manually.');
         }
       } else {
         setExtractionError(result?.message || 'Failed to import certificate');
@@ -201,19 +234,44 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           <Upload
             beforeUpload={async (f) => {
               setFile(f);
+              // Clear previous messages when starting new upload
+              setExtractionError(null);
+              setExtractionSuccess(null);
               setExtractingFromImage(true);
               
               try {
-                // Extract certificate information
+                // Extract certificate information using AI
                 const extracted = await extractCertificateInfo(f);
                 if (extracted) {
-                  // Auto-fill form fields with extracted data
+                  // Auto-fill form fields with AI-extracted data
                   form.setFieldsValue({
                     title: extracted.title || '',
                     issuer: extracted.issuer || '',
+                    nsqfLevel: extracted.nsqfLevel || '',
                     issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                    description: extracted.description || '',
+                    credentialId: extracted.credentialId || '',
+                    creditPoints: extracted.creditPoints || '',
                   });
+                  setExtractionSuccess('Certificate analyzed successfully with AI! Form fields have been auto-filled.');
+                } else {
+                  setExtractionError('Failed to extract information from certificate. Please fill the fields manually.');
                 }
+              } catch (error: any) {
+                const errorData = error.response?.data;
+                let errorMessage = 'Failed to analyze certificate. Please try again.';
+                
+                if (errorData?.code === 'SERVICE_UNAVAILABLE') {
+                  errorMessage = 'AI service is temporarily unavailable. Please try again in a few minutes.';
+                } else if (errorData?.code === 'RATE_LIMITED') {
+                  errorMessage = 'Too many requests. Please wait a moment and try again.';
+                } else if (errorData?.code === 'AUTH_ERROR') {
+                  errorMessage = 'AI service authentication error. Please contact support.';
+                } else if (errorData?.message) {
+                  errorMessage = errorData.message;
+                }
+                
+                setExtractionError(errorMessage);
               } finally {
                 setExtractingFromImage(false);
               }
@@ -232,7 +290,17 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
             </div>
           )}
           <div className="flex justify-between">
-            <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>
+            <Button 
+              variant="outline" 
+              className="bg-transparent" 
+              onClick={() => {
+                setExtractionError(null);
+                setExtractionSuccess(null);
+                setCurrentStep(0);
+              }}
+            >
+              Back
+            </Button>
             <Button onClick={() => setCurrentStep(2)}>Continue</Button>
           </div>
         </div>
@@ -371,19 +439,44 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                 <Upload
                   beforeUpload={async (f) => {
                     setFile(f);
+                    // Clear previous messages when starting new upload
+                    setExtractionError(null);
+                    setExtractionSuccess(null);
                     setExtractingFromImage(true);
                     
                     try {
-                      // Extract certificate information
+                      // Extract certificate information using AI
                       const extracted = await extractCertificateInfo(f);
                       if (extracted) {
-                        // Auto-fill form fields with extracted data
+                        // Auto-fill form fields with AI-extracted data
                         form.setFieldsValue({
                           title: extracted.title || '',
                           issuer: extracted.issuer || '',
+                          nsqfLevel: extracted.nsqfLevel || '',
                           issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
+                          description: extracted.description || '',
+                          credentialId: extracted.credentialId || '',
+                          creditPoints: extracted.creditPoints || '',
                         });
+                        setExtractionSuccess('Certificate analyzed successfully with AI! Form fields have been auto-filled.');
+                      } else {
+                        setExtractionError('Failed to extract information from certificate. Please fill the fields manually.');
                       }
+                    } catch (error: any) {
+                      const errorData = error.response?.data;
+                      let errorMessage = 'Failed to analyze certificate. Please try again.';
+                      
+                      if (errorData?.code === 'SERVICE_UNAVAILABLE') {
+                        errorMessage = 'AI service is temporarily unavailable. Please try again in a few minutes.';
+                      } else if (errorData?.code === 'RATE_LIMITED') {
+                        errorMessage = 'Too many requests. Please wait a moment and try again.';
+                      } else if (errorData?.code === 'AUTH_ERROR') {
+                        errorMessage = 'AI service authentication error. Please contact support.';
+                      } else if (errorData?.message) {
+                        errorMessage = errorData.message;
+                      }
+                      
+                      setExtractionError(errorMessage);
                     } finally {
                       setExtractingFromImage(false);
                     }
@@ -411,7 +504,17 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
             <Alert message={extractionError} type="error" showIcon style={{ marginBottom: 16 }} />
           )}
           <div className="flex justify-between">
-            <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(0)}>Back</Button>
+            <Button 
+              variant="outline" 
+              className="bg-transparent" 
+              onClick={() => {
+                setExtractionError(null);
+                setExtractionSuccess(null);
+                setCurrentStep(0);
+              }}
+            >
+              Back
+            </Button>
             <Button onClick={handleContinueToReview}>Continue</Button>
           </div>
         </Form>
@@ -421,7 +524,18 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">Review and finalize your credential. You can optionally anchor later.</p>
           <div className="flex justify-between">
-            <Button variant="outline" className="bg-transparent" onClick={() => setCurrentStep(1)} disabled={submitting}>Back</Button>
+            <Button 
+              variant="outline" 
+              className="bg-transparent" 
+              onClick={() => {
+                setExtractionError(null);
+                setExtractionSuccess(null);
+                setCurrentStep(1);
+              }} 
+              disabled={submitting}
+            >
+              Back
+            </Button>
             <Space>
               <Button variant="outline" className="bg-transparent" onClick={onClose} disabled={submitting}>Cancel</Button>
               <Button onClick={onSubmit} disabled={submitting}>

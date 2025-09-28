@@ -64,34 +64,58 @@ export const extractCertificateInfo = async (file: File) => {
 
   try {
     const formData = new FormData();
-    formData.append('certificateFile', file);
+    formData.append('certificate', file); // Updated key to match backend
 
-    console.log('Extracting certificate information...');
+    console.log('Analyzing certificate with AI...');
 
-    const response = await api.post('/api/credentials/extract', formData, {
+    const response = await api.post('/api/certificates/analyze-image', formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         // Don't set Content-Type, let axios set it with boundary for multipart
       },
     });
 
-    console.log('Certificate information extracted successfully!');
+    console.log('Certificate analyzed successfully with AI!');
 
-    if (response.data && response.data.success && response.data.extracted) {
-      return response.data.extracted;
+    if (response.data && response.data.success && response.data.data) {
+      // Map the AI response to the format expected by the frontend
+      const aiData = response.data.data;
+      return {
+        title: aiData.title || '',
+        issuer: aiData.issuer || '',
+        nsqfLevel: aiData.nsqfLevel || null,
+        issueDate: aiData.issueDate || null,
+        description: aiData.description || '',
+        credentialId: aiData.credentialId || '',
+        creditPoints: aiData.creditPoints || null,
+      };
     } else {
-      throw new Error(response.data?.message || 'Failed to extract information');
+      throw new Error(response.data?.message || 'Failed to analyze certificate');
     }
   } catch (error: any) {
-    console.error('Extraction error details:', {
+    console.error('AI Analysis error details:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
       config: error.config
     });
-    console.error('Failed to extract certificate information:', error.response?.data?.message || error.message);
-    return null;
+    
+    const errorData = error.response?.data;
+    let errorMessage = 'Failed to analyze certificate with AI';
+    
+    if (errorData?.code === 'SERVICE_UNAVAILABLE') {
+      errorMessage = 'AI service is temporarily unavailable. Please try again in a few minutes.';
+    } else if (errorData?.code === 'RATE_LIMITED') {
+      errorMessage = 'Too many requests. Please wait a moment and try again.';
+    } else if (errorData?.code === 'AUTH_ERROR') {
+      errorMessage = 'AI service authentication error. Please contact support.';
+    } else if (errorData?.message) {
+      errorMessage = errorData.message;
+    }
+    
+    console.error(errorMessage);
+    throw new Error(errorMessage); // Throw error with better message
   }
 };
 

@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { uploadFile } = require('../services/storageService');
-const { extractCredentialInfo, isExtractionServiceAvailable } = require('../services/extractionService');
 const generateDetails = require('../services/aiService');
 
 function pickImageFromHtml($) {
@@ -65,36 +64,42 @@ async function importCertificateFromUrl(req, res) {
       console.warn('Image upload skipped/failed:', e.message);
     }
 
-    // OCR via extraction service with platform rules
-    let ocr = { success: false, extracted: null, error: null };
+    // Use AI service to extract certificate details
+    let extractedData = {};
     try {
-      console.log('Checking OCR service availability...');
-      const available = await isExtractionServiceAvailable();
-      console.log('OCR service available:', available);
-      if (available) {
-        console.log('Calling OCR with platform: coursera');
-        ocr = await extractCredentialInfo(imgBuffer, `coursera_${Date.now()}.png`, 'coursera');
-        console.log('OCR result:', ocr);
+      console.log('Calling AI service to analyze certificate from URL...');
+      const base64Image = imgBuffer.toString('base64');
+      const aiResponse = await generateDetails(base64Image);
+      console.log('AI Response received:', aiResponse);
+
+      // Parse AI response
+      let cleanResponse = aiResponse.trim();
+      const jsonStart = cleanResponse.indexOf('{');
+      const jsonEnd = cleanResponse.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanResponse = cleanResponse.substring(jsonStart, jsonEnd + 1);
       }
+      extractedData = JSON.parse(cleanResponse);
     } catch (e) {
-      console.error('OCR extraction failed:', e);
-      ocr = { success: false, extracted: null, error: e.message };
+      console.error('AI extraction failed:', e);
+      extractedData = {};
     }
 
-    const e = ocr.extracted || {};
     const data = {
       platform: 'Coursera',
       originalUrl: url,
       storedImageUrl: uploaded?.url || null,
-      title: e.title || '',
-      issuer: e.issuer || '',
-      completionDate: e.issueDate || null,
-      credentialId: e.credentialId || '',
-      description: e.description || '',
-      ocrAvailable: !!ocr.success,
+      title: extractedData.title || '',
+      issuer: extractedData.issuer || '',
+      nsqfLevel: extractedData.nsqfLevel || null,
+      completionDate: extractedData.issueDate || null,
+      credentialId: extractedData.credentialId || '',
+      description: extractedData.description || '',
+      creditPoints: extractedData.creditPoints || null,
+      aiExtracted: true,
     };
 
-    return res.json({ success: true, data, message: 'Certificate downloaded, uploaded and parsed' });
+    return res.json({ success: true, data, message: 'Certificate downloaded and analyzed with AI' });
   } catch (err) {
     console.error('Certificate import error:', err);
     return res.status(500).json({ success: false, message: err.message || 'Failed to import certificate' });
@@ -186,9 +191,32 @@ async function analyzeCertificateImage(req, res) {
 
   } catch (error) {
     console.error('Certificate analysis error:', error);
+    
+    // Handle specific API errors
+    if (error.status === 503) {
+      return res.status(503).json({
+        success: false,
+        message: "AI service is temporarily unavailable. Please try again in a few minutes.",
+        code: "SERVICE_UNAVAILABLE"
+      });
+    } else if (error.status === 429) {
+      return res.status(429).json({
+        success: false,
+        message: "Too many requests. Please wait a moment and try again.",
+        code: "RATE_LIMITED"
+      });
+    } else if (error.status === 401 || error.status === 403) {
+      return res.status(500).json({
+        success: false,
+        message: "AI service authentication error. Please contact support.",
+        code: "AUTH_ERROR"
+      });
+    }
+    
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to analyze certificate'
+      message: error.message || 'Failed to analyze certificate',
+      code: "UNKNOWN_ERROR"
     });
   }
 }
