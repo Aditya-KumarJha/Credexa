@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx nodemon server.js",
-    "clear:sync": "node scripts/clearPlatformSync.js"
+    "clear:sync": "node scripts/clearPlatformSync.js",
+    "seed:demo": "node scripts/seedDemoLearners.js"
   },
   "keywords": [],
   "author": "",
