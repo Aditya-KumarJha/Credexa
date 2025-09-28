@@ -96,6 +96,8 @@ passport.use(
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
+        console.log("Discord Profile Object:", JSON.stringify(profile, null, 2));
+        
         const mode = req.query.state || "login";
         let user = await User.findOne({ discordId: profile.id });
 
@@ -103,12 +105,17 @@ passport.use(
           if (!user) return done(null, false);
         } else if (mode === "signup") {
           if (!user) {
+            // Discord provides global_name (display name) and username
+            // global_name is the user's display name, username is their unique handle
+            const displayName = profile.global_name || profile.displayName || profile.username || "";
+            const nameParts = displayName.split(" ");
+            
             user = await User.create({
               discordId: profile.id,
               email: profile.email || null,
               fullName: {
-                firstName: profile.username || "",
-                lastName: "",
+                firstName: nameParts[0] || "",
+                lastName: nameParts.slice(1).join(" ") || "",
               },
               provider: "discord",
               isVerified: true,
