@@ -40,7 +40,6 @@ const register = async (req, res) => {
 
     const otpCode = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    console.log("Signup OTP:", otpCode); 
 
     await PendingUser.create({
       firstName,
@@ -85,7 +84,6 @@ const login = async (req, res) => {
 
     const otpCode = generateOtp();
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
-    console.log("Login OTP:", otpCode);
 
     user.otp = { code: otpCode, expiresAt, lastSentAt: now };
     await user.save();
