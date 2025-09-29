@@ -649,7 +649,7 @@ const getUserCredentials = async (req, res) => {
 
         // Find the user
         const user = await User.findById(id)
-            .select('fullName email skills certifications experience location phone bio resumeUrl institute');
+            .select('fullName email skills certifications experience location phone bio resume institute');
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -662,7 +662,7 @@ const getUserCredentials = async (req, res) => {
                 { userId: user._id }
             ]
         })
-            .select('title issuer issueDate description status verified transactionHash skills nsqfLevel type')
+            .select('title issuer issueDate description status verified transactionHash skills nsqfLevel type imageUrl credentialUrl issuerLogo credentialId')
             .sort({ issueDate: -1 });
 
         // Process skills data - convert object to radar chart format
@@ -693,7 +693,8 @@ const getUserCredentials = async (req, res) => {
                 skillsData: skillsData, // Formatted for radar chart
                 certifications: user.certifications || [],
                 experience: user.experience || [],
-                resumeUrl: user.resumeUrl || null,
+                resumeUrl: user.resume?.fileUrl || null,
+                resumeFileName: user.resume?.fileName || null,
                 institute: user.institute || {
                     name: "Unknown Institute",
                     aishe_code: "UNK001"
@@ -707,7 +708,11 @@ const getUserCredentials = async (req, res) => {
                     description: cred.description || '',
                     skills: cred.skills || [],
                     nsqfLevel: cred.nsqfLevel,
-                    status: cred.status || (cred.verified ? 'verified' : 'pending') // Handle both status field and verified field
+                    status: cred.status || (cred.verified ? 'verified' : 'pending'), // Handle both status field and verified field
+                    imageUrl: cred.imageUrl || null,
+                    credentialUrl: cred.credentialUrl || null,
+                    issuerLogo: cred.issuerLogo || null,
+                    credentialId: cred.credentialId || null
                 }))
             }
         };
