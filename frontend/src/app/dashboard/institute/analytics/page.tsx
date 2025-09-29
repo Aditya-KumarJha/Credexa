@@ -72,6 +72,8 @@ export default function AnalyticsPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Analytics data received:', data);
+        console.log('Skills distribution:', data.analytics.skillsDistribution);
         setAnalytics(data.analytics);
       } else {
         toast.error("Failed to fetch analytics data");
@@ -244,25 +246,35 @@ export default function AnalyticsPage() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                       Skills Distribution
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <RechartsPieChart>
-                        <Pie
-                          data={analytics.skillsDistribution}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({skill, percent}: any) => `${skill} (${(percent * 100).toFixed(0)}%)`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="count"
-                        >
-                          {analytics.skillsDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
+                    {analytics.skillsDistribution && analytics.skillsDistribution.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <RechartsPieChart>
+                          <Pie
+                            data={analytics.skillsDistribution}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({skill, percent}: any) => `${skill} (${(percent * 100).toFixed(0)}%)`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="count"
+                          >
+                            {analytics.skillsDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                        <div className="text-center">
+                          <div className="text-2xl mb-2">📊</div>
+                          <p>No skills data available</p>
+                          <p className="text-sm">Add some credentials to see skills distribution</p>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 </div>
 
@@ -278,28 +290,38 @@ export default function AnalyticsPage() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                       NSQF Level Distribution
                     </h3>
-                    <div className="space-y-4">
-                      {analytics.nsqfLevels.map((level, index) => (
-                        <div key={level.level} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{level.level}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
-                              <div
-                                className="h-2 rounded-full"
-                                style={{ 
-                                  width: `${(level.count / Math.max(...analytics.nsqfLevels.map(l => l.count))) * 100}%`,
-                                  backgroundColor: COLORS[index % COLORS.length]
-                                }}
-                              ></div>
+                    {analytics.nsqfLevels && analytics.nsqfLevels.length > 0 ? (
+                      <div className="space-y-4">
+                        {analytics.nsqfLevels.map((level, index) => (
+                          <div key={level.level} className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{level.level}</span>
                             </div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{level.count}</span>
+                            <div className="flex items-center">
+                              <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
+                                <div
+                                  className="h-2 rounded-full"
+                                  style={{ 
+                                    width: `${(level.count / Math.max(...analytics.nsqfLevels.map(l => l.count))) * 100}%`,
+                                    backgroundColor: COLORS[index % COLORS.length]
+                                  }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{level.count}</span>
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400">
+                        <div className="text-center">
+                          <div className="text-2xl mb-2">📋</div>
+                          <p>No NSQF level data available</p>
+                          <p className="text-sm">Add credentials with NSQF levels to see distribution</p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </motion.div>
 
                   {/* Top Skills by Count */}
@@ -312,27 +334,37 @@ export default function AnalyticsPage() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                       Most Popular Skills
                     </h3>
-                    <div className="space-y-4">
-                      {analytics.skillsDistribution.map((skill, index) => (
-                        <div key={skill.skill} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center mr-3">
-                              <span className="text-purple-600 dark:text-purple-300 text-sm font-bold">#{index + 1}</span>
+                    {analytics.skillsDistribution && analytics.skillsDistribution.length > 0 ? (
+                      <div className="space-y-4">
+                        {analytics.skillsDistribution.map((skill, index) => (
+                          <div key={skill.skill} className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center mr-3">
+                                <span className="text-purple-600 dark:text-purple-300 text-sm font-bold">#{index + 1}</span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.skill}</span>
                             </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.skill}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
-                              <div
-                                className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: `${(skill.count / Math.max(...analytics.skillsDistribution.map(s => s.count))) * 100}%` }}
-                              ></div>
+                            <div className="flex items-center">
+                              <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
+                                <div
+                                  className="bg-purple-500 h-2 rounded-full"
+                                  style={{ width: `${(skill.count / Math.max(...analytics.skillsDistribution.map(s => s.count))) * 100}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{skill.count}</span>
                             </div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">{skill.count}</span>
                           </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400">
+                        <div className="text-center">
+                          <div className="text-2xl mb-2">🎯</div>
+                          <p>No skills data available</p>
+                          <p className="text-sm">Add credentials with skills to see popular skills</p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </motion.div>
                 </div>
               </>

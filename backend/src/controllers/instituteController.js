@@ -619,36 +619,115 @@ const getAnalytics = async (req, res) => {
       });
     }
 
-    // Mock analytics data
+    const instituteCode = user.institute.aishe_code;
+    const instituteName = user.institute.name;
+
+    // Get overview stats
+    const totalStudents = await User.countDocuments({
+      'institute.aishe_code': instituteCode,
+      role: 'learner'
+    });
+
+    const activeStudents = await User.countDocuments({
+      'institute.aishe_code': instituteCode,
+      role: 'learner',
+      lastActive: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Active in last 30 days
+    });
+
+    // Get credentials for users from this institute (using AISHE code)
+    const instituteUsers = await User.find({
+      'institute.aishe_code': instituteCode,
+      role: 'learner'
+    }).select('_id');
+    
+    const instituteUserIds = instituteUsers.map(user => user._id);
+    console.log('Institute AISHE Code:', instituteCode);
+    console.log('Institute users found:', instituteUserIds.length);
+
+    const credentialsIssued = await Credential.countDocuments({
+      user: { $in: instituteUserIds }
+    });
+
+    // Calculate graduated students (students with at least 1 credential)
+    const studentsWithCredentials = await Credential.distinct('user', {
+      user: { $in: instituteUserIds }
+    });
+    const graduatedStudents = studentsWithCredentials.length;
+
+    // Get monthly growth data for the last 6 months
+    const monthlyGrowth = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+      
+      const studentsInMonth = await User.countDocuments({
+        'institute.aishe_code': instituteCode,
+        role: 'learner',
+        createdAt: { $gte: startDate, $lte: endDate }
+      });
+
+      const credentialsInMonth = await Credential.countDocuments({
+        user: { $in: instituteUserIds },
+        createdAt: { $gte: startDate, $lte: endDate }
+      });
+
+      monthlyGrowth.push({
+        month: monthNames[month],
+        students: studentsInMonth,
+        credentials: credentialsInMonth
+      });
+    }
+
+    // Get all credentials for institute users  
+    const allCredentials = await Credential.find({ user: { $in: instituteUserIds } });
+    console.log('Total credentials found for institute users:', allCredentials.length);
+    console.log('Sample credentials:', allCredentials.slice(0, 3).map(cred => ({
+      title: cred.title,
+      issuer: cred.issuer,
+      skills: cred.skills,
+      nsqfLevel: cred.nsqfLevel,
+      type: cred.type
+    })));
+
+    // Get skills distribution from credentials of institute users
+    const skillsAggregation = await Credential.aggregate([
+      { $match: { user: { $in: instituteUserIds } } },
+      { $unwind: '$skills' },
+      { $group: { _id: '$skills', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      { $project: { skill: '$_id', count: 1, _id: 0 } }
+    ]);
+
+    console.log('Skills aggregation result:', skillsAggregation);
+
+    // Get NSQF levels distribution from credentials of institute users
+    const nsqfLevelsAggregation = await Credential.aggregate([
+      { $match: { user: { $in: instituteUserIds }, nsqfLevel: { $exists: true, $ne: null } } },
+      { $group: { _id: '$nsqfLevel', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+      { $project: { level: { $concat: ['Level ', { $toString: '$_id' }] }, count: 1, _id: 0 } }
+    ]);
+
+    console.log('NSQF levels aggregation result:', nsqfLevelsAggregation);
+
     const analytics = {
       overview: {
-        totalStudents: 247,
-        activeStudents: 198,
-        graduatedStudents: 49,
-        credentialsIssued: 523
+        totalStudents,
+        activeStudents,
+        graduatedStudents,
+        credentialsIssued
       },
-      monthlyGrowth: [
-        { month: 'Jan', students: 20, credentials: 45 },
-        { month: 'Feb', students: 35, credentials: 67 },
-        { month: 'Mar', students: 28, credentials: 89 },
-        { month: 'Apr', students: 42, credentials: 123 },
-        { month: 'May', students: 38, credentials: 95 },
-        { month: 'Jun', students: 55, credentials: 104 }
-      ],
-      skillsDistribution: [
-        { skill: 'Data Science', count: 89 },
-        { skill: 'Web Development', count: 76 },
-        { skill: 'Digital Marketing', count: 54 },
-        { skill: 'AI/ML', count: 43 },
-        { skill: 'Cloud Computing', count: 38 }
-      ],
-      nsqfLevels: [
-        { level: 'Level 3', count: 45 },
-        { level: 'Level 4', count: 89 },
-        { level: 'Level 5', count: 123 },
-        { level: 'Level 6', count: 67 },
-        { level: 'Level 7', count: 23 }
-      ]
+      monthlyGrowth,
+      skillsDistribution: skillsAggregation,
+      nsqfLevels: nsqfLevelsAggregation
     };
 
     res.json({
