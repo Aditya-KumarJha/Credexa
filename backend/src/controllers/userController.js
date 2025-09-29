@@ -433,15 +433,18 @@ const buildPublicIdentity = (user) => {
 // Returns a lightweight list of learner candidates for employer search
 const searchLearners = async (req, res) => {
     try {
-        const q = (req.query.q || '').toString().trim();
+        let q = (req.query.q || '').toString().trim();
+        if (q.startsWith('@')) q = q.slice(1);
         const skillsParam = (req.query.skills || '').toString().trim();
         const experience = (req.query.experience || '').toString().trim(); // reserved for future use
         const skills = skillsParam ? skillsParam.split(',').map(s => s.trim()).filter(Boolean) : [];
         const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 24, 100));
         const page = Math.max(1, parseInt(req.query.page) || 1);
 
-        // Build regex for text query (reuse across collections)
-        const regex = q ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+    // Build regex for text query (reuse across collections) and normalized alpha string
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = q ? new RegExp(escapedQ, 'i') : null;
+    const qAlpha = q ? q.toLowerCase().replace(/[^a-z0-9]+/g, '') : '';
 
         // Phase 1: find users via names/institute, and also via credentials if query/skills provided
         const userQuery = { role: 'learner' };
@@ -449,9 +452,14 @@ const searchLearners = async (req, res) => {
         let userOr = [];
         if (regex) {
             userOr = [
+                // exact username match first, then partial username
+                { 'username': new RegExp(`^${escapedQ}$`, 'i') },
+                { 'username': regex },
                 { 'fullName.firstName': regex },
                 { 'fullName.lastName': regex },
                 { 'institute.name': regex },
+                // fallback: concatenated first+last (for handle-like input)
+                { $expr: { $regexMatch: { input: { $toLower: { $concat: ['$fullName.firstName', '$fullName.lastName'] } }, regex: qAlpha } } },
             ];
         }
 
@@ -480,7 +488,7 @@ const searchLearners = async (req, res) => {
         }
 
         const users = await User.find(userQuery)
-            .select('fullName email institute profileImage profilePic avatar settings')
+            .select('fullName username email institute profileImage profilePic avatar settings')
             .lean();
 
         if (!users.length) {
@@ -524,6 +532,7 @@ const searchLearners = async (req, res) => {
                 // If text query provided, ensure either user's name/institute matched or
                 // credential fields match the query
                 if (credRegex && !([
+                    u.username,
                     u.fullName?.firstName,
                     u.fullName?.lastName,
                     u.institute?.name
@@ -549,10 +558,11 @@ const searchLearners = async (req, res) => {
             const eff = Math.min(120, Math.max(70, credentialCount * 8 + 70));
             const soc = Math.min(120, Math.max(70, uniqueSkills.length * 3 + 70));
 
-            // Build username-like handle
+            // Prefer saved unique username; fallback to derived handle
             const first = u.fullName?.firstName || '';
             const last = u.fullName?.lastName || '';
-            const handle = (first + last).trim().toLowerCase() || (u.email ? u.email.split('@')[0] : `user_${u._id.toString().slice(-6)}`);
+            const fallbackHandle = (first + last).trim().toLowerCase() || (u.email ? u.email.split('@')[0] : `user_${u._id.toString().slice(-6)}`);
+            const handle = (u.username || '').toLowerCase() || fallbackHandle;
 
                     return {
                 id: u._id.toString(),
@@ -566,9 +576,21 @@ const searchLearners = async (req, res) => {
             };
         }).filter(Boolean);
 
-        // Simple pagination on the array
+        // If a query exists, prioritize exact username matches first
+        let sorted = rawCandidates;
+        if (q) {
+            const qLower = q.toLowerCase();
+            sorted = [...rawCandidates].sort((a, b) => {
+                const aExact = a.username && a.username.toLowerCase() === qLower ? 1 : 0;
+                const bExact = b.username && b.username.toLowerCase() === qLower ? 1 : 0;
+                if (aExact !== bExact) return bExact - aExact;
+                return 0;
+            });
+        }
+
+        // Simple pagination on the sorted array
         const start = (page - 1) * limit;
-        const paged = rawCandidates.slice(start, start + limit);
+        const paged = sorted.slice(start, start + limit);
 
                 res.json({ success: true, total: rawCandidates.length, page, limit, candidates: paged });
     } catch (err) {
@@ -583,7 +605,7 @@ const getPublicProfile = async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findById(userId)
-            .select('fullName email institute profileImage profilePic avatar settings role')
+            .select('fullName username email institute profileImage profilePic avatar settings role')
             .lean();
         if (!user || user.role !== 'learner') {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -624,7 +646,7 @@ const getPublicProfile = async (req, res) => {
             candidate: {
                 id: user._id.toString(),
                 name: displayName,
-                username: (user.fullName?.firstName || '') + (user.fullName?.lastName || ''),
+                username: user.username || ((user.fullName?.firstName || '') + (user.fullName?.lastName || '')),
                 avatarUrl: displayAvatar,
                 role: `${(entries[0]?.[0] || 'General')} Professional`,
                 scores: { efficiency: eff, social: soc, performance: perf },

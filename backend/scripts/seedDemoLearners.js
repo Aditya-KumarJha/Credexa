@@ -12,6 +12,7 @@ async function run() {
     {
       fullName: { firstName: 'Riya', lastName: 'Sharma' },
       email: 'riya.demo@credexa.dev',
+      username: 'riyasharma',
       role: 'learner',
       isVerified: true,
       settings: { preferences: { privacy: { profileVisibility: 'public', showInLeaderboard: true } } },
@@ -22,6 +23,7 @@ async function run() {
     {
       fullName: { firstName: 'Arjun', lastName: 'Mehta' },
       email: 'arjun.demo@credexa.dev',
+      username: 'arjunmehta',
       role: 'learner',
       isVerified: true,
       settings: { preferences: { privacy: { profileVisibility: 'public', showInLeaderboard: true } } },
@@ -32,6 +34,7 @@ async function run() {
     {
       fullName: { firstName: 'Sara', lastName: 'Khan' },
       email: 'sara.demo@credexa.dev',
+      username: 'sarakhan',
       role: 'learner',
       isVerified: true,
       settings: { preferences: { privacy: { profileVisibility: 'public', showInLeaderboard: true } } },
