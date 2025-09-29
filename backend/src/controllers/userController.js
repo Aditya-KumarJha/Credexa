@@ -30,7 +30,8 @@ const getUserProfile = async (req, res) => {
         resume: user.resume,
         createdAt: user.createdAt,
         platformSync: user.platformSync,
-        institute: user.institute,
+                institute: user.institute,
+                settings: user.settings,
       }
     });
   } else {
@@ -41,7 +42,7 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
     try {
         const user = req.user;
-        const { firstName, lastName, email, username, phone, socialLinks } = req.body;
+    const { firstName, lastName, email, username, phone, socialLinks } = req.body;
 
         const isSocialProvider = !['email', 'web3'].includes(user.provider);
 
@@ -98,6 +99,36 @@ const updateUserProfile = async (req, res) => {
             const parsedSocialLinks = typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks;
             user.socialLinks = { ...user.socialLinks, ...parsedSocialLinks };
         }
+
+        // Update settings (preferences/security/privacy)
+        if (req.body.settings) {
+            const incoming = typeof req.body.settings === 'string' ? JSON.parse(req.body.settings) : req.body.settings;
+            user.settings = user.settings || {};
+            // Shallow merge helpers
+            const mergeObj = (target, source) => {
+                if (!source) return target;
+                Object.keys(source).forEach(k => {
+                    if (source[k] && typeof source[k] === 'object' && !Array.isArray(source[k])) {
+                        target[k] = mergeObj(target[k] || {}, source[k]);
+                    } else {
+                        target[k] = source[k];
+                    }
+                });
+                return target;
+            };
+            user.settings.preferences = mergeObj(user.settings.preferences || {}, incoming.preferences || {});
+            user.settings.security = mergeObj(user.settings.security || {}, incoming.security || {});
+            user.settings.privacy = mergeObj(user.settings.privacy || {}, incoming.privacy || {});
+
+            // Keep duplicate privacy visibility in sync if provided under preferences.privacy
+            const prefVis = user.settings?.preferences?.privacy?.profileVisibility;
+            if (prefVis) {
+                user.settings.privacy = user.settings.privacy || {};
+                if (!user.settings.privacy.profileVisibility) {
+                    user.settings.privacy.profileVisibility = prefVis;
+                }
+            }
+        }
         
         if (req.file) {
             const uniqueFilename = `profile_${user._id}_${nanoid()}`;
@@ -126,6 +157,7 @@ const updateUserProfile = async (req, res) => {
             socialLinks: updatedUser.socialLinks,
             resume: updatedUser.resume,
             createdAt: updatedUser.createdAt,
+            settings: updatedUser.settings,
         });
 
     } catch (error) {

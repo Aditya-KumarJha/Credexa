@@ -469,6 +469,175 @@ const CandidateProfile: React.FC<CandidateProfileProps> = ({ candidate, onBack }
   );
 };
 
+// --- SVG BACKGROUND (LIGHT + DARK) ---
+const PlexusBackground: React.FC<{ isDark: boolean }> = ({ isDark }) => {
+  if (isDark) {
+    return (
+      <div className="absolute inset-0 z-0 opacity-40 dark:opacity-50">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 1600 900"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ backgroundColor: "#0c0a09" }}
+        >
+          <defs>
+            <radialGradient id="backgroundGradientDark" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stopColor="#1e293b" />
+              <stop offset="100%" stopColor="#020617" />
+            </radialGradient>
+
+            <radialGradient id="greenGlowDark" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#34d399" stopOpacity="1" />
+              <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+            </radialGradient>
+
+            <radialGradient id="blueGlowDark" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#60a5fa" stopOpacity="1" />
+              <stop offset="100%" stopColor="#60a5fa" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
+          <rect width="100%" height="100%" fill="url(#backgroundGradientDark)" />
+
+          <g stroke="#34d399" strokeWidth="1" strokeOpacity="0.3">
+            <line x1="220" y1="150" x2="480" y2="240" />
+            <line x1="480" y1="240" x2="350" y2="400" />
+            <line x1="350" y1="400" x2="150" y2="350" />
+            <line x1="150" y1="350" x2="220" y2="150" />
+
+            <line x1="1300" y1="120" x2="1150" y2="280" />
+            <line x1="1150" y1="280" x2="1450" y2="320" />
+            <line x1="1450" y1="320" x2="1300" y2="120" />
+            <line x1="1150" y1="280" x2="950" y2="180" />
+
+            <line x1="180" y1="800" x2="400" y2="650" />
+            <line x1="400" y1="650" x2="600" y2="820" />
+            <line x1="600" y1="820" x2="350" y2="880" />
+            <line x1="350" y1="880" x2="180" y2="800" />
+
+            <line x1="1100" y1="750" x2="1350" y2="600" />
+            <line x1="1350" y1="600" x2="1500" y2="780" />
+            <line x1="1500" y1="780" x2="1250" y2="850" />
+            <line x1="1250" y1="850" x2="1100" y2="750" />
+            <line x1="1350" y1="600" x2="1150" y2="550" />
+          </g>
+
+          <g>
+            <circle cx="220" cy="150" r="10" fill="url(#greenGlowDark)" />
+            <circle cx="480" cy="240" r="12" fill="url(#blueGlowDark)" />
+            <circle cx="350" cy="400" r="8" fill="url(#blueGlowDark)" />
+            <circle cx="150" cy="350" r="9" fill="url(#blueGlowDark)" />
+
+            <circle cx="1300" cy="120" r="11" fill="url(#blueGlowDark)" />
+            <circle cx="1150" cy="280" r="9" fill="url(#blueGlowDark)" />
+            <circle cx="1450" cy="320" r="13" fill="url(#greenGlowDark)" />
+            <circle cx="950" cy="180" r="8" fill="url(#greenGlowDark)" />
+
+            <circle cx="180" cy="800" r="12" fill="url(#blueGlowDark)" />
+            <circle cx="400" cy="650" r="9" fill="url(#greenGlowDark)" />
+            <circle cx="600" cy="820" r="11" fill="url(#blueGlowDark)" />
+            <circle cx="350" cy="880" r="8" fill="url(#greenGlowDark)" />
+
+            <circle cx="1100" cy="750" r="10" fill="url(#blueGlowDark)" />
+            <circle cx="1350" cy="600" r="12" fill="url(#greenGlowDark)" />
+            <circle cx="1500" cy="780" r="9" fill="url(#blueGlowDark)" />
+            <circle cx="1250" cy="850" r="11" fill="url(#greenGlowDark)" />
+            <circle cx="1150" cy="550" r="8" fill="url(#blueGlowDark)" />
+
+            <circle cx="750" cy="450" r="7" fill="url(#greenGlowDark)" />
+            <circle cx="900" cy="600" r="9" fill="url(#blueGlowDark)" />
+            <circle cx="550" cy="100" r="8" fill="url(#blueGlowDark)" />
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
+  // Light theme SVG
+  return (
+    <div className="absolute inset-0 z-0 opacity-40 dark:opacity-50">
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 1600 900"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <radialGradient id="backgroundGradientLight" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#e6f7ff" />
+          </radialGradient>
+
+          <radialGradient id="greenGlowLight" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+          </radialGradient>
+
+          <radialGradient id="blueGlowLight" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#backgroundGradientLight)" />
+
+        <g stroke="#22c55e" strokeWidth="1" strokeOpacity="0.25">
+          <line x1="220" y1="150" x2="480" y2="240" />
+          <line x1="480" y1="240" x2="350" y2="400" />
+          <line x1="350" y1="400" x2="150" y2="350" />
+          <line x1="150" y1="350" x2="220" y2="150" />
+
+          <line x1="1300" y1="120" x2="1150" y2="280" />
+          <line x1="1150" y1="280" x2="1450" y2="320" />
+          <line x1="1450" y1="320" x2="1300" y2="120" />
+          <line x1="1150" y1="280" x2="950" y2="180" />
+
+          <line x1="180" y1="800" x2="400" y2="650" />
+          <line x1="400" y1="650" x2="600" y2="820" />
+          <line x1="600" y1="820" x2="350" y2="880" />
+          <line x1="350" y1="880" x2="180" y2="800" />
+
+          <line x1="1100" y1="750" x2="1350" y2="600" />
+          <line x1="1350" y1="600" x2="1500" y2="780" />
+          <line x1="1500" y1="780" x2="1250" y2="850" />
+          <line x1="1250" y1="850" x2="1100" y2="750" />
+          <line x1="1350" y1="600" x2="1150" y2="550" />
+        </g>
+
+        <g>
+          <circle cx="220" cy="150" r="10" fill="url(#greenGlowLight)" />
+          <circle cx="480" cy="240" r="12" fill="url(#blueGlowLight)" />
+          <circle cx="350" cy="400" r="8" fill="url(#blueGlowLight)" />
+          <circle cx="150" cy="350" r="9" fill="url(#blueGlowLight)" />
+
+          <circle cx="1300" cy="120" r="11" fill="url(#blueGlowLight)" />
+          <circle cx="1150" cy="280" r="9" fill="url(#blueGlowLight)" />
+          <circle cx="1450" cy="320" r="13" fill="url(#greenGlowLight)" />
+          <circle cx="950" cy="180" r="8" fill="url(#greenGlowLight)" />
+
+          <circle cx="180" cy="800" r="12" fill="url(#blueGlowLight)" />
+          <circle cx="400" cy="650" r="9" fill="url(#greenGlowLight)" />
+          <circle cx="600" cy="820" r="11" fill="url(#blueGlowLight)" />
+          <circle cx="350" cy="880" r="8" fill="url(#greenGlowLight)" />
+
+          <circle cx="1100" cy="750" r="10" fill="url(#blueGlowLight)" />
+          <circle cx="1350" cy="600" r="12" fill="url(#greenGlowLight)" />
+          <circle cx="1500" cy="780" r="9" fill="url(#blueGlowLight)" />
+          <circle cx="1250" cy="850" r="11" fill="url(#greenGlowLight)" />
+          <circle cx="1150" cy="550" r="8" fill="url(#blueGlowLight)" />
+
+          <circle cx="750" cy="450" r="7" fill="url(#greenGlowLight)" />
+          <circle cx="900" cy="600" r="9" fill="url(#blueGlowLight)" />
+          <circle cx="550" cy="100" r="8" fill="url(#blueGlowLight)" />
+        </g>
+      </svg>
+    </div>
+  );
+};
+
 // --- EXPLORE PAGE CONTENT ---
 const ExploreContent: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
@@ -565,7 +734,10 @@ const ExploreContent: React.FC = () => {
           border-bottom: none !important;
         }
       `}</style>
-      <main className="min-h-screen w-full transition-colors duration-500 bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <main className="relative min-h-screen w-full transition-colors duration-500 bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 overflow-hidden">
+  {/* Decorative background */}
+  <PlexusBackground isDark={isDark} />
+        <div className="relative z-10 h-full">
         <AnimatePresence mode="wait">
           {selectedCandidate ? (
             <CandidateProfile key="profile" candidate={selectedCandidate} onBack={handleBackToSearch} />
@@ -616,6 +788,7 @@ const ExploreContent: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </main>
     </ConfigProvider>
   );
