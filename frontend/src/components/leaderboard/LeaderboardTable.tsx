@@ -197,10 +197,13 @@ const LeaderboardTable = memo(function LeaderboardTable({ list, loading, isDark,
   const filteredList = useMemo(() => list.filter(item => item && item.id), [list]);
 
   const paginationConfig = useMemo(() => ({ 
-    pageSize: 10, 
+    pageSize: 5, 
     showSizeChanger: false,
-    showQuickJumper: true,
-    showTotal: (total: number, range: [number, number]) => `${range[0]}-${range[1]} of ${total} participants`
+    showQuickJumper: false,
+    showTotal: (total: number, range: [number, number]) => `${range[0]}-${range[1]} of ${total} participants`,
+    size: "default" as const,
+    hideOnSinglePage: false,
+    simple: true
   }), []);
 
   const scrollConfig = useMemo(() => ({ x: 720 }), []);

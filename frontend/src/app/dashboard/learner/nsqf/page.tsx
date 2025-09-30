@@ -293,31 +293,45 @@ function NSQFProgressPageContent() {
                         <div className="space-y-3">
                           <div>
                             <div className="flex justify-between text-sm mb-1">
-                              <span>Progress to Next Level</span>
+                              <span>
+                                {skill.progress.isMaxLevel ? "Maximum Level Reached" : 
+                                 skill.progress.progressPercentage === 100 ? "Ready for Next Level!" :
+                                 `Progress to Level ${skill.progress.nextLevel || (skill.currentLevel + 1)}`}
+                              </span>
                               <span>{skill.progress.progressPercentage}%</span>
                             </div>
                             <Progress
                               percent={skill.progress.progressPercentage}
                               showInfo={false}
-                              strokeColor={getProgressColor(skill.progress.progressPercentage)}
+                              strokeColor={
+                                skill.progress.progressPercentage === 100 ? "#52c41a" :
+                                getProgressColor(skill.progress.progressPercentage)
+                              }
                               trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
                             />
                           </div>
 
                           <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Points: {skill.totalPoints}</span>
+                            <span className="text-muted-foreground">
+                              Current: {skill.totalPoints} points
+                            </span>
                             {!skill.progress.isMaxLevel && (
                               <span className="text-muted-foreground">
-                                Need: {skill.progress.pointsNeeded}
+                                {skill.progress.pointsNeeded > 0 ? 
+                                  `Need: ${skill.progress.pointsNeeded}` : 
+                                  "✅ Level up available!"
+                                }
                               </span>
                             )}
                           </div>
 
                           {skill.progress.isMaxLevel ? (
                             <Badge color="gold" text="Max Level Achieved!" />
+                          ) : skill.progress.progressPercentage === 100 ? (
+                            <Badge color="green" text={`Ready for Level ${skill.progress.nextLevel || (skill.currentLevel + 1)}!`} />
                           ) : (
                             <div className="text-sm text-primary">
-                              Next: {skill.progress.nextLevelName}
+                              Next Goal: {skill.progress.nextLevelName}
                             </div>
                           )}
                         </div>
@@ -327,7 +341,7 @@ function NSQFProgressPageContent() {
                 </Row>
               </div>
 
-              {/* Skill Details Modal-like section */}
+              {/* Skill Details Expanded Section */}
               {selectedSkill && (
                 <AntCard
                   title={
@@ -336,7 +350,7 @@ function NSQFProgressPageContent() {
                       {selectedSkill} - Detailed Progress
                     </div>
                   }
-                  className="border-0 shadow-lg bg-card/80"
+                  className="border-0 shadow-lg bg-card/80 mt-8 mb-12"
                   extra={
                     <Button
                       variant="ghost"
@@ -351,36 +365,121 @@ function NSQFProgressPageContent() {
                     <Skeleton active paragraph={{ rows: 6 }} />
                   ) : skillDetails ? (
                     <div className="space-y-6">
-                      {/* Level Progress Visual */}
+                      {/* Current Level & Next Level Progress */}
                       <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h3 className="text-lg font-semibold">Current Level: {skillDetails.currentLevel}</h3>
-                            <p className="text-muted-foreground">{skillDetails.levelName}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-primary">{skillDetails.totalPoints}</div>
-                            <div className="text-sm text-muted-foreground">Total Points</div>
+                        <Row gutter={[24, 0]}>
+                          {/* Current Level Status */}
+                          <Col xs={24} md={12}>
+                            <div className="text-center">
+                              <div 
+                                className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                                style={{ backgroundColor: getLevelColor(skillDetails.currentLevel) }}
+                              >
+                                {skillDetails.currentLevel}
+                              </div>
+                              <h3 className="text-lg font-semibold">Current Level</h3>
+                              <p className="text-muted-foreground">{skillDetails.levelName}</p>
+                              <div className="text-sm text-success font-medium mt-2">
+                                ✅ {skillDetails.totalPoints} Points Earned
+                              </div>
+                            </div>
+                          </Col>
+
+                          {/* Next Level Progress */}
+                          <Col xs={24} md={12}>
+                            {!skillDetails.progress.isMaxLevel ? (
+                              <div className="text-center">
+                                <div 
+                                  className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-xl font-bold border-4 border-dashed"
+                                  style={{ 
+                                    backgroundColor: skillDetails.progress.progressPercentage > 0 ? getLevelColor(skillDetails.progress.nextLevel || skillDetails.currentLevel + 1) : 'transparent',
+                                    borderColor: getLevelColor(skillDetails.progress.nextLevel || skillDetails.currentLevel + 1),
+                                    opacity: skillDetails.progress.progressPercentage > 0 ? 1 : 0.5
+                                  }}
+                                >
+                                  {skillDetails.progress.nextLevel || (skillDetails.currentLevel + 1)}
+                                </div>
+                                <h3 className="text-lg font-semibold">Next Target</h3>
+                                <p className="text-muted-foreground">{skillDetails.progress.nextLevelName}</p>
+                                <div className="mt-3">
+                                  <div className="flex justify-between text-sm mb-1">
+                                    <span>Progress</span>
+                                    <span>{skillDetails.progress.progressPercentage}%</span>
+                                  </div>
+                                  <Progress
+                                    percent={skillDetails.progress.progressPercentage}
+                                    strokeColor={{
+                                      '0%': '#1890ff',
+                                      '100%': '#52c41a',
+                                    }}
+                                    trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
+                                    size="small"
+                                  />
+                                  <div className="text-sm text-primary font-medium mt-1">
+                                    {skillDetails.progress.pointsNeeded} more points needed
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center">
+                                <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600">
+                                  👑
+                                </div>
+                                <h3 className="text-lg font-semibold text-yellow-600">Maximum Level!</h3>
+                                <p className="text-muted-foreground">You've mastered this skill domain</p>
+                                <Badge color="gold" text="Grand Master Achieved!" />
+                              </div>
+                            )}
+                          </Col>
+                        </Row>
+                      </div>
+
+                      {/* Level Up History */}
+                      {skillDetails.levelUpHistory && skillDetails.levelUpHistory.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <Trophy className="w-4 h-4" />
+                            Level Up History
+                          </h4>
+                          <div className="space-y-3">
+                            {skillDetails.levelUpHistory
+                              .sort((a, b) => new Date(b.achievedAt).getTime() - new Date(a.achievedAt).getTime())
+                              .map((levelUp, index) => (
+                                <div key={index} className="flex items-center gap-4 p-4 bg-success/10 rounded-lg border-l-4 border-success">
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                                      style={{ backgroundColor: getLevelColor(levelUp.fromLevel) }}
+                                    >
+                                      {levelUp.fromLevel}
+                                    </div>
+                                    <TrendingUp className="w-4 h-4 text-success" />
+                                    <div 
+                                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                                      style={{ backgroundColor: getLevelColor(levelUp.toLevel) }}
+                                    >
+                                      {levelUp.toLevel}
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-success">
+                                      Reached Level {levelUp.toLevel}!
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {new Date(levelUp.achievedAt).toLocaleDateString('en-US', { 
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      })}
+                                    </div>
+                                  </div>
+                                  <Badge color="green" text={`Level ${levelUp.toLevel}`} />
+                                </div>
+                              ))}
                           </div>
                         </div>
-                        
-                        {!skillDetails.progress.isMaxLevel && (
-                          <div>
-                            <div className="flex justify-between text-sm mb-2">
-                              <span>Progress to {skillDetails.progress.nextLevelName}</span>
-                              <span>{skillDetails.progress.progressPercentage}% ({skillDetails.progress.pointsNeeded} points needed)</span>
-                            </div>
-                            <Progress
-                              percent={skillDetails.progress.progressPercentage}
-                              strokeColor={{
-                                '0%': '#1890ff',
-                                '100%': '#52c41a',
-                              }}
-                              trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
-                            />
-                          </div>
-                        )}
-                      </div>
+                      )}
 
                       {/* Certificates */}
                       {skillDetails.certificates && skillDetails.certificates.length > 0 && (
@@ -452,26 +551,76 @@ function NSQFProgressPageContent() {
                 </AntCard>
               )}
 
-              {/* Recommendations */}
+              {/* Smart Learning Recommendations */}
               {recommendations.length > 0 && (
                 <div>
                   <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Target className="w-5 h-5 text-primary" />
-                    Learning Recommendations
+                    Personalized Learning Path
                   </h2>
                   <Row gutter={[20, 20]}>
-                    {recommendations.slice(0, 6).map((rec) => (
+                    {/* Priority Recommendation */}
+                    {recommendations.length > 0 && (
+                      <Col xs={24}>
+                        <AntCard className="border-0 shadow-lg bg-gradient-to-r from-primary/10 to-accent/10">
+                          <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/20 rounded-full">
+                              <Star className="w-8 h-8 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge color="blue" text="Recommended Next" />
+                                <div className="text-lg font-semibold">
+                                  {recommendations[0].skillDomain}
+                                </div>
+                              </div>
+                              <div className="text-sm text-muted-foreground mb-2">
+                                You're {recommendations[0].progressPercentage}% of the way to Level {recommendations[0].targetLevel}! 
+                                Just {recommendations[0].pointsNeeded} more points needed.
+                              </div>
+                              <Progress
+                                percent={recommendations[0].progressPercentage}
+                                showInfo={false}
+                                strokeColor={{
+                                  '0%': '#1890ff',
+                                  '100%': '#52c41a',
+                                }}
+                                trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
+                                size="small"
+                              />
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-medium text-primary">
+                                Est. {Math.ceil(recommendations[0].pointsNeeded / 20)} courses
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                to complete
+                              </div>
+                            </div>
+                          </div>
+                        </AntCard>
+                      </Col>
+                    )}
+
+                    {/* Other Recommendations */}
+                    {recommendations.slice(1, 4).map((rec, index) => (
                       <Col xs={24} sm={12} lg={8} key={rec.skillDomain}>
                         <AntCard
-                          className="border-0 shadow-lg bg-card/80"
+                          className="border-0 shadow-lg bg-card/80 h-full"
                           styles={{ body: { padding: "20px" } }}
                         >
                           <div className="space-y-4">
-                            <div>
-                              <h3 className="font-semibold text-foreground">{rec.skillDomain}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Level {rec.currentLevel} → {rec.targetLevel}
-                              </p>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold text-foreground">{rec.skillDomain}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Level {rec.currentLevel} → {rec.targetLevel}
+                                </p>
+                              </div>
+                              <Badge 
+                                color={index === 0 ? "orange" : index === 1 ? "green" : "blue"}
+                                text={index === 0 ? "Next Goal" : index === 1 ? "Consider" : "Future"}
+                              />
                             </div>
 
                             <div>
@@ -482,23 +631,33 @@ function NSQFProgressPageContent() {
                               <Progress
                                 percent={rec.progressPercentage}
                                 showInfo={false}
-                                strokeColor="#1890ff"
+                                strokeColor={getProgressColor(rec.progressPercentage)}
                                 trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
+                                size="small"
                               />
                               <div className="text-xs text-muted-foreground mt-1">
-                                {rec.pointsNeeded} points needed
+                                {rec.pointsNeeded} points • ~{Math.ceil(rec.pointsNeeded / 20)} courses
                               </div>
                             </div>
 
                             {rec.suggestions.length > 0 && (
                               <div>
-                                <h4 className="text-sm font-medium mb-2">Suggested Courses:</h4>
+                                <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                                  <BookOpen className="w-3 h-3" />
+                                  Top Picks:
+                                </h4>
                                 <div className="space-y-2">
-                                  {rec.suggestions.slice(0, 2).map((suggestion, index) => (
-                                    <div key={index} className="text-xs p-2 bg-muted/20 rounded">
-                                      <div className="font-medium">{suggestion.title}</div>
+                                  {rec.suggestions.slice(0, 2).map((suggestion, suggestionIndex) => (
+                                    <div key={suggestionIndex} className="text-xs p-2 bg-muted/20 rounded hover:bg-muted/30 transition-colors">
+                                      <div className="font-medium flex items-center justify-between">
+                                        <span className="truncate">{suggestion.title}</span>
+                                        <Badge 
+                                          count={`${suggestion.points}pts`}
+                                          style={{ fontSize: '9px', height: '14px', lineHeight: '14px' }}
+                                        />
+                                      </div>
                                       <div className="text-muted-foreground">
-                                        {suggestion.platform} • {suggestion.points} points
+                                        {suggestion.platform}
                                       </div>
                                     </div>
                                   ))}
@@ -509,6 +668,17 @@ function NSQFProgressPageContent() {
                         </AntCard>
                       </Col>
                     ))}
+                    
+                    {/* View All Recommendations */}
+                    {recommendations.length > 4 && (
+                      <Col xs={24}>
+                        <div className="text-center">
+                          <Button variant="outline" onClick={() => message.info("View all recommendations coming soon!")}>
+                            View All {recommendations.length} Recommendations
+                          </Button>
+                        </div>
+                      </Col>
+                    )}
                   </Row>
                 </div>
               )}
@@ -520,127 +690,217 @@ function NSQFProgressPageContent() {
                   Your Learning Journey
                 </h2>
                 <Row gutter={[20, 20]}>
-                  {/* Achievement Stats */}
+                  {/* Recent Achievements & Completed Levels */}
+                  <Col xs={24} lg={8}>
+                    <AntCard className="border-0 shadow-lg bg-gradient-to-br from-success/10 to-success/5 h-full">
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-center flex items-center justify-center gap-2">
+                          <Award className="w-4 h-4 text-success" />
+                          Levels Completed
+                        </h3>
+                        
+                        {profile?.skills?.filter(s => s.currentLevel > 0).length > 0 ? (
+                          <div className="space-y-3">
+                            {profile.skills
+                              .filter(s => s.currentLevel > 0)
+                              .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+                              .slice(0, 3)
+                              .map((skill, index) => (
+                                <div key={skill.skillDomain} className="flex items-center gap-3 p-2 bg-success/5 rounded-lg">
+                                  <div 
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                    style={{ backgroundColor: getLevelColor(skill.currentLevel) }}
+                                  >
+                                    {skill.currentLevel}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">{skill.skillDomain}</div>
+                                    <div className="text-xs text-success font-medium">{skill.levelName}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(skill.lastUpdated).toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })}
+                                    </div>
+                                  </div>
+                                  <Badge 
+                                    count={`${skill.totalPoints}pts`}
+                                    style={{ backgroundColor: getLevelColor(skill.currentLevel), fontSize: '10px' }}
+                                  />
+                                </div>
+                              ))}
+                            
+                            <div className="text-center pt-3 border-t border-border/50">
+                              <div className="text-lg font-bold text-success">
+                                {profile.skills.reduce((sum, s) => sum + s.currentLevel, 0)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Total Levels Achieved</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted-foreground text-sm py-6">
+                            <Award className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            Complete your first level by adding credentials!
+                          </div>
+                        )}
+                      </div>
+                    </AntCard>
+                  </Col>
+
+                  {/* Current Active Goals */}
                   <Col xs={24} lg={8}>
                     <AntCard className="border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5 h-full">
                       <div className="space-y-4">
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-primary mb-2">
-                            {profile?.skills?.filter(s => s.currentLevel >= 3).length || 0}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Skills at Intermediate+ Level
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-success mb-1">
-                            {profile?.skills?.reduce((sum, s) => sum + s.currentLevel, 0) || 0}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Total Levels Achieved
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-accent mb-1">
-                            {Math.round(((profile?.totalPoints || 0) / Math.max(profile?.totalCredentials || 1, 1)) * 10) / 10}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Average Points per Credential
-                          </div>
-                        </div>
-                      </div>
-                    </AntCard>
-                  </Col>
-
-                  {/* Next Milestones */}
-                  <Col xs={24} lg={8}>
-                    <AntCard className="border-0 shadow-lg bg-card/80 h-full">
-                      <div className="space-y-4">
                         <h3 className="font-semibold text-center flex items-center justify-center gap-2">
-                          <Target className="w-4 h-4" />
-                          Next Milestones
-                        </h3>
-                        {profile?.skills?.filter(s => !s.progress.isMaxLevel).slice(0, 3).map((skill, index) => (
-                          <div key={skill.skillDomain} className="flex items-center gap-3">
-                            <div 
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                              style={{ backgroundColor: getLevelColor(skill.currentLevel + 1) }}
-                            >
-                              {skill.progress.nextLevel || (skill.currentLevel + 1)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium truncate">{skill.skillDomain}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {skill.progress.pointsNeeded} points to {skill.progress.nextLevelName}
-                              </div>
-                            </div>
-                            <div className="text-xs text-primary font-medium">
-                              {skill.progress.progressPercentage}%
-                            </div>
-                          </div>
-                        )) || (
-                          <div className="text-center text-muted-foreground text-sm py-4">
-                            Add credentials to see your milestones
-                          </div>
-                        )}
-                      </div>
-                    </AntCard>
-                  </Col>
-
-                  {/* Industry Insights */}
-                  <Col xs={24} lg={8}>
-                    <AntCard className="border-0 shadow-lg bg-card/80 h-full">
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-center flex items-center justify-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Industry Insights
+                          <Target className="w-4 h-4 text-primary" />
+                          Current Goals
                         </h3>
                         
-                        {/* Most Valuable Skill */}
-                        {profile?.skills?.length > 0 && (
-                          <div className="text-center">
-                            <div className="p-3 bg-success/10 rounded-lg mb-2">
-                              <div className="text-sm font-medium text-success">Your Top Skill</div>
-                              <div className="text-lg font-bold">
-                                {profile.skills[0]?.skillDomain}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Level {profile.skills[0]?.currentLevel} • {profile.skills[0]?.totalPoints} points
-                              </div>
-                            </div>
+                        {profile?.skills?.filter(s => !s.progress.isMaxLevel && s.progress.progressPercentage > 0).length > 0 ? (
+                          <div className="space-y-3">
+                            {profile.skills
+                              .filter(s => !s.progress.isMaxLevel && s.progress.progressPercentage > 0)
+                              .sort((a, b) => b.progress.progressPercentage - a.progress.progressPercentage)
+                              .slice(0, 2)
+                              .map((skill, index) => (
+                                <div key={skill.skillDomain} className="p-3 bg-primary/5 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div 
+                                        className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                        style={{ backgroundColor: getLevelColor(skill.progress.nextLevel || skill.currentLevel + 1) }}
+                                      >
+                                        {skill.progress.nextLevel || (skill.currentLevel + 1)}
+                                      </div>
+                                      <div>
+                                        <div className="text-sm font-medium">{skill.skillDomain}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                          To {skill.progress.nextLevelName}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-sm font-bold text-primary">
+                                        {skill.progress.progressPercentage}%
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <Progress
+                                    percent={skill.progress.progressPercentage}
+                                    showInfo={false}
+                                    strokeColor={getProgressColor(skill.progress.progressPercentage)}
+                                    trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
+                                    size="small"
+                                  />
+                                  
+                                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                                    <span>{skill.totalPoints} points earned</span>
+                                    <span>{skill.progress.pointsNeeded} more needed</span>
+                                  </div>
+                                  
+                                  {/* Estimated completion */}
+                                  <div className="text-center mt-2">
+                                    <div className="text-xs text-primary">
+                                      🎯 {Math.ceil(skill.progress.pointsNeeded / 15)} more credentials needed
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted-foreground text-sm py-6">
+                            <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            Start earning points to see your active goals!
                           </div>
                         )}
+                      </div>
+                    </AntCard>
+                  </Col>
 
-                        {/* Industry Demand */}
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            High Demand Skills
-                          </div>
-                          <div className="space-y-1">
-                            {[
-                              { skill: "AI & Machine Learning", demand: "Very High" },
-                              { skill: "Cloud Computing", demand: "High" },
-                              { skill: "Cybersecurity", demand: "High" }
-                            ].map((item, index) => (
-                              <div key={index} className="flex justify-between items-center text-xs">
-                                <span>{item.skill}</span>
-                                <Badge 
-                                  color={item.demand === "Very High" ? "red" : "orange"}
-                                  text={item.demand}
-                                />
+                  {/* Next Milestones & Industry Insights */}
+                  <Col xs={24} lg={8}>
+                    <AntCard className="border-0 shadow-lg bg-card/80 h-full">
+                      <div className="space-y-4">
+                        {/* Next Milestones */}
+                        <div>
+                          <h3 className="font-semibold text-center flex items-center justify-center gap-2 mb-3">
+                            <Zap className="w-4 h-4 text-accent" />
+                            Next Milestones
+                          </h3>
+                          
+                          {profile?.skills?.filter(s => !s.progress.isMaxLevel).length > 0 ? (
+                            <div className="space-y-2">
+                              {profile.skills
+                                .filter(s => !s.progress.isMaxLevel)
+                                .sort((a, b) => {
+                                  // Prioritize skills with some progress, then by points needed
+                                  if (a.progress.progressPercentage > 0 && b.progress.progressPercentage === 0) return -1;
+                                  if (b.progress.progressPercentage > 0 && a.progress.progressPercentage === 0) return 1;
+                                  return a.progress.pointsNeeded - b.progress.pointsNeeded;
+                                })
+                                .slice(0, 3)
+                                .map((skill, index) => (
+                                  <div key={skill.skillDomain} className="flex items-center gap-2 p-2 bg-muted/10 rounded">
+                                    <div 
+                                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                      style={{ backgroundColor: getLevelColor(skill.progress.nextLevel || skill.currentLevel + 1) }}
+                                    >
+                                      {skill.progress.nextLevel || (skill.currentLevel + 1)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-xs font-medium truncate">{skill.skillDomain}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {skill.progress.pointsNeeded} pts → {skill.progress.nextLevelName}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-accent font-medium">
+                                      {skill.progress.progressPercentage > 0 ? `${skill.progress.progressPercentage}%` : 'Start'}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          ) : (
+                            <div className="text-center text-muted-foreground text-xs py-3">
+                              All skills at maximum level! 🎉
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="pt-3 border-t border-border/50">
+                          <div className="grid grid-cols-2 gap-3 text-center">
+                            <div>
+                              <div className="text-lg font-bold text-primary">
+                                {Math.round(((profile?.totalPoints || 0) / Math.max(profile?.totalCredentials || 1, 1)) * 10) / 10}
                               </div>
-                            ))}
+                              <div className="text-xs text-muted-foreground">Avg Points/Cert</div>
+                            </div>
+                            <div>
+                              <div className="text-lg font-bold text-accent">
+                                {profile?.skills?.filter(s => s.currentLevel >= 3).length || 0}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Advanced Skills</div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Career Level */}
-                        <div className="text-center pt-2 border-t border-border">
+                        {/* Career Level Indicator */}
+                        <div className="text-center pt-2 border-t border-border/50">
                           <div className="text-xs text-muted-foreground mb-1">Career Level</div>
-                          <div className="font-semibold">
-                            {profile?.highestLevel >= 7 ? "Senior Professional" :
-                             profile?.highestLevel >= 5 ? "Mid-Level Professional" :
-                             profile?.highestLevel >= 3 ? "Junior Professional" : "Entry Level"}
-                          </div>
+                          <Badge 
+                            color={
+                              profile?.highestLevel >= 7 ? "purple" :
+                              profile?.highestLevel >= 5 ? "blue" :
+                              profile?.highestLevel >= 3 ? "green" : "orange"
+                            }
+                            text={
+                              profile?.highestLevel >= 7 ? "Senior Professional" :
+                              profile?.highestLevel >= 5 ? "Mid-Level Professional" :
+                              profile?.highestLevel >= 3 ? "Junior Professional" : "Entry Level"
+                            }
+                          />
                         </div>
                       </div>
                     </AntCard>
