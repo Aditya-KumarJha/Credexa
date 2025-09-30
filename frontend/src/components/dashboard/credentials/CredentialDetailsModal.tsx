@@ -146,7 +146,7 @@ export const CredentialDetailsModal: React.FC<CredentialDetailsModalProps> = ({
                       href={details.verificationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80 hover:underline text-sm"
+                      className="text-red hover:text-blue-600 hover:underline text-sm"
                     >
                       Verify Publicly
                     </a>

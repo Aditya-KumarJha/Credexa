@@ -3,6 +3,86 @@ const Credential = require('../models/credentialModel');
 const { determineSkillDomain, calculateCreditPoints } = require('./aiService');
 
 class NSQFService {
+
+  /**
+   * Get stackability map for a user
+   */
+  static async getStackabilityMap(userId) {
+    try {
+      const userSkills = await UserSkill.find({ user: userId }).populate('certificates', 'title issuer nsqfLevel creditPoints createdAt');
+      const map = userSkills.map(skill => {
+        const currentLevel = skill.currentLevel;
+        const completedLevels = [];
+        for (let lvl = 1; lvl <= currentLevel; lvl++) {
+          completedLevels.push({
+            level: lvl,
+            name: UserSkill.getLevelRequirements(lvl).name
+          });
+        }
+        const nextLevel = Math.min(currentLevel + 1, 10);
+        const nextLevelReq = UserSkill.getLevelRequirements(nextLevel);
+        return {
+          skillDomain: skill.skillDomain,
+          currentLevel,
+          completedLevels,
+          inProgressLevel: nextLevel,
+          pointsNeeded: nextLevelReq.minPoints - skill.totalPoints,
+          nextLevelName: nextLevelReq.name,
+          certificates: skill.certificates.map(cert => ({
+            id: cert._id,
+            title: cert.title,
+            issuer: cert.issuer,
+            nsqfLevel: cert.nsqfLevel,
+            creditPoints: cert.creditPoints,
+            createdAt: cert.createdAt
+          }))
+        };
+      });
+      return map;
+    } catch (error) {
+      console.error('Error building stackability map:', error);
+      throw new Error('Failed to build stackability map');
+    }
+  }
+
+  /**
+   * Get visualization data for NSQF progress
+   */
+  static async getVisualizationData(userId) {
+    try {
+      const userSkills = await UserSkill.find({ user: userId }).populate('certificates', 'title issuer nsqfLevel creditPoints createdAt');
+      // Build a graph-like structure for frontend visualization
+      const data = userSkills.map(skill => {
+        const nodes = [];
+        for (let lvl = 1; lvl <= 10; lvl++) {
+          nodes.push({
+            id: `level-${skill.skillDomain}-${lvl}`,
+            label: `Level ${lvl}: ${UserSkill.getLevelRequirements(lvl).name}`,
+            completed: lvl <= skill.currentLevel,
+            inProgress: lvl === skill.currentLevel + 1,
+            pointsRequired: UserSkill.getLevelRequirements(lvl).minPoints,
+            certificates: skill.certificates.filter(cert => cert.nsqfLevel === lvl).map(cert => ({
+              id: cert._id,
+              title: cert.title,
+              issuer: cert.issuer,
+              creditPoints: cert.creditPoints,
+              createdAt: cert.createdAt
+            }))
+          });
+        }
+        return {
+          skillDomain: skill.skillDomain,
+          currentLevel: skill.currentLevel,
+          totalPoints: skill.totalPoints,
+          nodes
+        };
+      });
+      return data;
+    } catch (error) {
+      console.error('Error building visualization data:', error);
+      throw new Error('Failed to build visualization data');
+    }
+  }
   
   /**
    * Update user's skill progress when a new credential is added

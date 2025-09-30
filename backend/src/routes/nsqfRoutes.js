@@ -9,6 +9,8 @@ const {
   getNSQFLevelInfo,
   getSkillDomainLeaderboard,
   getSkillStatistics
+  ,getStackabilityMap
+  ,getVisualizationData
 } = require('../controllers/nsqfController');
 
 // All routes require authentication
@@ -26,5 +28,9 @@ router.get('/levels/:level', getNSQFLevelInfo);
 // Leaderboard and statistics routes
 router.get('/leaderboard/:skillDomain', getSkillDomainLeaderboard);
 router.get('/statistics', getSkillStatistics);
+
+// Stackability map and visualization data routes
+router.get('/stackability-map', getStackabilityMap);
+router.get('/visualization-data', getVisualizationData);
 
 module.exports = router;

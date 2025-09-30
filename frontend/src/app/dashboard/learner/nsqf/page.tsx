@@ -16,7 +16,9 @@ import {
   SkillDomain, 
   Recommendation, 
   LevelInfo, 
-  SkillDetails 
+  SkillDetails,
+  StackabilityMap,
+  VisualizationData
 } from "@/types/nsqf";
 
 function NSQFProgressPageContent() {
@@ -34,6 +36,8 @@ function NSQFProgressPageContent() {
   const [levelInfo, setLevelInfo] = useState<LevelInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [stackabilityMap, setStackabilityMap] = useState<StackabilityMap | null>(null);
+  const [visualizationData, setVisualizationData] = useState<VisualizationData | null>(null);
 
   // Fetch NSQF profile
   const fetchProfile = async () => {
@@ -112,6 +116,38 @@ function NSQFProgressPageContent() {
     }
   };
 
+  // Fetch stackability map
+  const fetchStackabilityMap = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+      const response = await api.get("/api/nsqf/stackability-map", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.success) {
+        setStackabilityMap(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching stackability map:", error);
+    }
+  };
+
+  // Fetch visualization data
+  const fetchVisualizationData = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+      const response = await api.get("/api/nsqf/visualization-data", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.success) {
+        setVisualizationData(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching visualization data:", error);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -119,6 +155,8 @@ function NSQFProgressPageContent() {
         fetchProfile(),
         fetchRecommendations(),
         fetchLevelInfo(),
+        fetchStackabilityMap(),
+        fetchVisualizationData(),
       ]);
       setLoading(false);
     };
@@ -253,7 +291,51 @@ function NSQFProgressPageContent() {
                 </Col>
               </Row>
 
-              {/* Skill Domains Grid */}
+              {/* NSQF Stackability Ladder as Timeline Visualization */}
+              {stackabilityMap && stackabilityMap.length > 0 && (
+                <div className="mt-10">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-accent" />
+                    NSQF Stackability Ladder
+                  </h2>
+                  <div className="flex flex-col gap-8">
+                    {stackabilityMap.map((entry, idx) => (
+                      <div key={entry.skillDomain} className="relative flex items-center">
+                        {/* Timeline connector */}
+                        {idx !== 0 && (
+                          <div className="absolute left-6 top-0 h-full w-1 bg-accent/30" style={{ zIndex: 0 }} />
+                        )}
+                        <div className="flex items-center z-10">
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-accent/20 mr-4">
+                            {getLevelIcon(entry.completedLevels.length > 0 ? entry.completedLevels[entry.completedLevels.length-1].level : 0)}
+                          </div>
+                          <div>
+                            <div className="font-bold text-primary text-lg">{entry.skillDomain}</div>
+                            <div className="flex gap-2 mt-1 flex-wrap">
+                              {entry.completedLevels.map((lvl) => (
+                                <span key={lvl.level} className="px-2 py-1 rounded bg-success/20 text-success text-xs font-semibold">
+                                  {lvl.name} (Level {lvl.level})
+                                </span>
+                              ))}
+                              {entry.inProgressLevel && (
+                                <span className="px-2 py-1 rounded bg-warning/20 text-warning text-xs font-semibold">
+                                  In Progress: {entry.nextLevelName} (Level {entry.inProgressLevel})
+                                  {entry.pointsNeeded > 0 && ` - Need ${entry.pointsNeeded} pts`}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-2">
+                              Certificates: {entry.certificates.length > 0 ? entry.certificates.map(cert => cert.title).join(", ") : "None yet"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Skill Domains as Actionable Cards */}
               <div>
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
@@ -263,76 +345,42 @@ function NSQFProgressPageContent() {
                   {profile.skills.map((skill) => (
                     <Col xs={24} sm={12} lg={8} key={skill.skillDomain}>
                       <AntCard
-                        className={`border-0 shadow-lg bg-card/80 cursor-pointer transition-all hover:shadow-xl ${
-                          selectedSkill === skill.skillDomain ? 'ring-2 ring-primary' : ''
-                        }`}
+                        className={`border-0 shadow-lg bg-card/80 cursor-pointer transition-all hover:shadow-xl ${selectedSkill === skill.skillDomain ? 'ring-2 ring-primary' : ''}`}
                         onClick={() => setSelectedSkill(skill.skillDomain)}
-                        styles={{ body: { padding: "20px" } }}
+                        styles={{ body: { padding: "24px" } }}
                       >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="p-3 rounded-lg"
-                              style={{ backgroundColor: `${getLevelColor(skill.currentLevel)}20`, color: getLevelColor(skill.currentLevel) }}
-                            >
-                              {getLevelIcon(skill.currentLevel)}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-foreground">{skill.skillDomain}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Level {skill.currentLevel} - {skill.levelName}
-                              </p>
-                            </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            {getLevelIcon(skill.currentLevel)}
+                            <span className="font-semibold text-lg text-primary">{skill.skillDomain}</span>
                           </div>
                           <Badge 
                             count={skill.certificatesCount}
                             style={{ backgroundColor: getLevelColor(skill.currentLevel) }}
                           />
                         </div>
-
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>
-                                {skill.progress.isMaxLevel ? "Maximum Level Reached" : 
-                                 skill.progress.progressPercentage === 100 ? "Ready for Next Level!" :
-                                 `Progress to Level ${skill.progress.nextLevel || (skill.currentLevel + 1)}`}
-                              </span>
-                              <span>{skill.progress.progressPercentage}%</span>
-                            </div>
-                            <Progress
-                              percent={skill.progress.progressPercentage}
-                              showInfo={false}
-                              strokeColor={
-                                skill.progress.progressPercentage === 100 ? "#52c41a" :
-                                getProgressColor(skill.progress.progressPercentage)
-                              }
-                              trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
-                            />
-                          </div>
-
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">
-                              Current: {skill.totalPoints} points
-                            </span>
-                            {!skill.progress.isMaxLevel && (
-                              <span className="text-muted-foreground">
-                                {skill.progress.pointsNeeded > 0 ? 
-                                  `Need: ${skill.progress.pointsNeeded}` : 
-                                  "✅ Level up available!"
-                                }
-                              </span>
+                        <div className="space-y-2">
+                          <Progress
+                            percent={skill.progress.progressPercentage}
+                            showInfo={false}
+                            strokeColor={skill.progress.progressPercentage === 100 ? "#52c41a" : getProgressColor(skill.progress.progressPercentage)}
+                            trailColor={isDark ? "#1f1f1f" : "#f5f5f5"}
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Current: {skill.totalPoints} points</span>
+                            {skill.progress.isMaxLevel ? (
+                              <span className="text-gold">Max Level</span>
+                            ) : (
+                              <span>Level up available!</span>
                             )}
                           </div>
-
-                          {skill.progress.isMaxLevel ? (
+                          {skill.progress.progressPercentage === 100 && !skill.progress.isMaxLevel && (
+                            <Button variant="default" size="sm" className="mt-2 w-full" onClick={(e) => { e.stopPropagation(); setSelectedSkill(skill.skillDomain); }}>
+                              Ready for Level {skill.progress.nextLevel || (skill.currentLevel + 1)}!
+                            </Button>
+                          )}
+                          {skill.progress.isMaxLevel && (
                             <Badge color="gold" text="Max Level Achieved!" />
-                          ) : skill.progress.progressPercentage === 100 ? (
-                            <Badge color="green" text={`Ready for Level ${skill.progress.nextLevel || (skill.currentLevel + 1)}!`} />
-                          ) : (
-                            <div className="text-sm text-primary">
-                              Next Goal: {skill.progress.nextLevelName}
-                            </div>
                           )}
                         </div>
                       </AntCard>

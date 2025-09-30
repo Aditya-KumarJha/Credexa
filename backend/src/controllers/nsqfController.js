@@ -317,6 +317,34 @@ function getNSQFLevelSkills(level) {
   return skills[level] || ["Skill information not available"];
 }
 
+/**
+ * Get stackability map for a user
+ */
+const getStackabilityMap = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const map = await NSQFService.getStackabilityMap(userId);
+    res.json({ success: true, data: map });
+  } catch (error) {
+    console.error('Get Stackability Map Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch stackability map', error: error.message });
+  }
+};
+
+/**
+ * Get visualization data for NSQF progress
+ */
+const getVisualizationData = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const data = await NSQFService.getVisualizationData(userId);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Get Visualization Data Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch visualization data', error: error.message });
+  }
+};
+
 module.exports = {
   getUserSkillProfile,
   getSkillProgress,
@@ -325,4 +353,6 @@ module.exports = {
   getNSQFLevelInfo,
   getSkillDomainLeaderboard,
   getSkillStatistics
+  ,getStackabilityMap
+  ,getVisualizationData
 };

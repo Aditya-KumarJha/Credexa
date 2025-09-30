@@ -42,8 +42,6 @@ export interface Recommendation {
   suggestions: CourseSuggestion[];
 }
 
-
-
 export interface LevelInfo {
   level: number;
   name: string;
@@ -124,3 +122,33 @@ export interface TotalStats {
   totalPoints: number;
   averageLevel: number;
 }
+
+export interface StackabilityMapEntry {
+  skillDomain: string;
+  currentLevel: number;
+  completedLevels: { level: number; name: string }[];
+  inProgressLevel: number;
+  pointsNeeded: number;
+  nextLevelName: string;
+  certificates: SkillCertificate[];
+}
+
+export type StackabilityMap = StackabilityMapEntry[];
+
+export interface VisualizationNode {
+  id: string;
+  label: string;
+  completed: boolean;
+  inProgress: boolean;
+  pointsRequired: number;
+  certificates: SkillCertificate[];
+}
+
+export interface VisualizationDataEntry {
+  skillDomain: string;
+  currentLevel: number;
+  totalPoints: number;
+  nodes: VisualizationNode[];
+}
+
+export type VisualizationData = VisualizationDataEntry[];
