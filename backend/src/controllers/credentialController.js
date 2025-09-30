@@ -3,6 +3,7 @@ const Credential = require('../models/credentialModel');
 const { anchorNewCredential, verifyCredential } = require('../services/blockchainService');
 const { uploadFile, deleteFile } = require('../services/storageService');
 const { extractCredentialInfo } = require('../services/extractionService');
+const NSQFService = require('../services/nsqfService');
 
 
 // --- EXISTING DATABASE FUNCTIONS (UNCHANGED) ---
@@ -60,6 +61,18 @@ const createCredential = async (req, res) => {
     }
 
     const created = await Credential.create(payload);
+    
+    // Update NSQF skill progress if credential has NSQF data
+    try {
+      if (created.nsqfLevel && created.nsqfLevel > 0) {
+        const skillUpdate = await NSQFService.updateUserSkillProgress(req.user._id, created);
+        console.log('NSQF Skill Progress Updated:', skillUpdate);
+      }
+    } catch (nsqfError) {
+      console.error('NSQF Update Error:', nsqfError);
+      // Don't fail the credential creation if NSQF update fails
+    }
+    
     res.status(201).json(created);
   } catch (err) {
     console.error('Create Credential Error:', err);
@@ -118,6 +131,15 @@ const deleteCredential = async (req, res) => {
       await deleteFile(credential.imageUrl);
     } else {
       console.log('No image URL found for this credential');
+    }
+    
+    // Update NSQF skill progress by removing this credential
+    try {
+      await NSQFService.removeCredentialFromSkillProgress(req.user._id, id);
+      console.log('NSQF skill progress updated after credential deletion');
+    } catch (nsqfError) {
+      console.error('NSQF Update Error on deletion:', nsqfError);
+      // Continue with deletion even if NSQF update fails
     }
     
     // Delete the credential from database

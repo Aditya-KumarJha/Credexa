@@ -63,6 +63,7 @@ const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const platformsRoutes = require('./routes/platformsRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const certificateRoutes = require('./routes/certificateRoutes');
+const nsqfRoutes = require('./routes/nsqfRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -73,6 +74,7 @@ app.use('/api', leaderboardRoutes);
 app.use('/api/platforms', platformsRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/nsqf', nsqfRoutes);
 
 app.get('/', (req, res) => res.send('API is running'));
 
