@@ -91,6 +91,12 @@ const userSchema = new mongoose.Schema(
       university_name: { type: String, trim: true },
       addedAt: { type: Date },
       isVerified: { type: Boolean, default: true }, // false if manually added, pending admin approval
+      issuerType: { 
+        type: String, 
+        enum: ['university', 'training-provider', 'edtech'], 
+        default: 'university',
+        required: function() { return this.role === 'institute'; }
+      }
     },
     
     // Platform sync information

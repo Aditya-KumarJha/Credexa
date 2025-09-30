@@ -499,23 +499,38 @@ const selectRole = async (req, res) => {
 
     // For institute role, validate institute information
     if (role === "institute") {
-      if (!institute || !institute.aishe_code || !institute.name) {
-        return res.status(400).json({ message: "Institute information is required for institute role" });
+      if (!institute || !institute.name) {
+        return res.status(400).json({ message: "Credential issuer information is required for institute role" });
+      }
+
+      // Handle both traditional institutions (with AISHE codes) and EdTech platforms (without AISHE codes)
+      const instituteData = {
+        name: institute.name,
+        addedAt: institute.addedAt || new Date(),
+        isVerified: institute.isVerified || false,
+        issuerType: institute.issuerType || 'university'
+      };
+
+      // Add traditional institution fields if present
+      if (institute.aishe_code) {
+        instituteData.aishe_code = institute.aishe_code;
+        instituteData.state = institute.state;
+        instituteData.district = institute.district;
+        instituteData.university_name = institute.university_name;
+      }
+
+      // Add EdTech platform fields if present
+      if (institute.platform_type) {
+        instituteData.platform_type = institute.platform_type;
+        instituteData.website = institute.website;
+        instituteData.year_of_establishment = institute.year_of_establishment;
       }
 
       const user = await User.findByIdAndUpdate(
         userId,
         { 
           role,
-          institute: {
-            aishe_code: institute.aishe_code,
-            name: institute.name,
-            state: institute.state,
-            district: institute.district,
-            university_name: institute.university_name,
-            addedAt: institute.addedAt || new Date(),
-            isVerified: institute.isVerified || false
-          }
+          institute: instituteData
         },
         { new: true }
       ).select("-password -otp -resetPasswordToken -refreshToken");

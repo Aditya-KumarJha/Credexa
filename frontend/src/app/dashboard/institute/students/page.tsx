@@ -59,10 +59,44 @@ export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeStudents: 0,
+    newThisMonth: 0,
+    withCredentials: 0
+  });
 
   useEffect(() => {
     fetchStudents();
+    fetchStats();
   }, [currentPage, searchTerm]);
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institute/analytics`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setStats({
+            totalStudents: data.analytics.overview.totalStudents,
+            activeStudents: data.analytics.overview.activeStudents,
+            newThisMonth: Math.floor(data.analytics.overview.totalStudents * 0.1), // Mock for now
+            withCredentials: data.analytics.overview.totalStudents // All students have credentials since we only track those with credentials
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -244,7 +278,7 @@ export default function StudentsPage() {
                       Total Students
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loading ? "..." : total}
+                      {loading ? "..." : stats.totalStudents}
                     </p>
                   </div>
                   <Users className="h-8 w-8 text-blue-500" />
@@ -258,11 +292,14 @@ export default function StudentsPage() {
                       Active Students
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loading ? "..." : Math.floor(total * 0.85)}
+                      {loading ? "..." : stats.activeStudents}
                     </p>
                   </div>
                   <Users className="h-8 w-8 text-green-500" />
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Received credentials in last 30 days
+                </p>
               </div>
               
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -272,7 +309,7 @@ export default function StudentsPage() {
                       New This Month
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loading ? "..." : Math.floor(total * 0.1)}
+                      {loading ? "..." : stats.newThisMonth}
                     </p>
                   </div>
                   <Plus className="h-8 w-8 text-purple-500" />
@@ -286,7 +323,7 @@ export default function StudentsPage() {
                       With Credentials
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loading ? "..." : Math.floor(total * 0.65)}
+                      {loading ? "..." : stats.withCredentials}
                     </p>
                   </div>
                   <Award className="h-8 w-8 text-orange-500" />

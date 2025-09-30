@@ -32,28 +32,43 @@ const searchColleges = async (req, res) => {
     const colleges = await loadCollegesData();
     const searchTerm = query.toLowerCase();
 
-    // Search in name field (case-insensitive)
+    // Search in name field (case-insensitive) - includes both traditional institutions and EdTech platforms
     const filteredColleges = colleges
       .filter(college => 
         college.name && 
         college.name.toLowerCase().includes(searchTerm)
       )
       .slice(0, parseInt(limit))
-      .map(college => ({
-        aishe_code: college.aishe_code,
-        name: college.name,
-        state: college.state,
-        district: college.district,
-        university_name: college.university_name,
-        displayName: `${college.name}, ${college.district || college.state}` // For UI display
-      }));
+      .map(college => {
+        // Handle both traditional institutions and EdTech platforms
+        if (college.platform_type) {
+          // EdTech platform
+          return {
+            name: college.name,
+            website: college.website,
+            platform_type: college.platform_type,
+            year_of_establishment: college.year_of_establishment,
+            displayName: `${college.name} (${college.platform_type === 'edtech' ? 'EdTech Platform' : 'Platform'})` // For UI display
+          };
+        } else {
+          // Traditional institution
+          return {
+            aishe_code: college.aishe_code,
+            name: college.name,
+            state: college.state,
+            district: college.district,
+            university_name: college.university_name,
+            displayName: `${college.name}, ${college.district || college.state}` // For UI display
+          };
+        }
+      });
 
     res.json(filteredColleges);
   } catch (error) {
-    console.error('Error searching colleges:', error);
+    console.error('Error searching credential issuers:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error searching colleges' 
+      message: 'Error searching credential issuers' 
     });
   }
 };
@@ -68,23 +83,87 @@ const validateCollege = async (aishe_code) => {
 const updateUserInstitute = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { aishe_code, name, state, district, university_name } = req.body;
+    const { 
+      aishe_code, 
+      name, 
+      state, 
+      district, 
+      university_name,
+      website,
+      platform_type,
+      year_of_establishment 
+    } = req.body;
 
-    // Validation
-    if (!aishe_code || !name || !state || !district) {
+    // Basic validation
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: aishe_code, name, state, district'
+        message: 'Name is required'
       });
     }
 
-    // Validate against colleges database
-    const validCollege = await validateCollege(aishe_code);
-    if (!validCollege) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please select a valid institute from the dropdown'
-      });
+    const colleges = await loadCollegesData();
+    let validCredentialIssuer = null;
+    let instituteData = {};
+
+    // Check if it's a traditional institution (has AISHE code)
+    if (aishe_code) {
+      // Traditional institution
+      if (!state || !district) {
+        return res.status(400).json({
+          success: false,
+          message: 'State and district are required for traditional institutions'
+        });
+      }
+
+      // Validate against colleges database
+      validCredentialIssuer = colleges.find(college => college.aishe_code === aishe_code);
+      if (!validCredentialIssuer) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select a valid institution from the dropdown'
+        });
+      }
+
+      instituteData = {
+        aishe_code,
+        name,
+        state,
+        district,
+        university_name: university_name || validCredentialIssuer.university_name,
+        addedAt: new Date(),
+        isVerified: true, // Verified because it's from our database
+        issuerType: 'university'
+      };
+    } else {
+      // EdTech platform
+      if (!website) {
+        return res.status(400).json({
+          success: false,
+          message: 'Website is required for EdTech platforms'
+        });
+      }
+
+      // Validate against colleges database (platforms are also in the same file)
+      validCredentialIssuer = colleges.find(college => 
+        college.name === name && college.platform_type
+      );
+      if (!validCredentialIssuer) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select a valid platform from the dropdown'
+        });
+      }
+
+      instituteData = {
+        name,
+        website,
+        platform_type: platform_type || validCredentialIssuer.platform_type,
+        year_of_establishment: year_of_establishment || validCredentialIssuer.year_of_establishment,
+        addedAt: new Date(),
+        isVerified: true, // Verified because it's from our database
+        issuerType: 'edtech'
+      };
     }
 
     // Update user institute
@@ -92,15 +171,7 @@ const updateUserInstitute = async (req, res) => {
       userId,
       {
         $set: {
-          institute: {
-            aishe_code,
-            name,
-            state,
-            district,
-            university_name: university_name || validCollege.university_name,
-            addedAt: new Date(),
-            isVerified: true // Verified because it's from our database
-          }
+          institute: instituteData
         }
       },
       { new: true }
@@ -159,34 +230,77 @@ const getUserInstitute = async (req, res) => {
 const addManualInstitute = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, state, district, university_name, reason } = req.body;
+    const { 
+      name, 
+      state, 
+      district, 
+      university_name, 
+      reason, 
+      issuerType,
+      website,
+      year_of_establishment,
+      platform_type 
+    } = req.body;
 
-    // Validation
-    if (!name || !state || !district) {
+    // Validation based on issuer type
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, state, district'
+        message: 'Name is required'
       });
     }
 
-    // Generate temporary AISHE code for manual entries
-    const tempAisheCode = `MANUAL-${Date.now()}-${userId.toString().substring(0, 6)}`;
+    if (issuerType === 'edtech') {
+      // For EdTech platforms, website is required
+      if (!website) {
+        return res.status(400).json({
+          success: false,
+          message: 'Website is required for EdTech platforms'
+        });
+      }
+    } else {
+      // For traditional institutions, state and district are required
+      if (!state || !district) {
+        return res.status(400).json({
+          success: false,
+          message: 'State and district are required for traditional institutions'
+        });
+      }
+    }
+
+    // Generate temporary AISHE code for manual entries (only for traditional institutions)
+    const tempAisheCode = issuerType === 'university' ? `MANUAL-${Date.now()}-${userId.toString().substring(0, 6)}` : undefined;
+
+    // Build institute object based on type
+    const instituteData = {
+      name,
+      addedAt: new Date(),
+      isVerified: false, // Manual entry pending approval
+      submissionReason: reason || 'Credential issuer not found in database',
+      issuerType: issuerType || 'university'
+    };
+
+    // Add fields specific to traditional institutions
+    if (issuerType === 'university') {
+      instituteData.aishe_code = tempAisheCode;
+      instituteData.state = state;
+      instituteData.district = district;
+      instituteData.university_name = university_name || 'Not specified';
+    }
+
+    // Add fields specific to EdTech platforms
+    if (issuerType === 'edtech') {
+      instituteData.website = website;
+      instituteData.year_of_establishment = year_of_establishment;
+      instituteData.platform_type = platform_type || 'edtech';
+    }
 
     // Update user institute with manual entry (unverified)
     const user = await User.findByIdAndUpdate(
       userId,
       {
         $set: {
-          institute: {
-            aishe_code: tempAisheCode,
-            name,
-            state,
-            district,
-            university_name: university_name || 'Not specified',
-            addedAt: new Date(),
-            isVerified: false, // Manual entry pending approval
-            submissionReason: reason || 'Institute not found in database'
-          }
+          institute: instituteData
         }
       },
       { new: true }
@@ -232,32 +346,56 @@ const getDashboardStats = async (req, res) => {
       });
     }
 
-    const instituteCode = user.institute.aishe_code;
+    const instituteName = user.institute.name;
+    console.log('Fetching dashboard stats for institution:', instituteName);
 
-    // Get students count (users with same institute)
-    const studentsCount = await User.countDocuments({
-      'institute.aishe_code': instituteCode,
-      role: 'learner'
-    });
+    if (!instituteName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute name is required'
+      });
+    }
+
+    // Get students count - only unique students who have credentials from this institution
+    const studentsWithCredentials = await Credential.aggregate([
+      { $match: { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } } },
+      { $group: { _id: '$user' } }
+    ]);
+    const studentsCount = studentsWithCredentials.length;
 
     // Get credentials issued count
     const credentialsCount = await Credential.countDocuments({
-      issuer: user.institute.name
+      issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }
     });
 
     // Get current month stats
     const currentMonth = new Date();
     currentMonth.setDate(1);
     const credentialsThisMonth = await Credential.countDocuments({
-      issuer: user.institute.name,
+      issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') },
       createdAt: { $gte: currentMonth }
     });
 
-    const studentsThisMonth = await User.countDocuments({
-      'institute.aishe_code': instituteCode,
-      role: 'learner',
-      createdAt: { $gte: currentMonth }
+    // Get students who received credentials this month
+    const studentsThisMonthWithCredentials = await Credential.aggregate([
+      { 
+        $match: { 
+          issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') },
+          createdAt: { $gte: currentMonth }
+        } 
+      },
+      { $group: { _id: '$user' } },
+      { $count: 'studentsThisMonth' }
+    ]);
+    const studentsThisMonth = studentsThisMonthWithCredentials.length > 0 ? studentsThisMonthWithCredentials[0].studentsThisMonth : 0;
+
+    // Get count of issuer-verified credentials
+    const verifiedCredentialsCount = await Credential.countDocuments({
+      issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') },
+      'issuerVerification.status': 'verified'
     });
+
+    console.log(`Dashboard stats: ${studentsCount} students, ${credentialsCount} credentials, ${verifiedCredentialsCount} verified`);
 
     res.json({
       success: true,
@@ -295,50 +433,176 @@ const getStudents = async (req, res) => {
       });
     }
 
-    const { page = 1, limit = 10, search = '', course = '', status = '' } = req.query;
-
-    const instituteCode = user.institute.aishe_code;
+    const instituteName = user.institute.name;
+    console.log('Fetching students for institution:', instituteName);
     
-    // Build query
-    const query = {
-      'institute.aishe_code': instituteCode,
-      role: 'learner'
-    };
-
-    if (search) {
-      query.$or = [
-        { 'fullName.firstName': { $regex: search, $options: 'i' } },
-        { 'fullName.lastName': { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
+    if (!instituteName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute name is required'
+      });
     }
 
-    const students = await User.find(query)
-      .select('fullName email profilePic createdAt isVerified')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+    // Get pagination and search parameters
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    const total = await User.countDocuments(query);
+    // Build aggregation pipeline to get only students who have credentials from this institution
+    let matchStage = { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } };
+    
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userData'
+        }
+      },
+      { $unwind: '$userData' },
+      {
+        $group: {
+          _id: '$user',
+          userName: { $first: '$userData.username' },
+          userEmail: { $first: '$userData.email' },
+          userFullName: { $first: '$userData.fullName' },
+          userProfilePic: { $first: '$userData.profilePic' },
+          userVerified: { $first: '$userData.isVerified' },
+          userCreatedAt: { $first: '$userData.createdAt' },
+          credentialsFromThisInstitute: { $sum: 1 },
+          latestCredential: { $max: '$createdAt' }
+        }
+      }
+    ];
 
-    // Get credentials count for each student
-    const studentsWithCreds = await Promise.all(
-      students.map(async (student) => {
-        const credentialsCount = await Credential.countDocuments({
-          user: student._id
-        });
-        return {
-          ...student.toObject(),
-          credentialsCount
-        };
-      })
+    // Add search filter if provided
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'userFullName.firstName': { $regex: search, $options: 'i' } },
+            { 'userFullName.lastName': { $regex: search, $options: 'i' } },
+            { userEmail: { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    // Add sorting and pagination
+    pipeline.push(
+      { $sort: { latestCredential: -1 } },
+      { $skip: skip },
+      { $limit: limitNum }
     );
+
+    // Debug: Let's see what credentials we're matching first
+    const credentialsFromInstitute = await Credential.find({ issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } }).select('user issuer createdAt');
+    console.log(`Found ${credentialsFromInstitute.length} credentials from ${instituteName}`);
+    
+    // Let's see unique user IDs
+    const uniqueUserIds = [...new Set(credentialsFromInstitute.map(c => c.user.toString()))];
+    console.log(`Unique user IDs: ${uniqueUserIds.length}`, uniqueUserIds);
+    
+    // Check which users actually exist in the database
+    const existingUsers = await User.find({ _id: { $in: uniqueUserIds } }).select('_id email fullName');
+    console.log(`Existing users: ${existingUsers.length}`);
+    console.log('Existing user IDs:', existingUsers.map(u => u._id.toString()));
+    
+    const missingUserIds = uniqueUserIds.filter(id => !existingUsers.find(u => u._id.toString() === id));
+    console.log(`Missing users: ${missingUserIds.length}`, missingUserIds);
+    
+    // Clean up orphaned credentials (remove credentials for non-existent users)
+    if (missingUserIds.length > 0) {
+      console.log('Cleaning up orphaned credentials...');
+      const deleteResult = await Credential.deleteMany({
+        user: { $in: missingUserIds },
+        issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }
+      });
+      console.log(`Deleted ${deleteResult.deletedCount} orphaned credentials`);
+      
+      // Update the credentials list after cleanup
+      const cleanedCredentials = await Credential.find({ issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } }).select('user issuer createdAt');
+      console.log(`After cleanup: ${cleanedCredentials.length} credentials remaining`);
+    }
+
+    const studentsWithCredentials = await Credential.aggregate(pipeline);
+    console.log(`Pipeline returned ${studentsWithCredentials.length} students`);
+    console.log('Pipeline user IDs:', studentsWithCredentials.map(s => s._id.toString()));
+
+    // Get total count for pagination
+    const totalPipeline = [
+      { $match: matchStage },
+      { $group: { _id: '$user' } }
+    ];
+    
+    if (search) {
+      totalPipeline.splice(1, 0, {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userData'
+        }
+      }, 
+      { $unwind: '$userData' },
+      {
+        $match: {
+          $or: [
+            { 'userData.fullName.firstName': { $regex: search, $options: 'i' } },
+            { 'userData.fullName.lastName': { $regex: search, $options: 'i' } },
+            { 'userData.email': { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    // Add search filter to total pipeline if provided
+    if (search) {
+      totalPipeline.splice(1, 0, {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userData'
+        }
+      }, 
+      { $unwind: '$userData' },
+      {
+        $match: {
+          $or: [
+            { 'userData.fullName.firstName': { $regex: search, $options: 'i' } },
+            { 'userData.fullName.lastName': { $regex: search, $options: 'i' } },
+            { 'userData.email': { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    const totalResult = await Credential.aggregate(totalPipeline);
+    const total = totalResult.length; // Count the number of groups (unique students)
+    const totalPages = Math.ceil(total / limitNum);
+
+    // Transform the data for frontend consumption
+    const studentsData = studentsWithCredentials.map(student => ({
+      _id: student._id,
+      fullName: student.userFullName || { firstName: 'N/A', lastName: 'N/A' },
+      email: student.userEmail || 'N/A',
+      profilePic: student.userProfilePic || '',
+      isVerified: student.userVerified || false,
+      createdAt: student.userCreatedAt,
+      credentialsCount: student.credentialsFromThisInstitute
+    }));
+
+    console.log(`Found ${studentsData.length} students with credentials from ${instituteName}`);
 
     res.json({
       success: true,
-      students: studentsWithCreds,
-      totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page),
+      students: studentsData,
+      totalPages,
+      currentPage: pageNum,
       total
     });
 
@@ -368,7 +632,7 @@ const getCredentials = async (req, res) => {
 
     // Build query for credentials issued by this institute
     const query = {
-      issuer: user.institute.name
+      issuer: { $regex: new RegExp(`^${user.institute.name}$`, 'i') }
     };
 
     if (search) {
@@ -606,143 +870,79 @@ const deleteCourse = async (req, res) => {
   }
 };
 
-// Get Analytics
+// Get Analytics - Shows only students who have received credentials from this institution
 const getAnalytics = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('institute');
-    
-    if (!user || !user.institute) {
-      return res.status(400).json({
-        success: false,
-        message: 'Institute information not found'
-      });
+    try {
+      const userId = req.user.id;
+      const user = await User.findById(userId).select('institute');
+      if (!user || !user.institute) {
+        return res.status(400).json({ success: false, message: 'Institute information not found' });
+      }
+      const instituteName = user.institute.name;
+      if (!instituteName) {
+        return res.status(400).json({ success: false, message: 'Institute name is required' });
+      }
+
+      // Include all credentials issued by this institution in analytics
+      const credentialsIssued = await Credential.countDocuments({ issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } });
+      const studentsWithCredentials = await Credential.distinct('user', { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } });
+      const totalStudents = studentsWithCredentials.length;
+      const activeStudentIds = await Credential.distinct('user', { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }, createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } });
+      const activeStudents = activeStudentIds.length;
+      const graduatedStudents = totalStudents;
+
+      // Monthly growth for last 6 months
+      const monthlyGrowth = [];
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+        const credentialsInMonth = await Credential.countDocuments({ issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }, createdAt: { $gte: startDate, $lte: endDate } });
+        const uniqueStudentsInMonth = await Credential.distinct('user', { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }, createdAt: { $gte: startDate, $lte: endDate } });
+        monthlyGrowth.push({ month: monthNames[month], students: uniqueStudentsInMonth.length, credentials: credentialsInMonth });
+      }
+
+      // Skills distribution
+      const skillsAggregation = await Credential.aggregate([
+        { $match: { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } } },
+        { $unwind: '$skills' },
+        { $group: { _id: '$skills', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+        { $project: { skill: '$_id', count: 1, _id: 0 } }
+      ]);
+
+      // NSQF levels distribution
+      const nsqfLevelsAggregation = await Credential.aggregate([
+        { $match: { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }, nsqfLevel: { $exists: true, $ne: null } } },
+        { $group: { _id: '$nsqfLevel', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+        { $project: { level: { $concat: ['Level ', { $toString: '$_id' }] }, count: 1, _id: 0 } }
+      ]);
+
+      const analytics = {
+        overview: {
+          totalStudents,
+          activeStudents,
+          graduatedStudents,
+          credentialsIssued
+        },
+        monthlyGrowth,
+        skillsDistribution: skillsAggregation,
+        nsqfLevels: nsqfLevelsAggregation
+      };
+
+      res.json({ success: true, analytics });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      res.status(500).json({ success: false, message: 'Error fetching analytics' });
     }
-
-    const instituteCode = user.institute.aishe_code;
-    const instituteName = user.institute.name;
-
-    // Get overview stats
-    const totalStudents = await User.countDocuments({
-      'institute.aishe_code': instituteCode,
-      role: 'learner'
-    });
-
-    const activeStudents = await User.countDocuments({
-      'institute.aishe_code': instituteCode,
-      role: 'learner',
-      lastActive: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Active in last 30 days
-    });
-
-    // Get credentials for users from this institute (using AISHE code)
-    const instituteUsers = await User.find({
-      'institute.aishe_code': instituteCode,
-      role: 'learner'
-    }).select('_id');
-    
-    const instituteUserIds = instituteUsers.map(user => user._id);
-    console.log('Institute AISHE Code:', instituteCode);
-    console.log('Institute users found:', instituteUserIds.length);
-
-    const credentialsIssued = await Credential.countDocuments({
-      user: { $in: instituteUserIds }
-    });
-
-    // Calculate graduated students (students with at least 1 credential)
-    const studentsWithCredentials = await Credential.distinct('user', {
-      user: { $in: instituteUserIds }
-    });
-    const graduatedStudents = studentsWithCredentials.length;
-
-    // Get monthly growth data for the last 6 months
-    const monthlyGrowth = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      
-      const startDate = new Date(year, month, 1);
-      const endDate = new Date(year, month + 1, 0, 23, 59, 59);
-      
-      const studentsInMonth = await User.countDocuments({
-        'institute.aishe_code': instituteCode,
-        role: 'learner',
-        createdAt: { $gte: startDate, $lte: endDate }
-      });
-
-      const credentialsInMonth = await Credential.countDocuments({
-        user: { $in: instituteUserIds },
-        createdAt: { $gte: startDate, $lte: endDate }
-      });
-
-      monthlyGrowth.push({
-        month: monthNames[month],
-        students: studentsInMonth,
-        credentials: credentialsInMonth
-      });
-    }
-
-    // Get all credentials for institute users  
-    const allCredentials = await Credential.find({ user: { $in: instituteUserIds } });
-    console.log('Total credentials found for institute users:', allCredentials.length);
-    console.log('Sample credentials:', allCredentials.slice(0, 3).map(cred => ({
-      title: cred.title,
-      issuer: cred.issuer,
-      skills: cred.skills,
-      nsqfLevel: cred.nsqfLevel,
-      type: cred.type
-    })));
-
-    // Get skills distribution from credentials of institute users
-    const skillsAggregation = await Credential.aggregate([
-      { $match: { user: { $in: instituteUserIds } } },
-      { $unwind: '$skills' },
-      { $group: { _id: '$skills', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 },
-      { $project: { skill: '$_id', count: 1, _id: 0 } }
-    ]);
-
-    console.log('Skills aggregation result:', skillsAggregation);
-
-    // Get NSQF levels distribution from credentials of institute users
-    const nsqfLevelsAggregation = await Credential.aggregate([
-      { $match: { user: { $in: instituteUserIds }, nsqfLevel: { $exists: true, $ne: null } } },
-      { $group: { _id: '$nsqfLevel', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
-      { $project: { level: { $concat: ['Level ', { $toString: '$_id' }] }, count: 1, _id: 0 } }
-    ]);
-
-    console.log('NSQF levels aggregation result:', nsqfLevelsAggregation);
-
-    const analytics = {
-      overview: {
-        totalStudents,
-        activeStudents,
-        graduatedStudents,
-        credentialsIssued
-      },
-      monthlyGrowth,
-      skillsDistribution: skillsAggregation,
-      nsqfLevels: nsqfLevelsAggregation
-    };
-
-    res.json({
-      success: true,
-      analytics
-    });
-
-  } catch (error) {
-    console.error('Error fetching analytics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching analytics'
-    });
-  }
-};
+  };
+// ...existing code...
 
 // Get Compliance Report
 const getComplianceReport = async (req, res) => {
@@ -823,18 +1023,26 @@ const getRecentActivities = async (req, res) => {
     // Get recent credentials issued
     const Credential = require('../models/credentialModel');
     const recentCredentials = await Credential.find({
-      issuer: user.institute.name
+      issuer: { $regex: new RegExp(`^${user.institute.name}$`, 'i') }
     })
     .populate('user', 'fullName')
     .sort({ createdAt: -1 })
     .limit(10);
 
-    // Format activities
-    const activities = recentCredentials.map(cred => ({
-      action: `${cred.type} "${cred.title}" issued to ${cred.user.fullName.firstName} ${cred.user.fullName.lastName}`,
-      time: formatTimeAgo(cred.createdAt),
-      type: 'issuance'
-    }));
+    // Format activities (filter out credentials with null users)
+    const activities = recentCredentials
+      .filter(cred => cred.user) // Remove credentials with null users
+      .map(cred => {
+        const userName = cred.user.fullName 
+          ? `${cred.user.fullName.firstName} ${cred.user.fullName.lastName}`
+          : cred.user.email || 'Unknown User';
+        
+        return {
+          action: `${cred.type} "${cred.title}" issued to ${userName}`,
+          time: formatTimeAgo(cred.createdAt),
+          type: 'issuance'
+        };
+      });
 
     // Add mock activities
     const mockActivities = [
@@ -883,6 +1091,216 @@ const formatTimeAgo = (date) => {
   }
 };
 
+// Get Students with Credentials - Shows only students who have received credentials from this institution
+const getStudentsWithCredentials = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('institute');
+    
+    if (!user || !user.institute) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute information not found'
+      });
+    }
+
+    const instituteName = user.institute.name;
+    console.log('Fetching students for institution:', instituteName);
+    
+    if (!instituteName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute name is required'
+      });
+    }
+
+    // Get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get all credentials issued by this institution with user details
+    const credentialsWithUsers = await Credential.aggregate([
+      { $match: { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userData'
+        }
+      },
+      { $unwind: '$userData' },
+      {
+        $group: {
+          _id: '$user',
+          userName: { $first: '$userData.username' },
+          userEmail: { $first: '$userData.email' },
+          userFullName: { $first: '$userData.fullName' },
+          userProfilePic: { $first: '$userData.profilePic' },
+          userVerified: { $first: '$userData.isVerified' },
+          userCreatedAt: { $first: '$userData.createdAt' },
+          credentials: {
+            $push: {
+              id: '$_id',
+              title: '$title',
+              issuer: '$issuer',
+              nsqfLevel: '$nsqfLevel',
+              skills: '$skills',
+              status: '$status',
+              issuedDate: '$createdAt',
+              expiryDate: '$expiryDate',
+              verificationStatus: '$verificationStatus'
+            }
+          },
+          credentialsFromThisInstitute: { $sum: 1 }
+        }
+      },
+      { $skip: skip },
+      { $limit: limit }
+    ]);
+
+    // Get total count for pagination
+    const totalCount = await Credential.aggregate([
+      { $match: { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } } },
+      { $group: { _id: '$user' } },
+      { $count: 'totalStudents' }
+    ]);
+
+    const total = totalCount.length > 0 ? totalCount[0].totalStudents : 0;
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      students: credentialsWithUsers,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching students with credentials:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching students with credentials'
+    });
+  }
+};
+
+// Get Credential Details (for institute users)
+const getCredentialDetails = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    
+    const user = await User.findById(userId).select('institute');
+    
+    if (!user || !user.institute) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute information not found'
+      });
+    }
+
+    const instituteName = user.institute.name;
+
+    // Find the credential ensuring it was issued by this institution and populate user details
+    const credential = await Credential.findOne({ 
+      _id: id, 
+      issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }
+    }).populate('user', 'fullName email profilePic');
+
+    if (!credential) {
+      return res.status(404).json({
+        success: false,
+        message: 'Credential not found or not issued by your institution'
+      });
+    }
+
+    res.json({
+      success: true,
+      credential
+    });
+
+  } catch (error) {
+    console.error('Error fetching credential details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching credential details'
+    });
+  }
+};
+
+// Verify Credential (for institute users)
+const verifyCredential = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    
+    const user = await User.findById(userId).select('institute');
+    
+    if (!user || !user.institute) {
+      return res.status(400).json({
+        success: false,
+        message: 'Institute information not found'
+      });
+    }
+
+    const instituteName = user.institute.name;
+
+    // Find the credential ensuring it was issued by this institution
+    const credential = await Credential.findOne({ 
+      _id: id, 
+      issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }
+    });
+
+    if (!credential) {
+      return res.status(404).json({
+        success: false,
+        message: 'Credential not found or not issued by your institution'
+      });
+    }
+
+    // Check if already verified
+    if (credential.issuerVerification.status === 'verified') {
+      return res.status(400).json({
+        success: false,
+        message: 'Credential is already verified'
+      });
+    }
+
+    // Update ONLY issuer verification status (keep main status unchanged)
+    credential.issuerVerification = {
+      status: 'verified',
+      verifiedAt: new Date(),
+      verifiedBy: userId
+    };
+
+    await credential.save();
+
+    res.json({
+      success: true,
+      message: 'Credential verified by issuer successfully',
+      credential: {
+        _id: credential._id,
+        title: credential.title,
+        status: credential.status, // Keep original status unchanged
+        issuerVerification: credential.issuerVerification
+      }
+    });
+
+  } catch (error) {
+    console.error('Error verifying credential:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying credential'
+    });
+  }
+};
+
 module.exports = {
   searchColleges,
   updateUserInstitute,
@@ -890,6 +1308,7 @@ module.exports = {
   addManualInstitute,
   getDashboardStats,
   getStudents,
+  getStudentsWithCredentials,
   getCredentials,
   issueCredential,
   getCourses,
@@ -898,5 +1317,7 @@ module.exports = {
   deleteCourse,
   getAnalytics,
   getComplianceReport,
-  getRecentActivities
+  getRecentActivities,
+  getCredentialDetails,
+  verifyCredential
 };

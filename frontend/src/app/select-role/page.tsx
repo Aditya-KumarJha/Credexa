@@ -57,14 +57,14 @@ export default function SelectRolePage() {
     },
     {
       id: "institute",
-      title: "Institute",
-      description: "Issue and manage credentials for your students",
+      title: "Credential Issuer",
+      description: "Issue and manage credentials for your learners",
       icon: <Users className="h-8 w-8" />,
       features: [
         "Digital credential issuance",
-        "Student progress analytics",
+        "Learner progress analytics",
         "NSQF compliance reporting",
-        "Integration with learning platforms"
+        "Multi-platform integration"
       ],
       color: "text-purple-600",
       bgGradient: "from-purple-50 to-violet-50"
@@ -77,7 +77,7 @@ export default function SelectRolePage() {
       return;
     }
 
-    // If institute role is selected, go to institute selection step
+    // If credential issuer role is selected, go to issuer selection step
     if (selectedRole === "institute") {
       setCurrentStep("institute");
       return;
@@ -444,7 +444,7 @@ export default function SelectRolePage() {
                     </>
                   ) : (
                     <>
-                      {selectedRole === "institute" ? "Continue to Institute Selection" : "Continue to Dashboard"}
+                      {selectedRole === "institute" ? "Continue to Credential Issuer Selection" : "Continue to Dashboard"}
                       <motion.div
                         animate={{ x: [0, 5, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
@@ -519,7 +519,7 @@ export default function SelectRolePage() {
           </>
         ) : (
           <>
-            {/* Institute Selection Step */}
+            {/* Credential Issuer Selection Step */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -537,11 +537,11 @@ export default function SelectRolePage() {
                 </motion.button>
                 
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                  Select Your Institute
+                  Select Your Credential Issuer
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                  As an institute representative, please select your institution from our verified database. 
-                  This will link your account to your institute&apos;s credentials and students.
+                  As a credential issuer representative, please select your institution or platform from our verified database. 
+                  This will link your account to your organization&apos;s credentials and learners.
                 </p>
               </div>
 

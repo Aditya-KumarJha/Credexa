@@ -27,7 +27,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
 import toast from "react-hot-toast";
 
-export default function InstituteDashboard() {
+export default function CredentialIssuerDashboard() {
   const [stats, setStats] = useState({
     totalStudents: 0,
     studentsChange: "Loading...",
@@ -40,10 +40,32 @@ export default function InstituteDashboard() {
   });
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchUserProfile();
   }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data.user);
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -181,15 +203,35 @@ export default function InstituteDashboard() {
           >
             <div>
               <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4 relative">
-                Institute Dashboard
+                Credential Issuer Dashboard
                 <div className="absolute -top-2 -right-8">
                   <Crown className="h-8 w-8 text-purple-500" />
                 </div>
               </h1>
+              {/* Display issuer type and name */}
+              {userProfile?.institute && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    userProfile.institute.issuerType === 'university' 
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      : userProfile.institute.issuerType === 'edtech'
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                      : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  }`}>
+                    {userProfile.institute.issuerType === 'university' ? '🏛️ Traditional Institution' :
+                     userProfile.institute.issuerType === 'edtech' ? '💻 EdTech Platform' :
+                     '📚 Training Provider'}
+                  </div>
+                  <span className="text-gray-600 dark:text-gray-400">•</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    {userProfile.institute.name}
+                  </span>
+                </div>
+              )}
             </div>
-            <p className="text-gray-600 dark:text-gray-300 text-lg flex items-center gap-2">
+            <p className="text-gray-600 dark:text-gray-300 text-lg flex items-center gap-2 mt-4">
               <Lightbulb className="h-5 w-5 text-purple-500" />
-              Welcome back! Manage your students, courses, and credential issuance. 🎓
+              Welcome back! Manage your learners, courses, and credential issuance. 🎓
             </p>
           </motion.div>
 

@@ -8,6 +8,7 @@ const {
   addManualInstitute,
   getDashboardStats,
   getStudents,
+  getStudentsWithCredentials,
   getCredentials,
   issueCredential,
   getCourses,
@@ -16,7 +17,9 @@ const {
   deleteCourse,
   getAnalytics,
   getComplianceReport,
-  getRecentActivities
+  getRecentActivities,
+  getCredentialDetails,
+  verifyCredential
 } = require('../controllers/instituteController');
 
 // Apply authentication middleware to all routes
@@ -40,10 +43,13 @@ router.get('/dashboard/activities', getRecentActivities);
 
 // Students routes
 router.get('/students', getStudents);
+router.get('/students/with-credentials', getStudentsWithCredentials);
 
 // Credentials routes
 router.get('/credentials', getCredentials);
+router.get('/credentials/:id', getCredentialDetails);
 router.post('/credentials/issue', issueCredential);
+router.put('/credentials/:id/verify', verifyCredential);
 
 // Courses routes
 router.get('/courses', getCourses);

@@ -14,12 +14,17 @@ import {
   User,
   BookOpen,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CheckCircle,
+  Clock
 } from "lucide-react";
 import InstituteSidebar from "@/components/dashboard/institute/InstituteSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
+import { CredentialDetailsModal } from "@/components/dashboard/credentials/CredentialDetailsModal";
+import { ImageViewerModal } from "@/components/dashboard/credentials/ImageViewerModal";
+import { CredentialDetails } from "@/types/credentials";
 import toast from "react-hot-toast";
 
 interface Credential {
@@ -28,6 +33,11 @@ interface Credential {
   issuer: string;
   type: string;
   status: string;
+  issuerVerification?: {
+    status: 'pending' | 'verified';
+    verifiedAt?: string;
+    verifiedBy?: string;
+  };
   issueDate: string;
   description?: string;
   nsqfLevel?: number;
@@ -53,6 +63,12 @@ export default function CredentialsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  
+  // Modal states
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedCredentialDetails, setSelectedCredentialDetails] = useState<CredentialDetails | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>("");
 
   useEffect(() => {
     fetchCredentials();
@@ -119,14 +135,85 @@ export default function CredentialsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+
+
+  // Modal handlers
+  const handleViewCredential = async (credentialId: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institute/credentials/${credentialId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        setSelectedCredentialDetails({
+          credential: data.credential,
+          anchored: data.anchored,
+          blockchain: data.blockchain,
+          verificationUrl: data.verificationUrl
+        });
+        setIsDetailsModalOpen(true);
+      } else {
+        toast.error("Failed to fetch credential details");
+      }
+    } catch (error) {
+      console.error("Error fetching credential details:", error);
+      toast.error("Failed to fetch credential details");
+    }
+  };
+
+  const handleViewImage = (imageUrl: string) => {
+    setSelectedImageUrl(imageUrl);
+    setIsImageModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedCredentialDetails(null);
+  };
+
+  const handleCloseImageModal = () => {
+    setIsImageModalOpen(false);
+    setSelectedImageUrl("");
+  };
+
+  // Verification handler
+  const handleVerifyCredential = async (credentialId: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institute/credentials/${credentialId}/verify`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success("Credential verified successfully!");
+        
+        // Update the credential in the list
+        setCredentials(prev => prev.map(cred => 
+          cred._id === credentialId 
+            ? { ...cred, issuerVerification: { status: 'verified' } }
+            : cred
+        ));
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to verify credential");
+      }
+    } catch (error) {
+      console.error("Error verifying credential:", error);
+      toast.error("Failed to verify credential");
     }
   };
 
@@ -236,7 +323,7 @@ export default function CredentialsPage() {
                       Verified
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {loading ? "..." : credentials.filter(c => c.status === 'verified').length}
+                      {loading ? "..." : credentials.filter(c => c.issuerVerification?.status === 'verified').length}
                     </p>
                   </div>
                   <Award className="h-8 w-8 text-green-500" />
@@ -305,7 +392,7 @@ export default function CredentialsPage() {
                           Type
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Status
+                          Issuer Verification
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           NSQF Level
@@ -356,8 +443,17 @@ export default function CredentialsPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(credential.status)}`}>
-                              {credential.status}
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              credential.issuerVerification?.status === 'verified' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                            }`}>
+                              {credential.issuerVerification?.status === 'verified' ? (
+                                <CheckCircle className="h-3 w-3" />
+                              ) : (
+                                <Clock className="h-3 w-3" />
+                              )}
+                              {credential.issuerVerification?.status || 'pending'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -368,12 +464,26 @@ export default function CredentialsPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              <button className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300">
+                              <button 
+                                className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
+                                onClick={() => handleViewCredential(credential._id)}
+                                title="View credential details"
+                              >
                                 <Eye className="h-4 w-4" />
                               </button>
-                              <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                                <Edit className="h-4 w-4" />
-                              </button>
+                              {(!credential.issuerVerification || credential.issuerVerification.status === 'pending') ? (
+                                <button 
+                                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                  onClick={() => handleVerifyCredential(credential._id)}
+                                  title="Verify credential as issuer"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </button>
+                              ) : (
+                                <div className="text-green-500" title="Verified by issuer">
+                                  <CheckCircle className="h-4 w-4" />
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -427,6 +537,19 @@ export default function CredentialsPage() {
             </div>
           </div>
         </div>
+
+        {/* Modals */}
+        <CredentialDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={handleCloseDetailsModal}
+          details={selectedCredentialDetails}
+          onViewImage={handleViewImage}
+        />
+
+        <ImageViewerModal
+          onClose={handleCloseImageModal}
+          imageUrl={isImageModalOpen ? selectedImageUrl : null}
+        />
       </div>
     </RoleGuard>
   );
