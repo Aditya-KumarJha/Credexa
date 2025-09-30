@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { uploadFile } = require('../services/storageService');
-const generateDetails = require('../services/aiService');
+const { generateDetails } = require('../services/aiService');
 
 function pickImageFromHtml($) {
   const og = $('meta[property="og:image"]').attr('content');

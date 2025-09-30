@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx nodemon server.js",
     "clear:sync": "node scripts/clearPlatformSync.js",
-    "seed:demo": "node scripts/seedDemoLearners.js"
+    "seed:demo": "node scripts/seedDemoLearners.js",
+    "seed:nsqf": "node scripts/seedNSQFData.js",
+    "seed:all": "npm run seed:demo && npm run seed:nsqf"
   },
   "keywords": [],
   "author": "",
