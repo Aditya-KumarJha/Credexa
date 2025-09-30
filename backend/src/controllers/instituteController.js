@@ -448,6 +448,8 @@ const getStudents = async (req, res) => {
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
+    
+    console.log('Search parameters:', { page, limit, search });
 
     // Build aggregation pipeline to get only students who have credentials from this institution
     let matchStage = { issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') } };
@@ -481,10 +483,23 @@ const getStudents = async (req, res) => {
     // Add search filter if provided
     if (search) {
       pipeline.push({
+        $addFields: {
+          fullNameCombined: {
+            $concat: [
+              { $ifNull: ['$userFullName.firstName', ''] },
+              ' ',
+              { $ifNull: ['$userFullName.lastName', ''] }
+            ]
+          }
+        }
+      });
+      
+      pipeline.push({
         $match: {
           $or: [
             { 'userFullName.firstName': { $regex: search, $options: 'i' } },
             { 'userFullName.lastName': { $regex: search, $options: 'i' } },
+            { fullNameCombined: { $regex: search, $options: 'i' } },
             { userEmail: { $regex: search, $options: 'i' } }
           ]
         }
@@ -535,51 +550,44 @@ const getStudents = async (req, res) => {
     // Get total count for pagination
     const totalPipeline = [
       { $match: matchStage },
-      { $group: { _id: '$user' } }
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userData'
+        }
+      },
+      { $unwind: '$userData' }
     ];
     
-    if (search) {
-      totalPipeline.splice(1, 0, {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'userData'
-        }
-      }, 
-      { $unwind: '$userData' },
-      {
-        $match: {
-          $or: [
-            { 'userData.fullName.firstName': { $regex: search, $options: 'i' } },
-            { 'userData.fullName.lastName': { $regex: search, $options: 'i' } },
-            { 'userData.email': { $regex: search, $options: 'i' } }
-          ]
-        }
-      });
-    }
-
     // Add search filter to total pipeline if provided
     if (search) {
-      totalPipeline.splice(1, 0, {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'userData'
+      totalPipeline.push({
+        $addFields: {
+          fullNameCombined: {
+            $concat: [
+              { $ifNull: ['$userData.fullName.firstName', ''] },
+              ' ',
+              { $ifNull: ['$userData.fullName.lastName', ''] }
+            ]
+          }
         }
-      }, 
-      { $unwind: '$userData' },
-      {
+      });
+      
+      totalPipeline.push({
         $match: {
           $or: [
             { 'userData.fullName.firstName': { $regex: search, $options: 'i' } },
             { 'userData.fullName.lastName': { $regex: search, $options: 'i' } },
+            { fullNameCombined: { $regex: search, $options: 'i' } },
             { 'userData.email': { $regex: search, $options: 'i' } }
           ]
         }
       });
     }
+    
+    totalPipeline.push({ $group: { _id: '$user' } });
 
     const totalResult = await Credential.aggregate(totalPipeline);
     const total = totalResult.length; // Count the number of groups (unique students)
@@ -635,15 +643,38 @@ const getCredentials = async (req, res) => {
       issuer: { $regex: new RegExp(`^${user.institute.name}$`, 'i') }
     };
 
+    // Handle search and status filtering with proper $and logic
+    const conditions = [];
+    
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      conditions.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ]
+      });
     }
 
     if (type) query.type = type;
-    if (status) query.status = status;
+    
+    if (status) {
+      if (status === 'pending') {
+        // For pending, include both documents without issuerVerification and those with pending status
+        conditions.push({
+          $or: [
+            { 'issuerVerification': { $exists: false } },
+            { 'issuerVerification.status': 'pending' }
+          ]
+        });
+      } else {
+        query['issuerVerification.status'] = status;
+      }
+    }
+
+    // Combine conditions with $and if there are multiple conditions
+    if (conditions.length > 0) {
+      query.$and = conditions;
+    }
 
     const credentials = await Credential.find(query)
       .populate('user', 'fullName email')
@@ -891,6 +922,15 @@ const getAnalytics = async (req, res) => {
       const activeStudents = activeStudentIds.length;
       const graduatedStudents = totalStudents;
 
+      // Get students who received credentials this month
+      const currentMonth = new Date();
+      currentMonth.setDate(1);
+      const studentsThisMonth = await Credential.distinct('user', { 
+        issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') },
+        createdAt: { $gte: currentMonth }
+      });
+      const newThisMonth = studentsThisMonth.length;
+
       // Monthly growth for last 6 months
       const monthlyGrowth = [];
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -929,7 +969,8 @@ const getAnalytics = async (req, res) => {
           totalStudents,
           activeStudents,
           graduatedStudents,
-          credentialsIssued
+          credentialsIssued,
+          newThisMonth
         },
         monthlyGrowth,
         skillsDistribution: skillsAggregation,

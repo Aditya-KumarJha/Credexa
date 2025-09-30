@@ -15,6 +15,7 @@ interface StudentCredential {
   skills?: string[];
   nsqfLevel?: number;
   status: 'verified' | 'pending' | 'rejected';
+  issuerVerificationStatus?: 'verified' | 'pending'; // Add issuer verification status
   imageUrl?: string;
   credentialUrl?: string;
   issuerLogo?: string;
@@ -88,25 +89,15 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
     }
   };
 
-  // Process skills data for radar chart
+  // Process skills data for radar chart - prioritize institute-specific data
   const getSkillsData = () => {
     let skillsData: { skill: string; value: number }[] = [];
 
-    // First, try to use skillsData array if available (from backend)
+    // First, try to use institute-specific skillsData array (generated from filtered credentials by backend)
     if (student.skillsData && student.skillsData.length > 0) {
       skillsData = student.skillsData.slice(0, 6);
     }
-    // Then try to use skills object if available (from backend)
-    else if (student.skills && typeof student.skills === 'object') {
-      skillsData = Object.entries(student.skills)
-        .filter(([skill, level]) => typeof level === 'number')
-        .slice(0, 6)
-        .map(([skill, level]) => ({
-          skill,
-          value: level as number
-        }));
-    }
-    // Otherwise, try to extract from credentials
+    // Fallback: extract from filtered credentials (already filtered by institute)
     else if (student.credentials && student.credentials.length > 0) {
       const skillsMap = new Map<string, number>();
       
@@ -128,6 +119,16 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
           value: Math.min(count * 20, 100) // Scale to 100 max
         }));
     }
+    // Last fallback: use general skills object (but this won't be institute-specific)
+    else if (student.skills && typeof student.skills === 'object') {
+      skillsData = Object.entries(student.skills)
+        .filter(([skill, level]) => typeof level === 'number')
+        .slice(0, 6)
+        .map(([skill, level]) => ({
+          skill,
+          value: level as number
+        }));
+    }
     
     // Fallback to default skills if none found
     if (skillsData.length === 0) {
@@ -144,9 +145,9 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
   };
 
   const skillsData = getSkillsData();
-  const verifiedCredentials = student.credentials?.filter(c => c.status === 'verified') || [];
+  const verifiedCredentials = student.credentials?.filter(c => c.issuerVerificationStatus === 'verified') || [];
   const allCredentials = student.credentials || [];
-  const pendingCredentials = student.credentials?.filter(c => c.status === 'pending') || [];
+  const pendingCredentials = student.credentials?.filter(c => c.issuerVerificationStatus === 'pending') || [];
 
   return (
     <>
@@ -340,7 +341,7 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
                               : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                           }`}
                         >
-                          Verified ({verifiedCredentials.length})
+                          Issuer Verified ({verifiedCredentials.length})
                         </button>
                         <button 
                           onClick={() => setActiveTab('pending')}
@@ -350,7 +351,7 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
                               : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                           }`}
                         >
-                          Pending ({pendingCredentials.length})
+                          Issuer Pending ({pendingCredentials.length})
                         </button>
                       </nav>
                     </div>
@@ -408,13 +409,11 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
                                   </div>
                                   <div className="flex items-center gap-2 ml-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      credential.status === 'verified' 
+                                      credential.issuerVerificationStatus === 'verified' 
                                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                        : credential.status === 'pending'
-                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                                     }`}>
-                                      {credential.status === 'verified' ? 'Verified' : credential.status === 'pending' ? 'Pending' : credential.status}
+                                      {credential.issuerVerificationStatus === 'verified' ? 'Verified' : 'Pending'}
                                     </span>
                                     <div className="flex gap-1">
                                       <button 

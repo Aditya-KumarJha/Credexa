@@ -709,28 +709,52 @@ const getUserCredentials = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Get user's credentials - try both user and userId fields for compatibility
+        // Get the current logged-in institute's name
+        const currentInstituteName = req.user?.institute?.name;
+        
+        if (!currentInstituteName) {
+            return res.status(400).json({ success: false, message: 'Institute information not found' });
+        }
+
+        // Get user's credentials - filter by current institute and user
         const credentials = await Credential.find({ 
-            $or: [
-                { user: user._id },
-                { userId: user._id }
+            $and: [
+                {
+                    $or: [
+                        { user: user._id },
+                        { userId: user._id }
+                    ]
+                },
+                { issuer: { $regex: new RegExp(`^${currentInstituteName}$`, 'i') } } // Only show credentials issued by current institute
             ]
         })
-            .select('title issuer issueDate description status verified transactionHash skills nsqfLevel type imageUrl credentialUrl issuerLogo credentialId')
+            .select('title issuer issueDate description status verified transactionHash skills nsqfLevel type imageUrl credentialUrl issuerLogo credentialId issuerVerification')
             .sort({ issueDate: -1 });
 
-        // Process skills data - convert object to radar chart format
+        // Process skills data - generate from filtered credentials (only from current institute)
         const skillsData = [];
-        if (user.skills && typeof user.skills === 'object') {
-            Object.entries(user.skills).forEach(([skill, level]) => {
-                if (typeof level === 'number') {
-                    skillsData.push({
-                        skill: skill,
-                        value: level
-                    });
-                }
+        const skillsMap = new Map();
+        
+        // Extract skills from filtered credentials
+        credentials.forEach(credential => {
+            if (credential.skills && credential.skills.length > 0) {
+                credential.skills.forEach(skill => {
+                    const count = skillsMap.get(skill) || 0;
+                    skillsMap.set(skill, count + 1);
+                });
+            }
+        });
+        
+        // Convert to radar chart format and limit to top 6 skills
+        Array.from(skillsMap.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .forEach(([skill, count]) => {
+                skillsData.push({
+                    skill: skill,
+                    value: Math.min(count * 20, 100) // Scale to 100 max, each credential adds 20 points
+                });
             });
-        }
 
         // Format the response
         const response = {
@@ -763,6 +787,7 @@ const getUserCredentials = async (req, res) => {
                     skills: cred.skills || [],
                     nsqfLevel: cred.nsqfLevel,
                     status: cred.status || (cred.verified ? 'verified' : 'pending'), // Handle both status field and verified field
+                    issuerVerificationStatus: cred.issuerVerification?.status || 'pending', // Add issuer verification status
                     imageUrl: cred.imageUrl || null,
                     credentialUrl: cred.credentialUrl || null,
                     issuerLogo: cred.issuerLogo || null,

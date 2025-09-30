@@ -88,7 +88,7 @@ export default function StudentsPage() {
           setStats({
             totalStudents: data.analytics.overview.totalStudents,
             activeStudents: data.analytics.overview.activeStudents,
-            newThisMonth: Math.floor(data.analytics.overview.totalStudents * 0.1), // Mock for now
+            newThisMonth: data.analytics.overview.newThisMonth || 0, // Use real backend data
             withCredentials: data.analytics.overview.totalStudents // All students have credentials since we only track those with credentials
           });
         }
