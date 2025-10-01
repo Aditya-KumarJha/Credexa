@@ -13,6 +13,7 @@ const {
   deleteResumeFile,
   searchLearners,
   getPublicProfile,
+  getPublicProfileSecure,
   getUserCredentials,
 } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
@@ -37,6 +38,7 @@ router.delete("/me/resume", protect, deleteResumeFile);
 // Employer/public endpoints
 router.get("/search", searchLearners); // public search for learners by q/skills
 router.get("/:id/public-profile", getPublicProfile); // public profile view for learner
+router.get("/:id/public-profile-secure", protect, getPublicProfileSecure); // secure profile view for authenticated roles
 router.get("/:id/credentials", protect, getUserCredentials); // get student credentials for institute dashboard
 
 module.exports = router;

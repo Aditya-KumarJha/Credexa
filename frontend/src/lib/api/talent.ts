@@ -29,3 +29,8 @@ export async function fetchPublicProfile(userId: string) {
   const res = await api.get(`/api/users/${userId}/public-profile`);
   return res.data as { success: boolean; candidate: CandidateProfile };
 }
+
+export async function fetchPublicProfileSecure(userId: string) {
+  const res = await api.get(`/api/users/${userId}/public-profile-secure`);
+  return res.data as { success: boolean; candidate: CandidateProfile };
+}

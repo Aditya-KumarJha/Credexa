@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Select, Button, Tabs, Tag, Avatar, ConfigProvider, theme } from "antd";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
@@ -10,7 +10,7 @@ import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useTheme } from "next-themes";
-import { searchLearners as apiSearchLearners, fetchPublicProfile } from "@/lib/api/talent";
+import { searchLearners as apiSearchLearners, fetchPublicProfile, fetchPublicProfileSecure } from "@/lib/api/talent";
 
 // Types
 interface CandidateSkill {
@@ -389,6 +389,35 @@ const CandidateProfile: React.FC<CandidateProfileProps> = ({ candidate, onBack }
   if (!candidate) return null;
 
   const { token } = theme.useToken();
+  const [contact, setContact] = useState<{ email: string | null; phone: string | null }>({ email: candidate.email, phone: candidate.phone });
+
+  // Static fetch to ensure latest contact details
+  useEffect(() => {
+    let mounted = true;
+    // Try secure endpoint first (requires auth), then fallback to public
+    fetchPublicProfileSecure(candidate.id)
+      .then((res) => {
+        if (!mounted) return;
+        const nextEmail = res?.candidate?.email ?? null;
+        const nextPhone = res?.candidate?.phone ?? null;
+        setContact({ email: nextEmail, phone: nextPhone });
+      })
+      .catch(() => {
+        fetchPublicProfile(candidate.id)
+          .then((res2) => {
+            if (!mounted) return;
+            const nextEmail = res2?.candidate?.email ?? null;
+            const nextPhone = res2?.candidate?.phone ?? null;
+            setContact({ email: nextEmail, phone: nextPhone });
+          })
+          .catch(() => {
+            // keep existing values on error
+          });
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [candidate.id]);
   const tabItems = [
     {
       key: "1",
@@ -456,10 +485,10 @@ const CandidateProfile: React.FC<CandidateProfileProps> = ({ candidate, onBack }
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Quick Data</h3>
             <div className="space-y-2 text-gray-700 dark:text-gray-300">
               <p>
-                <strong>Email:</strong> {candidate.email}
+                <strong>Email:</strong> {contact.email ?? "—"}
               </p>
               <p>
-                <strong>Phone:</strong> {candidate.phone}
+                <strong>Phone:</strong> {contact.phone ?? "—"}
               </p>
             </div>
           </div>

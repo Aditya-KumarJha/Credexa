@@ -637,7 +637,7 @@ const getPublicProfile = async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findById(userId)
-            .select('fullName username email institute profileImage profilePic avatar settings role')
+            .select('fullName username email phone institute profileImage profilePic avatar settings role')
             .lean();
         if (!user || user.role !== 'learner') {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -670,7 +670,7 @@ const getPublicProfile = async (req, res) => {
         const eff = Math.min(120, Math.max(70, credentialCount * 8 + 70));
         const soc = Math.min(120, Math.max(70, Object.keys(skillCounts).length * 3 + 70));
 
-        // Privacy for email exposure
+    // Privacy for email exposure
         const showEmail = user.settings?.privacy?.showEmail === true;
 
         res.json({
@@ -685,7 +685,7 @@ const getPublicProfile = async (req, res) => {
                 skills: radar,
                 topSkills: entries.slice(0, 3).map(e => e[0]),
                 email: showEmail ? user.email : null,
-                phone: null,
+                phone: user.phone || null,
                 verifiedCredentials: verifiedCreds.map(c => ({ id: `${c._id}`, issuer: c.issuer, name: c.title, date: c.issueDate })),
                 onChainVerified: creds.some(c => !!c.transactionHash),
             }
@@ -695,6 +695,74 @@ const getPublicProfile = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch public profile' });
     }
 };
+
+// GET /api/users/:id/public-profile-secure (protected)
+// For authenticated roles (employer/institute) we expose email regardless of user's showEmail flag
+const getPublicProfileSecure = async (req, res) => {
+    try {
+        const requester = req.user; // set by protect middleware
+        if (!requester) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+        const userId = req.params.id;
+        const user = await User.findById(userId)
+            .select('fullName username email phone institute profileImage profilePic avatar settings role')
+            .lean();
+        if (!user || user.role !== 'learner') {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const { displayName, displayAvatar, isProfilePublic } = buildPublicIdentity(user);
+        if (!isProfilePublic) {
+            return res.status(403).json({ success: false, message: 'This profile is private' });
+        }
+
+        const creds = await Credential.find({ user: user._id })
+            .select('title issuer issueDate skills status transactionHash')
+            .lean();
+        const verifiedCreds = creds.filter(c => c.status === 'verified');
+
+        const skillCounts = {};
+        creds.forEach(c => (c.skills || []).forEach(s => { skillCounts[s] = (skillCounts[s] || 0) + 1; }));
+        const entries = Object.entries(skillCounts).sort((a, b) => b[1] - a[1]);
+        const topSkills = entries.slice(0, 6);
+        const maxCount = topSkills[0]?.[1] || 1;
+        const radar = topSkills.map(([skill, count]) => ({ subject: skill, A: Math.round((count / maxCount) * 100), fullMark: 100 }));
+
+        const points = calculateUserPoints(creds);
+        const credentialCount = creds.length;
+        const perf = Math.min(100, Math.max(60, Math.floor(points / 50) + 60));
+        const eff = Math.min(120, Math.max(70, credentialCount * 8 + 70));
+        const soc = Math.min(120, Math.max(70, Object.keys(skillCounts).length * 3 + 70));
+
+        // Expose email to employer/institute, otherwise fallback to showEmail
+        const requesterRole = requester.role;
+        const canSeeEmail = requesterRole === 'employer' || requesterRole === 'institute' || user.settings?.privacy?.showEmail === true;
+
+        res.json({
+            success: true,
+            candidate: {
+                id: user._id.toString(),
+                name: displayName,
+                username: user.username || ((user.fullName?.firstName || '') + (user.fullName?.lastName || '')),
+                avatarUrl: displayAvatar,
+                role: `${(entries[0]?.[0] || 'General')} Professional`,
+                scores: { efficiency: eff, social: soc, performance: perf },
+                skills: radar,
+                topSkills: entries.slice(0, 3).map(e => e[0]),
+                email: canSeeEmail ? user.email : null,
+                phone: user.phone || null,
+                verifiedCredentials: verifiedCreds.map(c => ({ id: `${c._id}`, issuer: c.issuer, name: c.title, date: c.issueDate })),
+                onChainVerified: creds.some(c => !!c.transactionHash),
+            }
+        });
+    } catch (err) {
+        console.error('Get secure public profile error:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch public profile' });
+    }
+};
+
+module.exports.getPublicProfileSecure = getPublicProfileSecure;
 
 // Get student credentials for institute dashboard
 const getUserCredentials = async (req, res) => {
