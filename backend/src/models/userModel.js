@@ -90,7 +90,7 @@ const userSchema = new mongoose.Schema(
       district: { type: String, trim: true },
       university_name: { type: String, trim: true },
       addedAt: { type: Date },
-      isVerified: { type: Boolean, default: true }, // false if manually added, pending admin approval
+      isVerified: { type: Boolean, default: false }, // false by default, true only when verified
       issuerType: { 
         type: String, 
         enum: ['university', 'training-provider', 'edtech'], 

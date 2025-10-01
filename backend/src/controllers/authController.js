@@ -39,6 +39,7 @@ const register = async (req, res) => {
     await PendingUser.deleteOne({ email });
 
     const otpCode = generateOtp();
+    console.log("Generated OTP for signup:", otpCode);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await PendingUser.create({
@@ -83,6 +84,7 @@ const login = async (req, res) => {
     }
 
     const otpCode = generateOtp();
+    console.log("Generated OTP for login:", otpCode);
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
     user.otp = { code: otpCode, expiresAt, lastSentAt: now };
@@ -507,7 +509,7 @@ const selectRole = async (req, res) => {
       const instituteData = {
         name: institute.name,
         addedAt: institute.addedAt || new Date(),
-        isVerified: institute.isVerified || false,
+        isVerified: false, // Always false by default, will be set to true only when institute is properly verified
         issuerType: institute.issuerType || 'university'
       };
 

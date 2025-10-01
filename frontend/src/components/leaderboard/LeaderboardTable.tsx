@@ -175,7 +175,7 @@ const LeaderboardTable = memo(function LeaderboardTable({ list, loading, isDark,
             type="link" 
             size="small" 
             style={{ color: isDark ? undefined : "#007BFF" }} 
-            onClick={() => router.push(`/dashboard/profile?user=${rec.id}`)}
+            onClick={() => router.push(`/profile/${rec.id}`)}
           >
             View
           </AntButton>
