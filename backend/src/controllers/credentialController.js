@@ -4,6 +4,7 @@ const { anchorNewCredential, verifyCredential } = require('../services/blockchai
 const { uploadFile, deleteFile } = require('../services/storageService');
 const { extractCredentialInfo } = require('../services/extractionService');
 const NSQFService = require('../services/nsqfService');
+const { generatePdfPreview, getFileType } = require('../services/pdfPreviewService');
 
 
 // --- EXISTING DATABASE FUNCTIONS (UNCHANGED) ---
@@ -61,6 +62,25 @@ const createCredential = async (req, res) => {
     }
 
     const created = await Credential.create(payload);
+    
+    // Generate PDF preview if the credential URL is a PDF and no image was uploaded
+    if (!req.file && payload.credentialUrl) {
+      try {
+        const fileType = getFileType(payload.credentialUrl);
+        if (fileType === 'pdf') {
+          console.log('🔄 Generating PDF preview for credential:', created._id);
+          const previewUrl = await generatePdfPreview(payload.credentialUrl, created._id.toString());
+          if (previewUrl) {
+            created.imageUrl = previewUrl;
+            await created.save();
+            console.log('✅ PDF preview generated and saved:', previewUrl);
+          }
+        }
+      } catch (previewError) {
+        console.warn('⚠️ Failed to generate PDF preview:', previewError.message);
+        // Don't fail the whole request if preview generation fails
+      }
+    }
     
     // Update NSQF skill progress if credential has NSQF data
     try {

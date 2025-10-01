@@ -1,8 +1,23 @@
 import React from "react";
 import { Modal, Spin } from "antd";
-import { Shield, Award, Calendar, CheckCircle, Link, ExternalLink, Eye } from "lucide-react";
+import { Shield, Award, Calendar, CheckCircle, Link, ExternalLink, Eye, FileText } from "lucide-react";
 import dayjs from "dayjs";
 import { CredentialDetails } from "@/types/credentials";
+
+// Utility functions for file type detection
+const isPdfUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return urlLower.includes('.pdf') || urlLower.includes('pdf');
+};
+
+const isImageUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(urlLower) || 
+         urlLower.includes('imagekit.io') || 
+         urlLower.includes('cloudinary.com');
+};
 
 interface CredentialDetailsModalProps {
   isOpen: boolean;
@@ -204,25 +219,48 @@ export const CredentialDetailsModal: React.FC<CredentialDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Certificate Image */}
-        {details.credential.imageUrl && (
+        {/* Certificate Image or PDF */}
+        {(details.credential.imageUrl || details.credential.credentialUrl) && (
           <div className="border border-border rounded-lg p-4 bg-card">
-            <h3 className="text-lg font-semibold mb-3 text-foreground">Certificate Image</h3>
-            <div
-              className="w-full h-64 relative rounded-lg overflow-hidden bg-background border cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => onViewImage(details.credential.imageUrl!)}
-            >
-              <img
-                src={details.credential.imageUrl}
-                alt={`${details.credential.title} certificate`}
-                className="w-full h-full object-contain"
-              />
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-                <div className="bg-background/90 backdrop-blur-sm rounded-full p-3 opacity-0 hover:opacity-100 transition-opacity border">
-                  <Eye className="w-6 h-6 text-foreground" />
+            <h3 className="text-lg font-semibold mb-3 text-foreground">Certificate</h3>
+            {isImageUrl(details.credential.imageUrl) ? (
+              <div
+                className="w-full h-64 relative rounded-lg overflow-hidden bg-background border cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => onViewImage(details.credential.imageUrl!)}
+              >
+                <img
+                  src={details.credential.imageUrl}
+                  alt={`${details.credential.title} certificate`}
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="bg-background/90 backdrop-blur-sm rounded-full p-3 opacity-0 hover:opacity-100 transition-opacity border">
+                    <Eye className="w-6 h-6 text-foreground" />
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : isPdfUrl(details.credential.credentialUrl || details.credential.imageUrl) ? (
+              <div className="w-full h-64 flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-lg border">
+                <div className="text-center">
+                  <FileText className="w-16 h-16 text-red-600 dark:text-red-400 mx-auto mb-4" />
+                  <p className="text-red-700 dark:text-red-300 font-medium mb-4">PDF Certificate</p>
+                  <button
+                    onClick={() => window.open(details.credential.credentialUrl || details.credential.imageUrl, '_blank')}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View PDF
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-64 flex items-center justify-center bg-background border rounded-lg">
+                <div className="text-center">
+                  <Award className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Certificate file not available</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

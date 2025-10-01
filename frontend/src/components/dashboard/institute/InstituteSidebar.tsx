@@ -13,6 +13,7 @@ import {
   BookOpen,
   FileText,
   Shield,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -52,6 +53,7 @@ export default function InstituteSidebar() {
     if (pathname.startsWith("/dashboard/institute/credentials")) return "credentials";
     if (pathname.startsWith("/dashboard/institute/courses")) return "courses";
     if (pathname.startsWith("/dashboard/institute/analytics")) return "analytics";
+    if (pathname.startsWith("/dashboard/institute/api-integration")) return "api-integration";
     if (pathname.startsWith("/dashboard/institute/compliance")) return "compliance";
     if (pathname.startsWith("/dashboard/institute/settings")) return "settings";
     if (pathname === "/dashboard/institute" || pathname === "/dashboard") return "dashboard";
@@ -106,6 +108,14 @@ export default function InstituteSidebar() {
         <BarChart3 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
       onClick: () => handleNavigate("/dashboard/institute/analytics"),
+    },
+    {
+      label: "API Integration",
+      href: "#",
+      icon: (
+        <Zap className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+      onClick: () => handleNavigate("/dashboard/institute/api-integration"),
     },
     {
       label: "Compliance",

@@ -2,8 +2,23 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
-import { X, Download, Mail, Phone, MapPin, Calendar, Award, Star, ExternalLink, Eye, Globe } from "lucide-react";
+import { X, Download, Mail, Phone, MapPin, Calendar, Award, Star, ExternalLink, Eye, Globe, FileText } from "lucide-react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+
+// Utility functions for file type detection
+const isPdfUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return urlLower.includes('.pdf') || urlLower.includes('pdf');
+};
+
+const isImageUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(urlLower) || 
+         urlLower.includes('imagekit.io') || 
+         urlLower.includes('cloudinary.com');
+};
 
 interface StudentCredential {
   _id: string;
@@ -509,7 +524,7 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
 
             {/* Certificate Content */}
             <div className="p-6 max-h-[70vh] overflow-auto">
-              {selectedCredential.imageUrl ? (
+              {selectedCredential.imageUrl && isImageUrl(selectedCredential.imageUrl) ? (
                 <div className="flex justify-center mb-6">
                   <img
                     src={selectedCredential.imageUrl}
@@ -517,12 +532,28 @@ export default function StudentProfileModal({ student, isOpen, onClose }: Studen
                     className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
                   />
                 </div>
+              ) : isPdfUrl(selectedCredential.credentialUrl || selectedCredential.imageUrl) ? (
+                <div className="flex justify-center items-center h-64 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-lg mb-6">
+                  <div className="text-center">
+                    <FileText className="h-16 w-16 text-red-600 dark:text-red-400 mx-auto mb-4" />
+                    <p className="text-red-700 dark:text-red-300 font-medium mb-4">
+                      PDF Certificate
+                    </p>
+                    <button
+                      onClick={() => window.open(selectedCredential.credentialUrl || selectedCredential.imageUrl, '_blank')}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View PDF Certificate
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex justify-center items-center h-64 bg-gray-100 dark:bg-gray-700 rounded-lg mb-6">
                   <div className="text-center">
                     <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 dark:text-gray-400">
-                      Certificate image not available
+                      Certificate file not available
                     </p>
                   </div>
                 </div>

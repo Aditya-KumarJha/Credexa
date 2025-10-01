@@ -16,10 +16,26 @@ import {
   Share2,
   QrCode,
   Copy,
+  FileText,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { Credential, CredentialStatus } from "@/types/credentials";
 import { QRCodeCanvas } from "qrcode.react";
+
+// Utility functions for file type detection
+const isPdfUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return urlLower.includes('.pdf') || urlLower.includes('pdf');
+};
+
+const isImageUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(urlLower) || 
+         urlLower.includes('imagekit.io') || 
+         urlLower.includes('cloudinary.com');
+};
 
 interface CredentialCardProps {
   credential: Credential;
@@ -254,24 +270,49 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({
           )}
         </div>
 
-        {/* Certificate Image */}
-        {c.imageUrl && (
-          <div
-            className="w-full h-40 relative rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity shadow-sm mb-4"
-            onClick={() => onViewImage(c.imageUrl!)}
-          >
-            <img
-              src={c.imageUrl}
-              alt={`${c.title} certificate`}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-            />
-            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-              <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 hover:opacity-100 transition-opacity">
-                <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                </svg>
+        {/* Certificate Image or PDF Preview */}
+        {(c.imageUrl || c.credentialUrl) && (
+          <div className="w-full h-40 relative rounded-lg overflow-hidden bg-muted shadow-sm mb-4">
+            {isImageUrl(c.imageUrl) ? (
+              // Display actual image
+              <div
+                className="w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => c.imageUrl && onViewImage(c.imageUrl)}
+              >
+                <img
+                  src={c.imageUrl}
+                  alt={`${c.title} certificate`}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 hover:opacity-100 transition-opacity">
+                    <Eye className="w-5 h-5 text-gray-700" />
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : isPdfUrl(c.credentialUrl || c.imageUrl) ? (
+              // Display PDF placeholder with preview
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20">
+                <div className="text-center">
+                  <FileText className="w-12 h-12 text-red-600 dark:text-red-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">PDF Certificate</p>
+                  <button
+                    onClick={() => window.open(c.credentialUrl || c.imageUrl, '_blank')}
+                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md transition-colors"
+                  >
+                    View PDF
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Display placeholder for unknown file types
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
+                <div className="text-center">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Certificate File</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
