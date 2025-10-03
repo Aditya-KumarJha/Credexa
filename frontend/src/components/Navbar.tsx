@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
   X,
-  Settings,
   ShieldCheck,
   Search,
   BarChart2,
@@ -37,7 +36,6 @@ const Navbar = () => {
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/explore", label: "Explore", icon: Search },
   { href: "/community", label: "Community", icon: UsersIcon },
-  { href: "/settings", label: "Settings", icon: Settings },
   { href: "/#contact", label: "Contact Us", icon: Phone },
   ];
 
