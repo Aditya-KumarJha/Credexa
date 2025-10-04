@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ConfigProvider, theme, Card, Row, Col, Statistic, Segmented, Badge } from "antd";
 import { useTheme } from "next-themes";
 import { motion } from "motion/react";
@@ -8,6 +8,8 @@ import EmployerSidebar from "@/components/dashboard/employer/EmployerSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
+import api from "@/utils/axios";
+import type { AxiosError } from "axios";
 import {
   LineChart,
   Line,
@@ -37,45 +39,70 @@ const AnalyticsPage: React.FC = () => {
 
   const algorithm = isDark ? theme.darkAlgorithm : theme.defaultAlgorithm;
 
-  // Sample analytics data; replace with API when backend is ready
-  const kpis = {
-    candidatesHired: 28,
-    credentialsVerified: 312,
-    profileSearches: 1587,
-    interviewsScheduled: 64,
-    offerAcceptance: 78, // %
+  // Types
+  type KPI = {
+    candidatesHired: number | null;
+    credentialsVerified: number;
+    profileSearches: number | null;
+    interviewsScheduled: number | null;
+    offerAcceptance: number | null;
   };
+  type TimePoint = { date: string; count: number };
+  type CredByType = { type: string; count: number };
+  type HireSource = { name: string; value: number };
+  type PipelinePoint = { stage: string; value: number };
 
-  const searchesOverTime = [
-    { day: "Mon", searches: 210 },
-    { day: "Tue", searches: 245 },
-    { day: "Wed", searches: 260 },
-    { day: "Thu", searches: 300 },
-    { day: "Fri", searches: 310 },
-    { day: "Sat", searches: 270 },
-    { day: "Sun", searches: 240 },
-  ];
+  // Local state for analytics
+  const [range, setRange] = useState<string>("7d");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [kpis, setKpis] = useState<KPI>({
+    candidatesHired: null,
+    credentialsVerified: 0,
+    profileSearches: null,
+    interviewsScheduled: null,
+    offerAcceptance: null,
+  });
+  const [searchesOverTime, setSearchesOverTime] = useState<TimePoint[]>([]);
+  const [credsByType, setCredsByType] = useState<CredByType[]>([]);
+  const [hireSources, setHireSources] = useState<HireSource[]>([]);
+  const [pipeline, setPipeline] = useState<PipelinePoint[]>([]);
 
-  const credsByType = [
-    { type: "Certificates", count: 180 },
-    { type: "Degrees", count: 54 },
-    { type: "Badges", count: 78 },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await api.get(`/api/employer/analytics`, { params: { range } });
+        const data = res.data?.data;
+        if (!mounted || !data) return;
+        setKpis(data.kpis || {});
+        setSearchesOverTime(data.searchesOverTime || []);
+        setCredsByType(data.credsByType || []);
+        setHireSources(data.hireSources || []);
+        setPipeline(data.pipeline || []);
+      } catch (e: unknown) {
+        let respMessage = 'Failed to load analytics';
+        const isAxiosErr = (err: unknown): err is AxiosError<{ message?: string }> =>
+          typeof err === 'object' && err !== null && 'isAxiosError' in err;
 
-  const hireSources = [
-    { name: "Search", value: 44 },
-    { name: "Referral", value: 28 },
-    { name: "Campaigns", value: 18 },
-    { name: "Other", value: 10 },
-  ];
-
-  const pipeline = [
-    { stage: "Applied", value: 420 },
-    { stage: "Screened", value: 300 },
-    { stage: "Interview", value: 160 },
-    { stage: "Offer", value: 90 },
-    { stage: "Hired", value: 28 },
-  ];
+        if (isAxiosErr(e)) {
+          const maybeResp = e.response?.data;
+          respMessage = maybeResp?.message || e.message || respMessage;
+          console.error('Fetch employer analytics failed:', maybeResp || e.message);
+        } else {
+          console.error('Fetch employer analytics failed:', e);
+        }
+        if (!mounted) return;
+        setError(respMessage);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetchAnalytics();
+    return () => { mounted = false; };
+  }, [range]);
 
   const colors = useMemo(() => {
     const seed = {
@@ -132,16 +159,16 @@ const AnalyticsPage: React.FC = () => {
           </div>
           <Segmented
             options={["7d", "30d", "90d"]}
-            defaultValue="7d"
-            onChange={() => {}}
+            value={range}
+            onChange={(val) => setRange(String(val))}
           />
         </motion.div>
 
-        {/* KPI Row */}
+  {/* KPI Row */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={6}>
             <Card variant="outlined" hoverable>
-              <Statistic title="Candidates Hired" value={kpis.candidatesHired} suffix={<Badge color="green" />} />
+              <Statistic title="Candidates Hired" value={kpis.candidatesHired ?? 0} suffix={<Badge color="green" />} />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -151,29 +178,33 @@ const AnalyticsPage: React.FC = () => {
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card variant="outlined" hoverable>
-              <Statistic title="Profile Searches" value={kpis.profileSearches} />
+              <Statistic title="Profile Searches" value={kpis.profileSearches ?? 0} />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card variant="outlined" hoverable>
-              <Statistic title="Interviews Scheduled" value={kpis.interviewsScheduled} />
+              <Statistic title="Interviews Scheduled" value={kpis.interviewsScheduled ?? 0} />
             </Card>
           </Col>
         </Row>
+
+        {error && (
+          <div className="mt-2 text-sm text-red-500">{error}</div>
+        )}
 
         {/* Charts Grid */}
         <Row gutter={[16, 16]} className="mt-2">
           {/* Line: Searches over time */}
           <Col xs={24} lg={12}>
-            <Card title="Profile Searches (Last 7 days)" variant="outlined" hoverable>
+            <Card title={`Activity (last ${range})`} variant="outlined" hoverable loading={loading}>
               <div style={{ height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={searchesOverTime} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <LineChart data={searchesOverTime.map(d => ({ label: d.date, count: d.count }))} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} opacity={0.5} />
-                    <XAxis dataKey="day" tick={axisTick} />
+                    <XAxis dataKey="label" tick={axisTick} />
                     <YAxis tick={axisTick} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="searches" stroke={colors.primary} strokeWidth={3} dot={false} />
+                    <Line type="monotone" dataKey="count" stroke={colors.primary} strokeWidth={3} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -182,7 +213,7 @@ const AnalyticsPage: React.FC = () => {
 
           {/* Bar: Credentials by type */}
           <Col xs={24} lg={12}>
-            <Card title="Credentials Verified by Type" variant="outlined" hoverable>
+            <Card title="Credentials Verified by Type" variant="outlined" hoverable loading={loading}>
               <div style={{ height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={credsByType} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -191,9 +222,9 @@ const AnalyticsPage: React.FC = () => {
                     <YAxis tick={axisTick} />
                     <Tooltip />
                     <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                      <Cell key="cell-0" fill={colors.success} />
-                      <Cell key="cell-1" fill={colors.violet} />
-                      <Cell key="cell-2" fill={colors.cyan} />
+                      {credsByType.map((_, idx) => (
+                        <Cell key={`cell-${idx}`} fill={[colors.success, colors.violet, colors.cyan, colors.pink][idx % 4]} />
+                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -203,7 +234,7 @@ const AnalyticsPage: React.FC = () => {
 
           {/* Area: Candidate pipeline */}
           <Col xs={24} lg={14}>
-            <Card title="Candidate Pipeline" variant="outlined" hoverable>
+            <Card title="Candidate Pipeline (proxy)" variant="outlined" hoverable loading={loading}>
               <div style={{ height: 280 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={pipeline} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -226,7 +257,7 @@ const AnalyticsPage: React.FC = () => {
 
           {/* Pie: Hire sources */}
           <Col xs={24} lg={10}>
-            <Card title="Hire Sources" variant="outlined" hoverable>
+            <Card title="Hire Sources" variant="outlined" hoverable loading={loading}>
               <div style={{ height: 280 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -245,7 +276,7 @@ const AnalyticsPage: React.FC = () => {
 
           {/* Radial: Offer Acceptance */}
           <Col xs={24}>
-            <Card title="Offer Acceptance Rate" variant="outlined" hoverable>
+            <Card title="Offer Acceptance Rate" variant="outlined" hoverable loading={loading}>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RadialBarChart
@@ -254,7 +285,7 @@ const AnalyticsPage: React.FC = () => {
                     innerRadius="60%"
                     outerRadius="90%"
                     barSize={18}
-                    data={[{ name: "Acceptance", value: kpis.offerAcceptance }]}
+                    data={[{ name: "Acceptance", value: kpis.offerAcceptance ?? 0 }]}
                   >
                     <RadialBar dataKey="value" fill={colors.success} />
                     <Legend
@@ -262,7 +293,7 @@ const AnalyticsPage: React.FC = () => {
                       layout="vertical"
                       verticalAlign="middle"
                       align="right"
-                      formatter={() => `${kpis.offerAcceptance}%`}
+                      formatter={() => `${kpis.offerAcceptance ?? 0}%`}
                     />
                   </RadialBarChart>
                 </ResponsiveContainer>

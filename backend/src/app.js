@@ -66,6 +66,7 @@ const certificateRoutes = require('./routes/certificateRoutes');
 const nsqfRoutes = require('./routes/nsqfRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const externalApiRoutes = require('./routes/externalApiRoutes');
+const employerRoutes = require('./routes/employerRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -79,6 +80,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/nsqf', nsqfRoutes);
 app.use('/api/manage', apiRoutes); // API key management routes
 app.use('/api/external', externalApiRoutes); // External API routes for credential submission
+app.use('/api/employer', employerRoutes); // Employer analytics and related routes
 
 app.get('/', (req, res) => res.send('API is running'));
 
