@@ -2,7 +2,6 @@
 
 import {
   Building2,
-  Users,
   LogOut,
   Search,
   FileCheck,
@@ -11,7 +10,6 @@ import {
   Home,
   ChevronsRight,
   ChevronsLeft,
-  UserCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -47,6 +45,7 @@ export default function EmployerSidebar() {
   const getSelectedKey = () => {
     if (!pathname) return "home";
     if (pathname === "/") return "home";
+    if (pathname.startsWith("/dashboard/employer/jobs")) return "post-job";
     if (pathname.startsWith("/dashboard/employer/talent-search")) return "talent-search";
     if (pathname.startsWith("/dashboard/employer/verify-credentials")) return "verify-credentials";
     if (pathname.startsWith("/dashboard/employer/analytics")) return "analytics";
@@ -71,6 +70,14 @@ export default function EmployerSidebar() {
         <Building2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
       onClick: () => handleNavigate("/dashboard/employer"),
+    },
+    {
+      label: "Post Job",
+      href: "#",
+      icon: (
+        <Building2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+      onClick: () => handleNavigate("/dashboard/employer/jobs/new"),
     },
     {
       label: "Talent Search",

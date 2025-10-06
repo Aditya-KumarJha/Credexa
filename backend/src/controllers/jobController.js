@@ -1,4 +1,5 @@
 const axios = require('axios');
+const Job = require('../models/jobModel');
 
 // Static fallback data in case ML service is unavailable
 const staticJobs = [
@@ -416,6 +417,64 @@ const testMLService = async (req, res) => {
 };
 
 module.exports = {
+  // Create a new job post (Employer)b
+  createJob: async (req, res) => {
+    try {
+      const employerId = req.user?.id;
+      if (!employerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      const {
+        jobTitle,
+        package: pkg,
+        location,
+        qualification,
+        experience,
+        description,
+        skills = [],
+        contactEmail,
+        contactPhone,
+        status = 'published',
+      } = req.body;
+
+      if (!jobTitle || !pkg || !location || !qualification || !experience || !description || !contactEmail || !contactPhone) {
+        return res.status(400).json({ success: false, message: 'Missing required fields' });
+      }
+
+      const job = await Job.create({
+        employer: employerId,
+        jobTitle,
+        package: pkg,
+        location,
+        qualification,
+        experience,
+        description,
+        skills: Array.isArray(skills) ? skills : String(skills).split(',').map(s => s.trim()).filter(Boolean),
+        contactEmail,
+        contactPhone,
+        status,
+      });
+
+      return res.status(201).json({ success: true, job });
+    } catch (error) {
+      console.error('❌ Error creating job:', error);
+      res.status(500).json({ success: false, message: 'Failed to create job', error: error.message });
+    }
+  },
+
+  // List current employer's jobs
+  listMyJobs: async (req, res) => {
+    try {
+      const employerId = req.user?.id;
+      if (!employerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      const jobs = await Job.find({ employer: employerId }).sort({ createdAt: -1 });
+      res.json({ success: true, jobs });
+    } catch (error) {
+      console.error('❌ Error listing jobs:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch jobs', error: error.message });
+    }
+  },
+
   searchJobs,
   getJobRecommendations,
   testMLService
