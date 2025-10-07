@@ -32,3 +32,18 @@ dist/
 # Misc
 *.swp
 *.lock
+
+# ML Model files (large binary files)
+fraud_temp/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
