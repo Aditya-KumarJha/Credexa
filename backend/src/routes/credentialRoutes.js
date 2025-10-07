@@ -42,6 +42,10 @@ router.use(protect);
 // Certificate extraction route
 router.post('/extract', upload.single('certificateFile'), extractCertificateInfo);
 
+// Forensics endpoint - run fraud detection on a credential image and return result
+const { runForensicsOnCredential } = require('../controllers/fraudController');
+router.get('/:id/forensics', runForensicsOnCredential);
+
 // --- EXISTING DATABASE ROUTES (UNCHANGED) ---
 router.get('/', listCredentials);
 router.get('/:id', getCredentialDetails);
