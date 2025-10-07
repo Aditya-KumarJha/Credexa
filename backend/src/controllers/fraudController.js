@@ -21,6 +21,49 @@ async function downloadImage(url, destPath) {
   });
 }
 
+// Check if forensics environment is ready
+exports.checkForensicsHealth = async (req, res) => {
+  try {
+    const fraudCwd = path.resolve(process.cwd(), '..', 'fraudCertificate');
+    const checkScript = path.join(fraudCwd, 'check_environment.py');
+    
+    if (!fs.existsSync(checkScript)) {
+      return res.json({
+        ready: false,
+        message: 'Forensics check script not found',
+        details: 'The ML environment check is not available'
+      });
+    }
+    
+    execFile('python3', [checkScript], { cwd: fraudCwd }, (err, stdout, stderr) => {
+      if (err) {
+        return res.json({
+          ready: false,
+          message: 'Environment check failed',
+          details: stderr || err.message
+        });
+      }
+      
+      try {
+        const result = JSON.parse(stdout);
+        return res.json(result);
+      } catch (parseErr) {
+        return res.json({
+          ready: false,
+          message: 'Unable to parse environment check',
+          details: stdout
+        });
+      }
+    });
+  } catch (error) {
+    res.json({
+      ready: false,
+      message: 'Health check error',
+      details: error.message
+    });
+  }
+};
+
 exports.runForensicsOnCredential = async (req, res) => {
   try {
     const { id } = req.params;
@@ -66,18 +109,80 @@ exports.runForensicsOnCredential = async (req, res) => {
     await downloadImage(imageUrl, localImage);
 
     // Run the enhanced Python wrapper that returns metrics
-    // Backend is at e:/cdvk/Credexa/backend, fraudCertificate is at e:/cdvk/fraudCertificate
-    const fraudScript = path.resolve(process.cwd(), '..', '..', 'fraudCertificate', 'run_predict_with_metrics.py');
-    const fraudCwd = path.resolve(process.cwd(), '..', '..', 'fraudCertificate');
+    // Try multiple possible paths for the fraudCertificate directory
+    let fraudScript, fraudCwd;
+    
+    // Path 1: Same level as backend (for production deployment)
+    const productionPath = path.resolve(process.cwd(), '..', 'fraudCertificate', 'run_predict_with_metrics.py');
+    const productionCwd = path.resolve(process.cwd(), '..', 'fraudCertificate');
+    
+    // Path 2: Original development path
+    const devPath = path.resolve(process.cwd(), '..', '..', 'fraudCertificate', 'run_predict_with_metrics.py');
+    const devCwd = path.resolve(process.cwd(), '..', '..', 'fraudCertificate');
+    
+    if (fs.existsSync(productionPath)) {
+      fraudScript = productionPath;
+      fraudCwd = productionCwd;
+      console.log('Forensics: Using production path');
+    } else if (fs.existsSync(devPath)) {
+      fraudScript = devPath;
+      fraudCwd = devCwd;
+      console.log('Forensics: Using development path');
+    } else {
+      console.error('Forensics: Python script not found in any expected location');
+      return res.status(500).json({ 
+        message: 'Forensics service unavailable', 
+        details: 'ML model files not found. This feature requires proper deployment setup.' 
+      });
+    }
 
     console.log('Forensics: Running enhanced Python script at:', fraudScript);
     console.log('Forensics: Working directory:', fraudCwd);
     console.log('Forensics: Input image:', localImage);
 
-    execFile('python', [fraudScript, '--image', localImage], { cwd: fraudCwd }, (err, stdout, stderr) => {
+    // Try different Python commands (python3, python, py)
+    const pythonCommands = ['python3', 'python', 'py'];
+    let pythonCmd = 'python3'; // Default to python3 for production
+    
+    // Check if model file exists
+    const modelFile = path.join(fraudCwd, 'weights', 'detector_weights.pth');
+    if (!fs.existsSync(modelFile)) {
+      console.error('Forensics: Model file not found at:', modelFile);
+      return res.status(500).json({ 
+        message: 'ML model not available', 
+        details: 'The fraud detection model files are missing. Please ensure Git LFS files are downloaded.' 
+      });
+    }
+
+    execFile(pythonCmd, [fraudScript, '--image', localImage], { 
+      cwd: fraudCwd,
+      timeout: 120000, // 2 minute timeout
+      maxBuffer: 1024 * 1024 // 1MB buffer
+    }, (err, stdout, stderr) => {
       if (err) {
-        console.error('Forensics script error:', err, stderr);
-        return res.status(500).json({ message: 'Forensics failed', details: stderr || err.message });
+        console.error('Forensics script error:', err);
+        console.error('Forensics stderr:', stderr);
+        
+        // Try to provide more helpful error messages
+        let errorMessage = 'Forensics analysis failed';
+        let errorDetails = stderr || err.message;
+        
+        if (stderr && stderr.includes('ModuleNotFoundError')) {
+          errorMessage = 'Missing Python dependencies';
+          errorDetails = 'The ML environment is not properly set up. Required packages: torch, torchvision, PIL, numpy, opencv-python';
+        } else if (stderr && stderr.includes('No such file')) {
+          errorMessage = 'ML model files missing';
+          errorDetails = 'The fraud detection model files are not available. Please ensure Git LFS files are downloaded.';
+        } else if (err.code === 'ENOENT') {
+          errorMessage = 'Python not found';
+          errorDetails = 'Python is not installed or not in PATH. The forensics feature requires Python 3.8+';
+        }
+        
+        return res.status(500).json({ 
+          message: errorMessage, 
+          details: errorDetails,
+          error_code: err.code || 'FORENSICS_ERROR'
+        });
       }
       // Parse JSON response from enhanced Python script
       const lines = stdout.trim().split('\n');

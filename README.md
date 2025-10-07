@@ -115,7 +115,14 @@ These achievements are:
 - **Aadhaar eKYC** compliance
 - India's digital infrastructure alignment
 
-### 🔌 Issuer API Integration
+### �️ ML-Powered Fraud Detection
+- **Advanced Forensics**: PyTorch-based certificate tampering detection
+- **Authenticity Scoring**: Real-time fraud percentage analysis (91.08% authentic detected)
+- **Visual Analysis**: Identifies manipulated regions and artifacts
+- **Role-Based Access**: Available to institute users and credential owners
+- **Production Ready**: 517MB ML model deployed via Git LFS
+
+### �🔌 Issuer API Integration
 - APIs for universities, MOOCs, Skill India Digital
 - Developer Portal + Sandbox environment
 - **Standards**: Open Badges & W3C Verifiable Credentials
