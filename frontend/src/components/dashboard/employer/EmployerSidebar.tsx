@@ -43,7 +43,7 @@ export default function EmployerSidebar() {
   const getSelectedKey = () => {
     if (!pathname) return "home";
     if (pathname === "/") return "home";
-    if (pathname.startsWith("/dashboard/employer/jobs")) return "post-job";
+    if (pathname.startsWith("/dashboard/employer/jobs/new")) return "post-job";
     if (pathname.startsWith("/dashboard/employer/talent-search")) return "talent-search";
     if (pathname.startsWith("/dashboard/employer/verify-credentials")) return "verify-credentials";
     if (pathname.startsWith("/dashboard/employer/analytics")) return "analytics";

@@ -3,12 +3,16 @@
 import React, { useMemo, useState, useEffect } from "react";
 import api from "@/utils/axios";
 import { useRouter } from "next/navigation";
-import { ConfigProvider, notification, theme } from "antd"; // Import Ant Design components
+import { ConfigProvider, notification, theme, Modal, Avatar, Button } from "antd"; // Import Ant Design components
+import { motion } from "framer-motion";
 import { useTheme } from "next-themes"; // For dark mode
 import EmployerSidebar from "@/components/dashboard/employer/EmployerSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
+
+// Import functions from talent search for profile fetching - UPDATED TO MATCH WORKING IMPLEMENTATION
+import { fetchPublicProfile, fetchPublicProfileSecure } from "@/lib/api/talent";
 
 // --- Icon Components (Inline SVG for simplicity) ---
 const BriefcaseIcon = () => (
@@ -240,6 +244,17 @@ type Job = {
   status?: 'active' | 'closed' | 'draft' | 'paused' | 'published';
 };
 
+interface Applicant {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  role?: string;
+  avatarUrl?: string;
+  appliedAt: string;
+  status?: 'pending' | 'reviewed' | 'shortlisted' | 'rejected';
+}
+
 // --- FIX 1: Create a context hook for notifications ---
 const NotificationContext = React.createContext<{ 
     api: ReturnType<typeof notification.useNotification>[0]; 
@@ -284,8 +299,519 @@ const EditIcon = () => (
   </svg>
 );
 
+const UsersIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+);
+
+const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"></line>
+    <polyline points="12 19 5 12 12 5"></polyline>
+  </svg>
+);
+
+// Applicant Profile Component
+const ApplicantProfile: React.FC<{
+  applicant: Applicant;
+  onBack: () => void;
+}> = ({ applicant, onBack }) => {
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [contact, setContact] = useState<{ email: string | null; phone: string | null }>({ 
+    email: applicant.email, 
+    phone: null 
+  });
+  const { api: notificationApi } = useAppNotification();
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        console.log('Fetching profile for user:', applicant.id);
+        
+        // Try secure endpoint first (requires auth), then fallback to public - matching talent search pattern
+        let profileResponse;
+        try {
+          profileResponse = await fetchPublicProfileSecure(applicant.id);
+          console.log('Secure profile data:', profileResponse);
+        } catch (error) {
+          console.log('Secure endpoint failed, trying public endpoint...');
+          try {
+            profileResponse = await fetchPublicProfile(applicant.id);
+            console.log('Public profile data:', profileResponse);
+          } catch (publicError) {
+            console.error('Both secure and public profile requests failed:', publicError);
+            if (mounted) {
+              // Use basic applicant data as final fallback
+              setProfileData({
+                _id: applicant.id,
+                fullName: { firstName: applicant.name.split(' ')[0], lastName: applicant.name.split(' ').slice(1).join(' ') },
+                email: applicant.email,
+                role: applicant.role,
+                profilePic: applicant.avatarUrl,
+                projects: [],
+                resume: null,
+                verifiedCredentials: []
+              });
+            }
+            return;
+          }
+        }
+        
+        if (mounted) {
+          // Handle the API response structure correctly - it should have success and candidate properties
+          let finalProfileData;
+          if (profileResponse?.success && profileResponse.candidate) {
+            finalProfileData = profileResponse.candidate;
+            console.log('Successfully parsed candidate profile:', finalProfileData);
+          } else {
+            console.warn('Unexpected response format, using fallback data:', profileResponse);
+            // Fallback to basic applicant data
+            finalProfileData = {
+              _id: applicant.id,
+              id: applicant.id,
+              name: applicant.name,
+              username: applicant.username,
+              avatarUrl: applicant.avatarUrl,
+              role: applicant.role,
+              email: applicant.email,
+              phone: null,
+              projects: [],
+              resume: null,
+              verifiedCredentials: []
+            };
+          }
+          
+          console.log('Final profile data being set:', {
+            projects: finalProfileData?.projects,
+            verifiedCredentials: finalProfileData?.verifiedCredentials,
+            resume: finalProfileData?.resume,
+            email: finalProfileData?.email,
+            phone: finalProfileData?.phone
+          });
+          
+          setProfileData(finalProfileData);
+          
+          // Update contact information from profile data
+          const nextEmail = finalProfileData?.email || applicant.email;
+          const nextPhone = finalProfileData?.phone || null;
+          setContact({ email: nextEmail, phone: nextPhone });
+        }
+      } catch (error: any) {
+        console.error('Error fetching full profile:', error);
+        
+        if (mounted) {
+          // Use basic applicant data as fallback
+          setProfileData({
+            _id: applicant.id,
+            fullName: { firstName: applicant.name.split(' ')[0], lastName: applicant.name.split(' ').slice(1).join(' ') },
+            email: applicant.email,
+            role: applicant.role,
+            profilePic: applicant.avatarUrl,
+            projects: [],
+            resume: null,
+            verifiedCredentials: []
+          });
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProfile();
+    return () => {
+      mounted = false;
+    };
+  }, [applicant.id]);
+
+  const handleDownloadResume = () => {
+    const resumeUrl = profileData?.resume?.fileUrl;
+    
+    if (!profileData?.resume || !resumeUrl || resumeUrl.trim() === '') {
+      notificationApi.warning({
+        message: "Resume Not Available",
+        description: "This user hasn't uploaded a resume yet.",
+        placement: 'topRight',
+        duration: 3,
+      });
+      return;
+    }
+
+    try {
+      window.open(resumeUrl, '_blank', 'noopener,noreferrer');
+      notificationApi.success({
+        message: "Resume Opened",
+        description: "Resume opened successfully!",
+        placement: 'topRight',
+        duration: 2,
+      });
+    } catch (error) {
+      console.error('Error opening resume:', error);
+      notificationApi.error({
+        message: "Resume Error",
+        description: "Failed to open resume. Please try again.",
+        placement: 'topRight',
+        duration: 3,
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  const fullName = profileData?.fullName ? 
+    `${profileData.fullName.firstName || ''} ${profileData.fullName.lastName || ''}`.trim() : 
+    applicant.name;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }} 
+      className="w-full max-w-7xl mx-auto p-4 md:p-8"
+    >
+      <button 
+        onClick={onBack} 
+        className="flex items-center gap-2 mb-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+      >
+        <ArrowLeftIcon className="h-5 w-5" /> Back to Applicants
+      </button>
+      
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Left Column - Main Profile */}
+        <div className="w-full lg:w-2/3 space-y-6">
+          <div className="bg-white dark:bg-gray-900/60 p-8 rounded-2xl flex flex-col md:flex-row items-center gap-8 border border-gray-200 dark:border-gray-700">
+            <Avatar 
+              src={profileData?.profilePic || applicant.avatarUrl} 
+              size={128}
+              className="bg-indigo-500"
+            >
+              {fullName?.charAt(0)?.toUpperCase() || 'A'}
+            </Avatar>
+            <div className="text-center md:text-left">
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{fullName}</h1>
+              {applicant.username && (
+                <p className="text-xl text-blue-600 dark:text-blue-400">@{applicant.username}</p>
+              )}
+              <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">{profileData?.role || applicant.role}</p>
+              <div className="flex gap-2 mt-4 justify-center md:justify-start">
+                <Button type="primary">Contact</Button>
+                <Button onClick={handleDownloadResume}>View Resume</Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Projects Section */}
+          <div className="bg-white dark:bg-gray-900/60 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Projects</h3>
+            {profileData?.projects && Array.isArray(profileData.projects) && profileData.projects.length > 0 ? (
+              <div className="space-y-4">
+                {profileData.projects.map((project: any, index: number) => (
+                  <div key={project._id || index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                      {project.title}
+                    </h4>
+                    {project.description && (
+                      <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm">
+                        {project.description}
+                      </p>
+                    )}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {project.technologies.map((tech: string, techIndex: number) => (
+                          <span
+                            key={techIndex}
+                            className="px-2 py-1 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-xs rounded-full"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {(project.projectUrl || project.githubUrl) && (
+                      <div className="flex gap-2 mt-2">
+                        {project.projectUrl && (
+                          <a 
+                            href={project.projectUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                          >
+                            View Project
+                          </a>
+                        )}
+                        {project.githubUrl && (
+                          <a 
+                            href={project.githubUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-600 dark:text-gray-400 text-sm hover:underline"
+                          >
+                            GitHub
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-4">
+                  📁
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Projects Yet</h4>
+                <p className="text-gray-500 dark:text-gray-400">
+                  This user hasn't added any projects to their profile yet.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Verified Credentials Section */}
+          <div className="bg-white dark:bg-gray-900/60 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Verified Credentials</h3>
+            {profileData?.verifiedCredentials && Array.isArray(profileData.verifiedCredentials) && profileData.verifiedCredentials.length > 0 ? (
+              <div className="space-y-4">
+                {profileData.verifiedCredentials.map((cred: any, index: number) => (
+                  <div key={cred.id || index} className="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{cred.name}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">Issued by: {cred.issuer}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Date: {cred.date}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-4">
+                  🎓
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Credentials Yet</h4>
+                <p className="text-gray-500 dark:text-gray-400">
+                  This user hasn't added any verified credentials yet.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column - Contact Details */}
+        <div className="w-full lg:w-1/3">
+          <div className="bg-white dark:bg-gray-900/60 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Contact Details</h3>
+            <div className="space-y-4 text-gray-700 dark:text-gray-300">
+              <div>
+                <strong className="text-gray-900 dark:text-white">Email:</strong>
+                <p className="break-all mt-1">{contact.email ?? "—"}</p>
+              </div>
+              <div>
+                <strong className="text-gray-900 dark:text-white">Phone:</strong>
+                <p className="mt-1">{contact.phone ?? "—"}</p>
+              </div>
+              <div>
+                <strong className="text-gray-900 dark:text-white">Applied:</strong>
+                <p className="mt-1">{new Date(applicant.appliedAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</p>
+              </div>
+              <div>
+                <strong className="text-gray-900 dark:text-white">Resume:</strong>
+                <p className={`text-sm mt-1 ${profileData?.resume?.fileUrl ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {profileData?.resume?.fileUrl && profileData.resume.fileUrl.trim() !== '' ? 'Available' : 'Not uploaded'}
+                </p>
+              </div>
+              {profileData?.resume?.fileName && (
+                <div>
+                  <strong className="text-gray-900 dark:text-white">Resume File:</strong>
+                  <p className="text-sm mt-1">{profileData.resume.fileName}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Applicants Modal Component
+const ApplicantsModal: React.FC<{
+  job: Job | null;
+  isVisible: boolean;
+  onClose: () => void;
+  onViewProfile: (applicant: Applicant) => void;
+}> = ({ job, isVisible, onClose, onViewProfile }) => {
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { api: notificationApi } = useAppNotification();
+
+  // Fetch applicants when modal opens
+  useEffect(() => {
+    if (isVisible && job) {
+      fetchApplicants();
+    }
+  }, [isVisible, job]);
+
+  const fetchApplicants = async () => {
+    if (!job) return;
+    
+    setLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      if (!token) {
+        notificationApi.error({
+          message: 'Authentication Error',
+          description: 'Please log in again.',
+          placement: 'topRight',
+        });
+        return;
+      }
+
+      const response = await api.get(`/api/jobs/${job.id}/applicants`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data?.success) {
+        setApplicants(response.data.applicants || []);
+      } else {
+        setApplicants([]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching applicants:', error);
+      
+      // Check if it's a 404 or endpoint doesn't exist
+      if (error.response?.status === 404) {
+        console.log('No applicants found for this job');
+        setApplicants([]);
+      } else {
+        // Show error for other types of errors
+        notificationApi.error({
+          message: 'Error Loading Applicants',
+          description: 'Unable to load applicants. Please try again later.',
+          placement: 'topRight',
+          duration: 3,
+        });
+        setApplicants([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <Modal
+      title={
+        <div className="flex items-center gap-2 text-gray-900 dark:text-white">
+          <div className="w-5 h-5 text-blue-500">
+            <UsersIcon />
+          </div>
+          <span className="font-semibold">Job Applicants</span>
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+            • {job?.jobTitle}
+          </span>
+        </div>
+      }
+      open={isVisible}
+      onCancel={onClose}
+      footer={null}
+      width={800}
+      className="applicants-modal"
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : applicants.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+            <UsersIcon />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Applicants Yet</h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+            This job hasn't received any applications yet. Share your job posting to attract more candidates!
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {applicants.map((applicant) => (
+            <div
+              key={applicant.id}
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Avatar
+                  size={48}
+                  src={applicant.avatarUrl}
+                  className="bg-indigo-500"
+                >
+                  {applicant.name?.charAt(0)?.toUpperCase() || 'A'}
+                </Avatar>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                    {applicant.name || 'Unknown User'}
+                  </h4>
+                  {applicant.username && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      @{applicant.username}
+                    </p>
+                  )}
+                  {applicant.role && (
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400">
+                      {applicant.role}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Applied on {formatDate(applicant.appliedAt)}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => onViewProfile(applicant)}
+                className="bg-indigo-500 hover:bg-indigo-600 border-indigo-500 hover:border-indigo-600"
+              >
+                View Profile
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+};
+
+
+
 // Job Card Component
-const JobCard: React.FC<{ job: Job; onJobUpdate: () => void }> = ({ job, onJobUpdate }) => {
+const JobCard: React.FC<{ job: Job; onJobUpdate: () => void; onViewApplicants?: (job: Job) => void }> = ({ job, onJobUpdate, onViewApplicants }) => {
   const { api: notificationApi } = useAppNotification();
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -446,21 +972,30 @@ const JobCard: React.FC<{ job: Job; onJobUpdate: () => void }> = ({ job, onJobUp
       </div>
 
       {/* Status Management Actions */}
-      {statusActions.length > 0 && (
-        <div className="flex gap-2 pt-2">
-          {statusActions.map((action, index) => (
-            <button
-              key={index}
-              onClick={action.action}
-              className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-md border border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-600 transition-all duration-200 ${action.color}`}
-              title={action.label}
-            >
-              {action.icon}
-              {action.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex gap-2 pt-2">
+        {/* Applicants Button - Always visible */}
+        <button
+          onClick={() => onViewApplicants?.(job)}
+          className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-md border border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-600 transition-all duration-200 text-blue-600 hover:text-blue-700"
+          title="View Applicants"
+        >
+          <UsersIcon />
+          Applicants
+        </button>
+        
+        {/* Status Action Buttons */}
+        {statusActions.map((action, index) => (
+          <button
+            key={index}
+            onClick={action.action}
+            className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-md border border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-600 transition-all duration-200 ${action.color}`}
+            title={action.label}
+          >
+            {action.icon}
+            {action.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
@@ -482,6 +1017,9 @@ function JobPostForm() {
   const [currentSkill, setCurrentSkill] = useState<string>("");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedJobForApplicants, setSelectedJobForApplicants] = useState<Job | null>(null);
+  const [isApplicantsModalVisible, setIsApplicantsModalVisible] = useState(false);
+  const [selectedApplicantProfile, setSelectedApplicantProfile] = useState<Applicant | null>(null);
   const router = useRouter();
   // FIX 2: Use the Ant Design Notification API from the custom hook
   const { api: notificationApi } = useAppNotification();
@@ -531,6 +1069,25 @@ function JobPostForm() {
 
   const removeSkill = (skillToRemove: string) => {
     setSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
+  };
+
+  const handleViewApplicants = (job: Job) => {
+    setSelectedJobForApplicants(job);
+    setIsApplicantsModalVisible(true);
+  };
+
+  const handleCloseApplicantsModal = () => {
+    setIsApplicantsModalVisible(false);
+    setSelectedJobForApplicants(null);
+  };
+
+  const handleViewApplicantProfile = (applicant: Applicant) => {
+    setSelectedApplicantProfile(applicant);
+    setIsApplicantsModalVisible(false);
+  };
+
+  const handleBackFromProfile = () => {
+    setSelectedApplicantProfile(null);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -609,6 +1166,21 @@ function JobPostForm() {
         .animate-popIn { animation: popIn 0.3s ease forwards; }
       `}</style>
   );
+
+  // Show applicant profile if one is selected
+  if (selectedApplicantProfile) {
+    return (
+      <>
+        <CustomStyles />
+        <div className="w-full bg-transparent dark:bg-transparent">
+          <ApplicantProfile 
+            applicant={selectedApplicantProfile} 
+            onBack={handleBackFromProfile}
+          />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -850,7 +1422,7 @@ function JobPostForm() {
                   </div>
                 ) : (
                   jobs.map((job) => (
-                    <JobCard key={job.id} job={job} onJobUpdate={fetchJobs} />
+                    <JobCard key={job.id} job={job} onJobUpdate={fetchJobs} onViewApplicants={handleViewApplicants} />
                   ))
                 )}
               </div>
@@ -858,6 +1430,14 @@ function JobPostForm() {
           </div>
         </div>
       </div>
+
+      {/* Applicants Modal */}
+      <ApplicantsModal
+        job={selectedJobForApplicants}
+        isVisible={isApplicantsModalVisible}
+        onClose={handleCloseApplicantsModal}
+        onViewProfile={handleViewApplicantProfile}
+      />
 
       {/* --- Utility CSS Class Definitions --- */}
       <style jsx>{`
@@ -892,6 +1472,21 @@ function JobPostForm() {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        
+        /* Applicants Modal Styles */
+        :global(.applicants-modal .ant-modal-content) {
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        
+        :global(.applicants-modal .ant-modal-header) {
+          border-bottom: 1px solid #f0f0f0;
+          border-radius: 12px 12px 0 0;
+        }
+        
+        :global(.dark .applicants-modal .ant-modal-header) {
+          border-bottom: 1px solid #404040;
         }
       `}</style>
     </>

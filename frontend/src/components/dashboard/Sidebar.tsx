@@ -12,6 +12,7 @@ import {
   Home,
   ChevronsRight,
   ChevronsLeft,
+  Briefcase,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -48,6 +49,7 @@ export default function SidebarComponent() {
     if (pathname.startsWith("/dashboard/learner/profile")) return "update-profile";
     if (pathname.startsWith("/dashboard/learner/credentials")) return "my-credentials";
     if (pathname.startsWith("/dashboard/learner/nsqf")) return "nsqf-progress";
+    if (pathname.startsWith("/dashboard/learner/jobs")) return "jobs";
     if (pathname.startsWith("/dashboard/learner/leaderboard")) return "leaderboard";
     if (pathname.startsWith("/dashboard/learner/settings")) return "settings";
     if (pathname === "/dashboard/learner" || pathname === "/dashboard") return "dashboard";
@@ -88,6 +90,13 @@ export default function SidebarComponent() {
       href: "/dashboard/learner/nsqf",
       icon: (
         <Activity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
+    {
+      label: "Jobs",
+      href: "/dashboard/learner/jobs",
+      icon: (
+        <Briefcase className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
     },
     {

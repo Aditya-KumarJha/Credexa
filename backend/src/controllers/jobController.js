@@ -575,6 +575,67 @@ module.exports = {
     }
   },
 
+  // Get applicants for a specific job
+  getJobApplicants: async (req, res) => {
+    try {
+      const employerId = req.user?.id;
+      const { jobId } = req.params;
+
+      if (!employerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      // First, verify the job belongs to this employer
+      const job = await Job.findOne({ _id: jobId, employer: employerId });
+      if (!job) {
+        return res.status(404).json({ success: false, message: 'Job not found or not authorized' });
+      }
+
+      // Import JobApplication model (assuming it exists)
+      const JobApplication = require('../models/jobApplicationModel');
+      const User = require('../models/userModel');
+      
+            // Find all applications for this job
+      const applications = await JobApplication.find({ job: jobId })
+        .populate('applicant', 'fullName username email role profilePic')
+        .sort({ appliedAt: -1 });
+
+      // Format the applicants data
+      const applicants = applications.map(app => {
+        const user = app.applicant;
+        const fullName = user.fullName ? 
+          `${user.fullName.firstName || ''} ${user.fullName.lastName || ''}`.trim() : 
+          'Unknown User';
+        
+        return {
+          id: user._id,
+          name: fullName,
+          username: user.username || null,
+          email: user.email,
+          role: user.role,
+          avatarUrl: user.profilePic || null,
+          appliedAt: app.appliedAt || app.createdAt,
+          status: app.status || 'pending',
+          applicationId: app._id
+        };
+      });
+
+      res.json({ 
+        success: true, 
+        applicants,
+        total: applicants.length,
+        jobId,
+        jobTitle: job.jobTitle
+      });
+
+    } catch (error) {
+      console.error('❌ Error fetching job applicants:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to fetch job applicants', 
+        error: error.message 
+      });
+    }
+  },
+
   searchJobs,
   getJobRecommendations,
   testMLService

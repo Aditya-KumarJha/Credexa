@@ -62,6 +62,7 @@ const instituteRoutes = require('./routes/instituteRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const platformsRoutes = require('./routes/platformsRoutes');
 const jobRoutes = require('./routes/jobRoutes');
+const jobPostRoutes = require('./routes/jobPostRoutes');
 const certificateRoutes = require('./routes/certificateRoutes');
 const nsqfRoutes = require('./routes/nsqfRoutes');
 const apiRoutes = require('./routes/apiRoutes');
@@ -78,6 +79,7 @@ app.use('/api/institute', instituteRoutes);
 app.use('/api', leaderboardRoutes);
 app.use('/api/platforms', platformsRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/job-posts', jobPostRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/nsqf', nsqfRoutes);
 app.use('/api/manage', apiRoutes); // API key management routes
