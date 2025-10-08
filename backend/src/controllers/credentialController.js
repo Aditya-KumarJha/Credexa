@@ -191,29 +191,62 @@ const anchorCredentialController = async (req, res) => {
     if (!cred) {
       return res.status(404).json({ message: 'Credential not found' });
     }
+    // If already anchored, block
     if (cred.transactionHash) {
-      return res.status(400).json({ message: 'This credential has already been anchored.' });
+      return res.status(400).json({ 
+        message: 'This credential has already been anchored.',
+        reason: 'already_anchored',
+        details: 'The credential hash already exists on-chain or in the database. Anchoring again is not allowed.'
+      });
     }
 
-    // 2. Generate the unique, deterministic hash on the backend
-    const issueDateISO = new Date(cred.issueDate).toISOString();
-    const dataToHash = cred._id.toString() + cred.issuer + issueDateISO;
-    const credentialHash = '0x' + crypto.createHash('sha256').update(dataToHash).digest('hex');
+  // Always compute the hash from credentialId and issuer
+  const dataToHash = `${cred.credentialId}${cred.issuer}`;
+  const hashHex = crypto.createHash('sha256').update(dataToHash).digest('hex');
+  const credentialHash = '0x' + hashHex;
 
-    // 3. Call the blockchain service to anchor the generated hash
+    // If DB does not have the hash, set it
+    if (!cred.credentialHash) {
+      cred.credentialHash = credentialHash;
+      await cred.save();
+    }
+
+    // Check on-chain for this hash
+    try {
+      const onChain = await verifyCredential(credentialHash);
+      if (onChain && onChain.timestamp && onChain.timestamp !== 0n) {
+        // Already anchored on-chain, update DB if needed
+        cred.credentialHash = credentialHash;
+        await cred.save();
+        return res.status(409).json({ 
+          message: 'This credential is already anchored on-chain',
+          reason: 'already_anchored',
+          details: 'The credential hash already exists on-chain. Anchoring again is not allowed.',
+          credentialHash, 
+          blockchain: { issuer: onChain.issuer, timestamp: Number(onChain.timestamp) }
+        });
+      }
+    } catch (verifyErr) {
+      console.warn('Verify before anchor failed, will attempt to anchor:', verifyErr.message);
+    }
+
+    // Anchor on-chain
     const receipt = await anchorNewCredential(credentialHash);
-
-    // 4. Save BOTH the credential hash and the transaction hash to the database
-    cred.credentialHash = credentialHash;   // The key used to look up data in the contract
-    cred.transactionHash = receipt.hash;    // The proof that the anchoring transaction occurred
-    
+    cred.credentialHash = credentialHash;
+    cred.transactionHash = receipt.hash;
     const updatedCredential = await cred.save();
-
-    // 5. Send the fully updated credential object back to the frontend
     res.status(200).json(updatedCredential);
 
   } catch (error) {
     console.error(error);
+    // Handle MongoDB duplicate key error for credentialHash
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.credentialHash) {
+      return res.status(409).json({
+        message: 'This credential is already anchored (duplicate hash).',
+        reason: 'already_anchored',
+        details: 'A credential with this hash already exists. Duplicate anchoring is not allowed.'
+      });
+    }
     res.status(500).json({ error: 'Failed to anchor credential.', details: error.message });
   }
 };
@@ -327,15 +360,10 @@ const generateCredentialHashController = async (req, res) => {
             return res.status(404).json({ message: 'Credential not found' });
         }
 
-        // Create a deterministic string from unique credential data
-        const issueDateISO = new Date(cred.issueDate).toISOString();
-        const dataToHash = cred._id.toString() + cred.issuer + issueDateISO;
-
-        // Create a SHA-256 hash
-        const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
-
-        // Prepend '0x' to make it a valid bytes32 hex string for the blockchain
-        const finalHash = '0x' + hash;
+  // Create a deterministic string using credential id and issuer
+  const dataToHash = `${cred.credentialId}${cred.issuer}`;
+  const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
+  const finalHash = '0x' + hash;
 
         // Optionally, you could save this hash to your database here
         // cred.blockchainHash = finalHash;

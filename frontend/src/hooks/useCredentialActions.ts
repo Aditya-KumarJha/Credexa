@@ -22,11 +22,33 @@ export const useCredentialActions = () => {
       const { transactionHash } = anchorRes.data;
 
       message.success({ content: 'Credential anchored successfully!', key: 'anchor' });
-      return transactionHash;
+      return { success: true, transactionHash } as any;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || "Anchoring failed.";
+      const status = err.response?.status;
+      const data = err.response?.data;
+      // Handle known conflict responses from backend
+      if (status === 409 || status === 400) {
+        if (data?.reason === 'already_anchored' || data?.error === 'ALREADY_ANCHORED') {
+          const tx = data.transactionHash || data.blockchain?.transactionHash || null;
+          const hash = data.credentialHash || null;
+          // Only show one error message for already anchored
+          let shortMsg = 'This credential is already anchored on the blockchain.';
+          if (tx) {
+            shortMsg = `Already anchored: View on blockchain: https://sepolia.etherscan.io/tx/${tx}`;
+          }
+          message.destroy('anchor'); // Remove any previous anchor messages
+          message.error({ content: shortMsg, key: 'anchor', duration: 4 });
+          return { success: false, reason: 'ALREADY_ANCHORED', transactionHash: tx, credentialHash: hash, details: shortMsg } as any;
+        }
+        if (data?.error === 'DUPLICATE_CREDENTIAL') {
+          message.error({ content: 'A similar credential already exists in the system.', key: 'anchor' });
+          return { success: false, reason: 'DUPLICATE_CREDENTIAL', existingCredentialId: data.existingCredentialId } as any;
+        }
+      }
+
+      const errorMessage = data?.details || data?.message || err.response?.data?.error || "Anchoring failed.";
       message.error({ content: errorMessage, key: 'anchor' });
-      return null;
+      return { success: false, reason: 'UNKNOWN', error: errorMessage } as any;
     } finally {
       setAnchoringId(null);
     }
