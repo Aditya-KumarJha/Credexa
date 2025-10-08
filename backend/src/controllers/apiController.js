@@ -3,7 +3,7 @@ const ApiUsage = require('../models/apiUsageModel');
 const User = require('../models/userModel');
 const crypto = require('crypto');
 
-// Generate new API key
+
 const generateApiKey = async (req, res) => {
   try {
     const userId = req.user.id;
