@@ -1,6 +1,7 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const ActivityTracker = require("../utils/activityTracker");
 
 // Check if speakeasy is available, fallback for 2FA
 let speakeasy, QRCode;
@@ -117,6 +118,38 @@ const updateProfile = async (req, res) => {
     }
 
     await user.save();
+
+    // Log password change activity
+    try {
+      if (newPassword) {
+        await ActivityTracker.logLearnerActivity(
+          user._id,
+          'password_changed',
+          'Password changed from settings',
+          {
+            changeMethod: 'settings_page',
+            hasCurrentPassword: !!currentPassword
+          },
+          req
+        );
+      }
+      
+      if (email && email !== req.user.email) {
+        await ActivityTracker.logLearnerActivity(
+          user._id,
+          'email_changed',
+          'Email address updated from settings',
+          {
+            oldEmail: req.user.email,
+            newEmail: email,
+            changeMethod: 'settings_page'
+          },
+          req
+        );
+      }
+    } catch (activityError) {
+      console.warn('Failed to log settings update activity:', activityError.message);
+    }
 
     const updatedUser = await User.findById(user._id).select("-password -refreshToken -resetPasswordToken -otp -emailChangeOtp");
 
@@ -345,11 +378,37 @@ const revokeSession = async (req, res) => {
       return res.status(404).json({ message: "Session not found" });
     }
 
+    // Find the session being revoked for logging
+    const sessionToRevoke = user.settings.security.activeSessions.find(
+      session => session.sessionId === sessionId
+    );
+
     user.settings.security.activeSessions = user.settings.security.activeSessions.filter(
       session => session.sessionId !== sessionId
     );
 
     await user.save();
+
+    // Log session revocation activity
+    try {
+      await ActivityTracker.logLearnerActivity(
+        user._id,
+        'logout',
+        'Session terminated from settings',
+        {
+          sessionId: sessionId,
+          revokedFrom: 'settings_page',
+          sessionInfo: sessionToRevoke ? {
+            deviceInfo: JSON.parse(sessionToRevoke.deviceInfo || '{}'),
+            ipAddress: sessionToRevoke.ipAddress,
+            lastActive: sessionToRevoke.lastActive
+          } : null
+        },
+        req
+      );
+    } catch (activityError) {
+      console.warn('Failed to log session revocation activity:', activityError.message);
+    }
 
     res.json({
       success: true,

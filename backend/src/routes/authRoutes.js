@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const {
   register,
   login,
+  logout,
   verifyOtp,
   requestPasswordReset,
   resetPassword,
@@ -16,10 +17,14 @@ const {
 
 const router = express.Router();
 
+// Import auth middleware
+const { protect } = require("../middlewares/authMiddleware");
+
 const FRONTEND_URL = process.env.VERCEL_CLIENT_URL || process.env.CLIENT_URL;
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/logout", protect, logout);
 router.post("/verify-otp", verifyOtp);
 router.post("/request-password-reset", requestPasswordReset);
 router.post("/reset-password", resetPassword);
@@ -27,9 +32,6 @@ router.post("/resend-otp", resendOtp);
 
 router.post("/web3/challenge", generateWeb3Challenge);
 router.post("/web3/verify", verifyWeb3Signature);
-
-// Import auth middleware
-const { protect } = require("../middlewares/authMiddleware");
 router.post("/select-role", protect, selectRole);
 
 const socialAuthCallback = (strategy) => (req, res, next) => {

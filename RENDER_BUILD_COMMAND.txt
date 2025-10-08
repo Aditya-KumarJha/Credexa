@@ -1,0 +1,2 @@
+# Simple build command for Render dashboard:
+cd backend && npm install && cd ../fraudCertificate && pip3 install torch torchvision opencv-python-headless pillow numpy

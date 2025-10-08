@@ -24,6 +24,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { CredentialDetailsModal } from "@/components/dashboard/credentials/CredentialDetailsModal";
 import { ImageViewerModal } from "@/components/dashboard/credentials/ImageViewerModal";
+import IssueCredentialModal from "@/components/dashboard/credentials/IssueCredentialModal";
 import { CredentialDetails } from "@/types/credentials";
 import toast from "react-hot-toast";
 
@@ -67,6 +68,7 @@ export default function CredentialsPage() {
   // Modal states
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
   const [selectedCredentialDetails, setSelectedCredentialDetails] = useState<CredentialDetails | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>("");
 
@@ -289,7 +291,10 @@ export default function CredentialsPage() {
               </div>
               
               <div className="flex items-center gap-2">
-                <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={() => setIsIssueModalOpen(true)}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                >
                   <Plus className="h-4 w-4" />
                   Issue Credential
                 </button>
@@ -549,6 +554,15 @@ export default function CredentialsPage() {
         <ImageViewerModal
           onClose={handleCloseImageModal}
           imageUrl={isImageModalOpen ? selectedImageUrl : null}
+        />
+
+        <IssueCredentialModal
+          isOpen={isIssueModalOpen}
+          onClose={() => setIsIssueModalOpen(false)}
+          onSuccess={() => {
+            fetchCredentials();
+            setIsIssueModalOpen(false);
+          }}
         />
       </div>
     </RoleGuard>

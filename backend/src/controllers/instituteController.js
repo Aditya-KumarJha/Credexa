@@ -1,5 +1,6 @@
 const User = require('../models/userModel');
 const Credential = require('../models/credentialModel');
+const ActivityTracker = require('../utils/activityTracker');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -701,13 +702,13 @@ const getCredentials = async (req, res) => {
   }
 };
 
-// Issue Credential
+// Issue Credential (Manual form submission)
 const issueCredential = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('institute');
+    const issuer = await User.findById(userId).select('institute fullName');
     
-    if (!user || !user.institute) {
+    if (!issuer || !issuer.institute) {
       return res.status(400).json({
         success: false,
         message: 'Institute information not found'
@@ -715,54 +716,148 @@ const issueCredential = async (req, res) => {
     }
 
     const {
-      studentId,
-      title,
-      type,
+      studentEmail,
+      studentFirstName,
+      studentLastName,
+      credentialTitle,
+      courseCode,
       description,
-      skills,
-      issueDate,
       nsqfLevel,
-      creditPoints
+      completionDate,
+      issueDate,
+      certificateUrl,
+      skills = [],
+      credentialType = 'certificate',
+      metadata = {}
     } = req.body;
 
     // Validate required fields
-    if (!studentId || !title || !type || !issueDate) {
+    if (!studentEmail || !credentialTitle || !certificateUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Student email, credential title, and certificate URL are required'
       });
     }
 
-    // Check if student exists
-    const student = await User.findById(studentId);
-    if (!student) {
-      return res.status(404).json({
+    // Validate certificate URL
+    const axios = require('axios');
+    try {
+      const response = await axios.head(certificateUrl, { 
+        timeout: 15000,
+        maxRedirects: 5,
+        headers: {
+          'User-Agent': 'Credexa-Bot/1.0'
+        },
+        validateStatus: (status) => status < 500
+      });
+
+      const contentType = response.headers['content-type'] || '';
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+      
+      if (!contentType) {
+        const urlLower = certificateUrl.toLowerCase();
+        if (!urlLower.includes('.pdf') && !urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Unable to determine file type. Please ensure URL points to a PDF or image file'
+          });
+        }
+      } else if (!validTypes.some(type => contentType.includes(type))) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid file type: ${contentType}. Must be PDF, JPEG, PNG, GIF, or WebP`
+        });
+      }
+    } catch (error) {
+      return res.status(400).json({
         success: false,
-        message: 'Student not found'
+        message: `Certificate URL not accessible: ${error.message}`
       });
     }
 
-    const Credential = require('../models/credentialModel');
+    // Find or create user by email
+    let user = await User.findOne({ email: studentEmail.toLowerCase() });
+    
+    if (!user) {
+      // Create new user if not found
+      user = new User({
+        email: studentEmail.toLowerCase(),
+        fullName: {
+          firstName: studentFirstName || 'Unknown',
+          lastName: studentLastName || 'User'
+        },
+        role: 'learner',
+        isVerified: false
+      });
+      await user.save();
+    }
+
+    // Create credential
     const newCredential = new Credential({
-      user: studentId,
-      title,
-      issuer: user.institute.name,
-      type,
-      description,
+      user: user._id,
+      title: credentialTitle,
+      issuer: issuer.institute.name,
+      type: credentialType,
+      description: description || '',
       skills: skills || [],
-      issueDate: new Date(issueDate),
-      nsqfLevel,
-      creditPoints,
+      issueDate: issueDate ? new Date(issueDate) : new Date(),
+      completionDate: completionDate ? new Date(completionDate) : null,
+      nsqfLevel: nsqfLevel || 1,
+      courseCode: courseCode || '',
       status: 'verified', // Institute-issued credentials are automatically verified
-      issuerLogo: '', // Add institute logo if available
+      issuerLogo: issuer.institute.logo || '',
+      certificateUrl: certificateUrl,
+      metadata: metadata,
+      issuerVerification: {
+        status: 'verified',
+        verifiedAt: new Date(),
+        verifiedBy: issuer._id
+      }
     });
 
     await newCredential.save();
 
+    // Log activity for issuer (different message than API)
+    try {
+      await ActivityTracker.logActivity({
+        userId: issuer._id,
+        userRole: 'institute',
+        activityType: 'credential_issued',
+        description: `Manually issued credential "${credentialTitle}" to ${studentEmail}`,
+        metadata: {
+          credentialTitle,
+          studentEmail,
+          studentName: user.fullName ? `${user.fullName.firstName} ${user.fullName.lastName}` : 'N/A',
+          credentialType,
+          nsqfLevel,
+          skills: skills || [],
+          manualSubmission: true,
+          certificateUrl
+        },
+        relatedEntityType: 'credential',
+        relatedEntityId: newCredential._id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    } catch (activityError) {
+      console.error('Error logging activity:', activityError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Credential issued successfully',
-      credential: newCredential
+      credential: {
+        _id: newCredential._id,
+        title: newCredential.title,
+        issuer: newCredential.issuer,
+        type: newCredential.type,
+        status: newCredential.status,
+        issueDate: newCredential.issueDate,
+        student: {
+          email: user.email,
+          name: user.fullName ? `${user.fullName.firstName} ${user.fullName.lastName}` : 'N/A'
+        }
+      }
     });
 
   } catch (error) {
@@ -1296,7 +1391,7 @@ const verifyCredential = async (req, res) => {
     const credential = await Credential.findOne({ 
       _id: id, 
       issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }
-    });
+    }).populate('user', 'fullName email');
 
     if (!credential) {
       return res.status(404).json({
@@ -1321,6 +1416,40 @@ const verifyCredential = async (req, res) => {
     };
 
     await credential.save();
+
+    // Log activity for manual credential verification
+    try {
+      const studentName = credential.user && credential.user.fullName 
+        ? `${credential.user.fullName.firstName} ${credential.user.fullName.lastName}`
+        : (credential.user && credential.user.email ? credential.user.email : 'Unknown Student');
+        
+      await ActivityTracker.logActivity({
+        userId: userId,
+        userRole: 'institute',
+        activityType: 'credential_verified',
+        description: `Manually verified credential "${credential.title}" for ${studentName}`,
+        metadata: {
+          credentialId: credential._id,
+          credentialTitle: credential.title,
+          studentId: credential.user ? credential.user._id : null,
+          studentEmail: credential.user ? credential.user.email : null,
+          studentName: studentName,
+          issuer: credential.issuer,
+          verificationType: 'manual_issuer_verification',
+          verificationMethod: 'dashboard_button',
+          credentialType: credential.type || 'credential',
+          nsqfLevel: credential.nsqfLevel || null,
+          skills: credential.skills || []
+        },
+        relatedEntityType: 'credential',
+        relatedEntityId: credential._id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    } catch (activityError) {
+      console.error('Activity logging failed for credential verification:', activityError.message);
+      // Continue - activity logging failure shouldn't block the response
+    }
 
     res.json({
       success: true,

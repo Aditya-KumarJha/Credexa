@@ -7,6 +7,7 @@ const { ethers } = require("ethers");
 const crypto = require("crypto");
 const challenges = require("../utils/challengeStore");
 const { nanoid } = require('nanoid'); 
+const ActivityTracker = require("../utils/activityTracker");
 
 const generateToken = (user) => {
   const payload = { id: user._id };
@@ -137,6 +138,23 @@ const verifyOtp = async (req, res) => {
       ]);
       user = newUser;
       token = generateToken(user);
+
+      // Log signup activity
+      try {
+        await ActivityTracker.logLearnerActivity(
+          user._id,
+          'signup',
+          'Account created and verified successfully',
+          {
+            provider: 'email',
+            fullName: `${pendingUser.firstName} ${pendingUser.lastName}`,
+            email: user.email
+          },
+          req
+        );
+      } catch (activityError) {
+        console.warn('Failed to log signup activity:', activityError.message);
+      }
     } else if (context === "login") {
       const foundUser = await User.findOne({ email });
       if (!foundUser || !foundUser.otp || foundUser.otp.code !== otp || foundUser.otp.expiresAt < new Date()) {
@@ -213,6 +231,24 @@ const verifyOtp = async (req, res) => {
       user = foundUser;
       token = generateToken(user);
 
+      // Log login activity
+      try {
+        await ActivityTracker.logLearnerActivity(
+          user._id,
+          'login',
+          'User logged in successfully',
+          {
+            sessionId: sessionId,
+            deviceInfo: deviceInfo,
+            ipAddress: ipAddress,
+            loginMethod: 'email_otp'
+          },
+          req
+        );
+      } catch (activityError) {
+        console.warn('Failed to log login activity:', activityError.message);
+      }
+
       // Send login notification email if enabled
       if (user.settings?.security?.loginNotifications) {
         const loginTime = new Date().toLocaleString();
@@ -253,6 +289,25 @@ const verifyOtp = async (req, res) => {
       return res.status(200).json({ message: "OTP verified successfully", resetAllowed: true });
     } else {
       return res.status(400).json({ message: "Invalid context. Must be 'signup', 'login', or 'forgot'" });
+    }
+
+    // Log activity for successful authentication (signup only, login is already logged above)
+    try {
+      if (context === 'signup') {
+        await ActivityTracker.logLearnerActivity(
+          user._id,
+          'account_created',
+          'Account created and verified successfully',
+          {
+            provider: 'email',
+            registrationMethod: 'otp_verification'
+          },
+          req
+        );
+      }
+      // Note: Login activity is already logged in the login context above, no need to duplicate
+    } catch (activityError) {
+      console.warn('Failed to log authentication activity:', activityError.message);
     }
     
     return res.status(context === 'signup' ? 201 : 200).json({
@@ -320,6 +375,22 @@ const resetPassword = async (req, res) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
+
+    // Log password reset activity
+    try {
+      await ActivityTracker.logLearnerActivity(
+        user._id,
+        'password_reset',
+        'Password was reset successfully',
+        {
+          resetMethod: 'email_otp',
+          email: user.email
+        },
+        req
+      );
+    } catch (activityError) {
+      console.warn('Failed to log password reset activity:', activityError.message);
+    }
 
     res.status(200).json({ message: "Password has been reset successfully" });
   } catch (error) {
@@ -586,9 +657,62 @@ const selectRole = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Find and remove the session
+    if (user.settings?.security?.activeSessions && sessionId) {
+      const sessionToRemove = user.settings.security.activeSessions.find(
+        session => session.sessionId === sessionId
+      );
+      
+      user.settings.security.activeSessions = user.settings.security.activeSessions.filter(
+        session => session.sessionId !== sessionId
+      );
+      
+      await user.save();
+
+      // Log logout activity
+      try {
+        await ActivityTracker.logLearnerActivity(
+          user._id,
+          'logout',
+          'User logged out',
+          {
+            sessionId: sessionId,
+            logoutMethod: 'explicit_logout',
+            sessionInfo: sessionToRemove ? {
+              deviceInfo: JSON.parse(sessionToRemove.deviceInfo || '{}'),
+              sessionDuration: new Date() - new Date(sessionToRemove.createdAt)
+            } : null
+          },
+          req
+        );
+      } catch (activityError) {
+        console.warn('Failed to log logout activity:', activityError.message);
+      }
+    }
+
+    res.status(200).json({ 
+      message: "Logged out successfully",
+      success: true 
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   register,
   login,
+  logout,
   verifyOtp,
   requestPasswordReset,
   resetPassword,
