@@ -28,11 +28,12 @@ const getUserProfile = async (req, res) => {
         walletAddress: user.walletAddress,
         isVerified: user.isVerified,
         socialLinks: user.socialLinks,
+        projects: user.projects || [],
         resume: user.resume,
         createdAt: user.createdAt,
         platformSync: user.platformSync,
-                institute: user.institute,
-                settings: user.settings,
+        institute: user.institute,
+        settings: user.settings,
       }
     });
   } else {
@@ -676,7 +677,7 @@ const getPublicProfile = async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findById(userId)
-            .select('fullName username email phone institute profileImage profilePic avatar settings role')
+            .select('fullName username email phone institute profileImage profilePic avatar settings role projects resume')
             .lean();
         if (!user || user.role !== 'learner') {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -725,6 +726,8 @@ const getPublicProfile = async (req, res) => {
                 topSkills: entries.slice(0, 3).map(e => e[0]),
                 email: showEmail ? user.email : null,
                 phone: user.phone || null,
+                resume: user.resume || null,
+                projects: user.projects || [],
                 verifiedCredentials: verifiedCreds.map(c => ({ id: `${c._id}`, issuer: c.issuer, name: c.title, date: c.issueDate })),
                 onChainVerified: creds.some(c => !!c.transactionHash),
             }
@@ -745,7 +748,7 @@ const getPublicProfileSecure = async (req, res) => {
         }
         const userId = req.params.id;
         const user = await User.findById(userId)
-            .select('fullName username email phone institute profileImage profilePic avatar settings role')
+            .select('fullName username email phone institute profileImage profilePic avatar settings role projects resume')
             .lean();
         if (!user || user.role !== 'learner') {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -791,6 +794,8 @@ const getPublicProfileSecure = async (req, res) => {
                 topSkills: entries.slice(0, 3).map(e => e[0]),
                 email: canSeeEmail ? user.email : null,
                 phone: user.phone || null,
+                resume: user.resume || null,
+                projects: user.projects || [],
                 verifiedCredentials: verifiedCreds.map(c => ({ id: `${c._id}`, issuer: c.issuer, name: c.title, date: c.issueDate })),
                 onChainVerified: creds.some(c => !!c.transactionHash),
             }

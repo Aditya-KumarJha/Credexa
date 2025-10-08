@@ -32,10 +32,6 @@ export default function InstituteSidebar() {
     router.push("/login");
   };
 
-  const handleNavigate = (path: string) => {
-    router.push(path);
-  };
-
   const toggleLock = () => {
     if (isLocked) {
       setIsLocked(false);
@@ -63,75 +59,66 @@ export default function InstituteSidebar() {
   const links = [
     {
       label: "Home",
-      href: "#",
+      href: "/",
       icon: (
         <Home className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/"),
     },
     {
       label: "Dashboard",
-      href: "#",
+      href: "/dashboard/institute",
       icon: (
         <GraduationCap className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute"),
     },
     {
       label: "Students",
-      href: "#",
+      href: "/dashboard/institute/students",
       icon: (
         <Users className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/students"),
     },
     {
       label: "Credentials",
-      href: "#",
+      href: "/dashboard/institute/credentials",
       icon: (
         <Award className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/credentials"),
     },
     {
       label: "Courses",
-      href: "#",
+      href: "/dashboard/institute/courses",
       icon: (
         <BookOpen className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/courses"),
     },
     {
       label: "Analytics",
-      href: "#",
+      href: "/dashboard/institute/analytics",
       icon: (
         <BarChart3 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/analytics"),
     },
     {
       label: "API Integration",
-      href: "#",
+      href: "/dashboard/institute/api-integration",
       icon: (
         <Zap className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/api-integration"),
     },
     {
       label: "Compliance",
-      href: "#",
+      href: "/dashboard/institute/compliance",
       icon: (
         <Shield className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/compliance"),
     },
     {
       label: "Settings",
-      href: "#",
+      href: "/dashboard/institute/settings",
       icon: (
         <Settings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/institute/settings"),
     },
   ];
 
@@ -184,9 +171,8 @@ export default function InstituteSidebar() {
               {links.map((link, idx) => (
                 <div
                   key={idx}
-                  onClick={link.onClick}
                   className={cn(
-                    "cursor-pointer rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
+                    "rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
                     getSelectedKey() === link.label.toLowerCase().replace(/\s+/g, "-") 
                       ? open 
                         ? "bg-purple-500 text-white mx-2" 

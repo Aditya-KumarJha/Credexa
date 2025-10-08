@@ -68,6 +68,7 @@ const apiRoutes = require('./routes/apiRoutes');
 const externalApiRoutes = require('./routes/externalApiRoutes');
 const employerRoutes = require('./routes/employerRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const projectRoutes = require('./routes/projectRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -83,6 +84,7 @@ app.use('/api/manage', apiRoutes); // API key management routes
 app.use('/api/external', externalApiRoutes); // External API routes for credential submission
 app.use('/api/employer', employerRoutes); // Employer analytics and related routes
 app.use('/api/activities', activityRoutes); // User activity tracking routes
+app.use('/api/users/me/projects', projectRoutes); // User projects management routes
 
 app.get('/', (req, res) => res.send('API is running'));
 

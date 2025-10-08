@@ -30,10 +30,6 @@ export default function SidebarComponent() {
     router.push("/login");
   };
 
-  const handleNavigate = (path: string) => {
-    router.push(path);
-  };
-
   const toggleLock = () => {
     if (isLocked) {
       // Currently locked (expanded) -> unlock and collapse
@@ -61,59 +57,52 @@ export default function SidebarComponent() {
   const links = [
     {
       label: "Home",
-      href: "#",
+      href: "/",
       icon: (
         <Home className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/"),
     },
     {
       label: "Dashboard",
-      href: "#",
+      href: "/dashboard/learner",
       icon: (
         <LayoutDashboard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/learner"),
     },
     {
       label: "Update Profile",
-      href: "#",
+      href: "/dashboard/learner/profile",
       icon: (
         <UserRound className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/learner/profile"),
     },
     {
       label: "My Credentials",
-      href: "#",
+      href: "/dashboard/learner/credentials",
       icon: (
         <Award className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/learner/credentials"),
     },
     {
       label: "NSQF Progress",
-      href: "#",
+      href: "/dashboard/learner/nsqf",
       icon: (
         <Activity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/learner/nsqf"),
     },
     {
       label: "Leaderboard",
-      href: "#",
+      href: "/dashboard/learner/leaderboard",
       icon: (
         <Trophy className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/learner/leaderboard"),
     },
     {
       label: "Settings",
-      href: "#",
+      href: "/dashboard/learner/settings",
       icon: (
         <Settings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/learner/settings"),
     },
   ];
 
@@ -166,9 +155,8 @@ export default function SidebarComponent() {
               {links.map((link, idx) => (
                 <div
                   key={idx}
-                  onClick={link.onClick}
                   className={cn(
-                    "cursor-pointer rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
+                    "rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
                     getSelectedKey() === link.label.toLowerCase().replace(/\s+/g, "-") 
                       ? open 
                         ? "bg-cyan-500 text-white mx-2" 

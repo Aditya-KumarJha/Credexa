@@ -11,10 +11,30 @@ export type CandidateListItem = {
   onChainVerified?: boolean;
 };
 
+export type UserProject = {
+  _id?: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  projectUrl?: string;
+  githubUrl?: string;
+  technologies?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type CandidateProfile = CandidateListItem & {
   skills: { subject: string; A: number; fullMark: number }[];
   email: string | null;
   phone: string | null;
+  resume?: {
+    fileName?: string;
+    fileUrl?: string;
+    fileType?: string;
+    uploadedAt?: string;
+    fileSize?: number;
+  } | null;
+  projects?: UserProject[];
   verifiedCredentials: { id: string; issuer: string; name: string; date: string }[];
 };
 

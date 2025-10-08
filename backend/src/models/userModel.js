@@ -53,6 +53,16 @@ const userSchema = new mongoose.Schema(
       instagram: { type: String, trim: true },
       facebook: { type: String, trim: true }
     },
+    projects: [{
+      title: { type: String, trim: true, required: true },
+      description: { type: String, trim: true },
+      imageUrl: { type: String, trim: true },
+      projectUrl: { type: String, trim: true },
+      githubUrl: { type: String, trim: true },
+      technologies: [{ type: String, trim: true }],
+      createdAt: { type: Date, default: Date.now },
+      updatedAt: { type: Date, default: Date.now }
+    }],
     provider: {
       type: String,
       enum: ["email", "google", "github", "facebook", "web3", "discord", "linkedin"],
