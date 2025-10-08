@@ -189,7 +189,7 @@ export default function CommunityPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-600 dark:text-gray-300 ml-6">Community</span>
-          <ThemeToggleButton />
+          <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
         </div>
       </div>
       {/* Spacer for fixed nav bar */}
@@ -396,7 +396,7 @@ export default function CommunityPage() {
                 </div>
                 {/* Main group chat area */}
                 <div className="flex-1 bg-white rounded-xl shadow p-4 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-2 flex-col items-start">
+                  <div className="flex gap-2 mb-2 flex-col items-start">
                       <h3 className="text-lg font-semibold text-black dark:text-black mb-1">{joinedGroup}</h3>
                       <span className="text-sm font-semibold text-black dark:text-black mb-2">{fields.find(f => f.name === joinedGroup)?.members} members</span>
                   </div>

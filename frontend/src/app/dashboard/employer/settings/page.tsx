@@ -92,7 +92,7 @@ export default function EmployerSettingsPage() {
               </div>
               <div className="flex items-center gap-3">
                 <LanguageSwitcher />
-                <ThemeToggleButton />
+                <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
               </div>
             </div>
 

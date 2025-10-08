@@ -1,5 +1,6 @@
 const Credential = require('../models/credentialModel');
 const User = require('../models/userModel');
+const { verifyCredential } = require('../services/blockchainService');
 
 // Helper to compute start date based on range
 function rangeToStartDate(range) {
@@ -97,4 +98,169 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { getAnalytics };
+// GET /api/employer/users/:id/credentials
+// Get all credentials for a specific user (for employer verification)
+const getUserCredentialsForEmployer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verify user exists and is a learner
+    const user = await User.findById(id)
+      .select('fullName email profilePic institute settings role')
+      .lean();
+      
+    if (!user || user.role !== 'learner') {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check privacy settings
+    const isProfilePublic = user.settings?.preferences?.privacy?.profileVisibility !== 'private';
+    if (!isProfilePublic) {
+      return res.status(403).json({ success: false, message: 'This profile is private' });
+    }
+
+    // Get all user credentials
+    const credentials = await Credential.find({ user: id })
+      .select('title issuer issueDate skills status transactionHash credentialHash type description nsqfLevel creditPoints imageUrl credentialId issuerLogo createdAt')
+      .sort({ issueDate: -1 })
+      .lean();
+
+    // Format user info
+    const userInfo = {
+      id: user._id.toString(),
+      name: `${user.fullName?.firstName || ''} ${user.fullName?.lastName || ''}`.trim() || 'Anonymous User',
+      email: user.email,
+      profilePic: user.profilePic,
+      institute: user.institute
+    };
+
+    // Format credentials
+    const formattedCredentials = credentials.map(cred => ({
+      id: cred._id.toString(),
+      title: cred.title,
+      issuer: cred.issuer,
+      type: cred.type || 'certificate',
+      issueDate: cred.issueDate,
+      description: cred.description,
+      skills: cred.skills || [],
+      nsqfLevel: cred.nsqfLevel,
+      creditPoints: cred.creditPoints,
+      status: cred.status,
+      transactionHash: cred.transactionHash,
+      credentialHash: cred.credentialHash,
+      imageUrl: cred.imageUrl,
+      issuerLogo: cred.issuerLogo,
+      credentialId: cred.credentialId,
+      isBlockchainVerified: !!cred.transactionHash,
+      createdAt: cred.createdAt
+    }));
+
+    res.json({
+      success: true,
+      user: userInfo,
+      credentials: formattedCredentials,
+      totalCredentials: formattedCredentials.length,
+      verifiedCredentials: formattedCredentials.filter(c => c.status === 'verified').length,
+      blockchainCredentials: formattedCredentials.filter(c => c.isBlockchainVerified).length
+    });
+
+  } catch (error) {
+    console.error('Get user credentials for employer error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch user credentials' });
+  }
+};
+
+// POST /api/employer/verify-hash
+// Verify a credential by hash (blockchain verification)
+const verifyCredentialByHash = async (req, res) => {
+  try {
+    const { hash } = req.body;
+    
+    if (!hash) {
+      return res.status(400).json({ success: false, message: 'Hash is required' });
+    }
+
+    // Clean the hash (remove 0x prefix if present, then add it back)
+    const cleanHash = hash.replace(/^0x/, '');
+    const formattedHash = `0x${cleanHash}`;
+
+    // First, try to find in database
+    const credential = await Credential.findOne({ credentialHash: formattedHash })
+      .populate('user', 'fullName email profilePic institute')
+      .lean();
+
+    let blockchainData = null;
+    
+    // Verify on blockchain
+    try {
+      const credentialData = await verifyCredential(formattedHash);
+      if (credentialData && credentialData.timestamp !== 0n) {
+        blockchainData = {
+          issuer: credentialData.issuer,
+          timestamp: Number(credentialData.timestamp),
+          timestampDate: new Date(Number(credentialData.timestamp) * 1000).toISOString(),
+          verified: true,
+          source: 'blockchain'
+        };
+      }
+    } catch (blockchainError) {
+      console.log('Blockchain verification failed:', blockchainError.message);
+    }
+
+    if (!credential && !blockchainData) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Credential not found',
+        details: 'This hash does not correspond to any credential in our system or on the blockchain'
+      });
+    }
+
+    // Prepare response
+    const response = {
+      success: true,
+      verified: !!blockchainData,
+      hash: formattedHash,
+      blockchain: blockchainData || { verified: false, source: 'database' },
+      credential: credential ? {
+        id: credential._id.toString(),
+        title: credential.title,
+        issuer: credential.issuer,
+        type: credential.type,
+        issueDate: credential.issueDate,
+        description: credential.description,
+        skills: credential.skills,
+        nsqfLevel: credential.nsqfLevel,
+        creditPoints: credential.creditPoints,
+        status: credential.status,
+        imageUrl: credential.imageUrl,
+        issuerLogo: credential.issuerLogo,
+        credentialId: credential.credentialId,
+        transactionHash: credential.transactionHash
+      } : null,
+      user: credential?.user ? {
+        id: credential.user._id.toString(),
+        name: `${credential.user.fullName?.firstName || ''} ${credential.user.fullName?.lastName || ''}`.trim(),
+        email: credential.user.email,
+        profilePic: credential.user.profilePic,
+        institute: credential.user.institute
+      } : null,
+      verifiedAt: new Date().toISOString()
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('Verify credential by hash error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to verify credential',
+      details: error.message 
+    });
+  }
+};
+
+module.exports = { 
+  getAnalytics,
+  getUserCredentialsForEmployer,
+  verifyCredentialByHash
+};

@@ -17,14 +17,22 @@ import {
   Star,
   ArrowUpRight,
   Globe,
-  Shield
+  Shield,
+  PlusCircle
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import EmployerSidebar from "@/components/dashboard/employer/EmployerSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import RoleGuard from "@/components/auth/RoleGuard";
 
 export default function EmployerDashboard() {
+  const router = useRouter();
+
+  const handleNavigate = (href: string) => {
+    router.push(href);
+  };
+
   const stats = [
     {
       title: "Active Job Postings",
@@ -87,7 +95,7 @@ export default function EmployerDashboard() {
     {
       title: "Post New Job",
       description: "Create a new job posting and find talent",
-      icon: <Building2 className="h-6 w-6" />,
+      icon: <PlusCircle className="h-6 w-6" />,
       color: "bg-blue-500 hover:bg-blue-600",
       href: "/dashboard/employer/jobs/new",
     },
@@ -210,6 +218,7 @@ export default function EmployerDashboard() {
                   {quickActions.map((action, index) => (
                     <div
                       key={index}
+                      onClick={() => handleNavigate(action.href)}
                       className="group cursor-pointer bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition-all duration-300"
                     >
                       <div className="flex items-start gap-4">

@@ -10,6 +10,8 @@ import {
   Home,
   ChevronsRight,
   ChevronsLeft,
+  PlusCircle,
+  LayoutDashboard,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -26,10 +28,6 @@ export default function EmployerSidebar() {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     router.push("/login");
-  };
-
-  const handleNavigate = (path: string) => {
-    router.push(path);
   };
 
   const toggleLock = () => {
@@ -57,59 +55,52 @@ export default function EmployerSidebar() {
   const links = [
     {
       label: "Home",
-      href: "#",
+      href: "/",
       icon: (
         <Home className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/"),
     },
     {
       label: "Dashboard",
-      href: "#",
+      href: "/dashboard/employer",
       icon: (
-        <Building2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+        <LayoutDashboard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/employer"),
     },
     {
       label: "Post Job",
-      href: "#",
+      href: "/dashboard/employer/jobs/new",
       icon: (
-        <Building2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+        <PlusCircle className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/employer/jobs/new"),
     },
     {
       label: "Talent Search",
-      href: "#",
+      href: "/dashboard/employer/talent-search",
       icon: (
         <Search className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/employer/talent-search"),
     },
     {
       label: "Verify Credentials",
-      href: "#",
+      href: "/dashboard/employer/verify-credentials",
       icon: (
         <FileCheck className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/employer/verify-credentials"),
     },
     {
       label: "Analytics",
-      href: "#",
+      href: "/dashboard/employer/analytics",
       icon: (
         <BarChart3 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/employer/analytics"),
     },
     {
       label: "Settings",
-      href: "#",
+      href: "/dashboard/employer/settings",
       icon: (
         <Settings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
-      onClick: () => handleNavigate("/dashboard/employer/settings"),
     },
   ];
 
@@ -162,9 +153,8 @@ export default function EmployerSidebar() {
               {links.map((link, idx) => (
                 <div
                   key={idx}
-                  onClick={link.onClick}
                   className={cn(
-                    "cursor-pointer rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
+                    "rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
                     getSelectedKey() === link.label.toLowerCase().replace(/\s+/g, "-") 
                       ? open 
                         ? "bg-green-500 text-white mx-2" 

@@ -23,7 +23,7 @@ const JobSchema = new mongoose.Schema(
       trim: true,
       match: [/^[0-9+()\-\s]{7,}$/, 'Please provide a valid phone number'],
     },
-    status: { type: String, enum: ['draft', 'published'], default: 'published' },
+    status: { type: String, enum: ['active', 'closed', 'draft', 'paused'], default: 'active' },
   },
   { timestamps: true }
 );
