@@ -11,8 +11,8 @@ cd backend && npm install
 echo "🐍 Installing Python dependencies for forensics..."
 cd ../fraudCertificate
 
-# Install Python packages
-pip install --no-cache-dir -r requirements.txt
+# Install Python packages (try production requirements first)
+pip3 install --no-cache-dir -r requirements-prod.txt || pip3 install --no-cache-dir -r requirements.txt
 
 echo "✅ Build completed successfully!"
 

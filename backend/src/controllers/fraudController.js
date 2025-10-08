@@ -2,6 +2,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
+const ActivityTracker = require('../utils/activityTracker');
 
 // Download a remote image to a local temp path
 async function downloadImage(url, destPath) {
@@ -169,7 +170,7 @@ exports.runForensicsOnCredential = async (req, res) => {
         
         if (stderr && stderr.includes('ModuleNotFoundError')) {
           errorMessage = 'Missing Python dependencies';
-          errorDetails = 'The ML environment is not properly set up. Required packages: torch, torchvision, PIL, numpy, opencv-python';
+          errorDetails = 'The ML environment is not properly set up. Please ensure the build command includes: pip3 install torch torchvision opencv-python-headless pillow numpy';
         } else if (stderr && stderr.includes('No such file')) {
           errorMessage = 'ML model files missing';
           errorDetails = 'The fraud detection model files are not available. Please ensure Git LFS files are downloaded.';
@@ -207,6 +208,40 @@ exports.runForensicsOnCredential = async (req, res) => {
       const outData = fs.readFileSync(outPath);
       const base64 = outData.toString('base64');
       
+      // Log forensics activity (async but don't await to avoid blocking response)
+      Promise.resolve().then(async () => {
+        try {
+          const activityDescription = `Performed forensics analysis on credential: ${cred.title || 'Untitled'}`;
+          const metadata = {
+            credentialId: id,
+            credentialTitle: cred.title,
+            fraudPercentage: resultData.metrics?.fraud_percentage || 0,
+            authenticityScore: resultData.metrics?.authenticity_score || 100,
+            classification: resultData.metrics?.classification || 'AUTHENTIC'
+          };
+
+          if (requesterRole === 'institute') {
+            await ActivityTracker.logInstituteActivity(
+              requesterId,
+              'forensics_analysis_performed',
+              activityDescription,
+              metadata,
+              req
+            );
+          } else {
+            await ActivityTracker.logLearnerActivity(
+              requesterId,
+              'credential_shared', // Learner viewing their own credential forensics
+              `Viewed forensics analysis for: ${cred.title || 'Untitled'}`,
+              metadata,
+              req
+            );
+          }
+        } catch (activityError) {
+          console.warn('Failed to log forensics activity:', activityError.message);
+        }
+      });
+
       // Clean up temp files
       try { fs.unlinkSync(localImage); } catch(e){}
       try { fs.unlinkSync(outPath); } catch(e){}

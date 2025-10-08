@@ -1,5 +1,6 @@
 const User = require('../models/userModel');
 const Credential = require('../models/credentialModel');
+const ActivityTracker = require('../utils/activityTracker');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -1296,7 +1297,7 @@ const verifyCredential = async (req, res) => {
     const credential = await Credential.findOne({ 
       _id: id, 
       issuer: { $regex: new RegExp(`^${instituteName}$`, 'i') }
-    });
+    }).populate('user', 'fullName email');
 
     if (!credential) {
       return res.status(404).json({
@@ -1321,6 +1322,40 @@ const verifyCredential = async (req, res) => {
     };
 
     await credential.save();
+
+    // Log activity for manual credential verification
+    try {
+      const studentName = credential.user && credential.user.fullName 
+        ? `${credential.user.fullName.firstName} ${credential.user.fullName.lastName}`
+        : (credential.user && credential.user.email ? credential.user.email : 'Unknown Student');
+        
+      await ActivityTracker.logActivity({
+        userId: userId,
+        userRole: 'institute',
+        activityType: 'credential_verified',
+        description: `Manually verified credential "${credential.title}" for ${studentName}`,
+        metadata: {
+          credentialId: credential._id,
+          credentialTitle: credential.title,
+          studentId: credential.user ? credential.user._id : null,
+          studentEmail: credential.user ? credential.user.email : null,
+          studentName: studentName,
+          issuer: credential.issuer,
+          verificationType: 'manual_issuer_verification',
+          verificationMethod: 'dashboard_button',
+          credentialType: credential.type || 'credential',
+          nsqfLevel: credential.nsqfLevel || null,
+          skills: credential.skills || []
+        },
+        relatedEntityType: 'credential',
+        relatedEntityId: credential._id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    } catch (activityError) {
+      console.error('Activity logging failed for credential verification:', activityError.message);
+      // Continue - activity logging failure shouldn't block the response
+    }
 
     res.json({
       success: true,

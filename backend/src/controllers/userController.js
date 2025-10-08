@@ -7,6 +7,7 @@ const sendEmail = require("../utils/emailService");
 const User = require("../models/userModel");
 const Credential = require("../models/credentialModel");
 const { calculateUserPoints } = require("./leaderboardController");
+const ActivityTracker = require("../utils/activityTracker");
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const OTP_RESEND_INTERVAL = 30 * 1000;
@@ -137,6 +138,40 @@ const updateUserProfile = async (req, res) => {
         }
 
         const updatedUser = await user.save();
+
+        // Log profile update activity
+        try {
+          const changes = [];
+          if (firstName || lastName) changes.push('name');
+          if (username) changes.push('username');
+          if (phone) changes.push('phone');
+          if (socialLinks) changes.push('social links');
+          if (req.file) changes.push('profile picture');
+          if (req.body.settings) changes.push('settings');
+          
+          if (changes.length > 0) {
+            await ActivityTracker.logLearnerActivity(
+              user._id,
+              'profile_updated',
+              `Updated profile: ${changes.join(', ')}`,
+              {
+                changes: changes,
+                hasProfilePic: !!req.file,
+                updatedFields: {
+                  firstName: !!firstName,
+                  lastName: !!lastName,
+                  username: !!username,
+                  phone: !!phone,
+                  socialLinks: !!socialLinks,
+                  settings: !!req.body.settings
+                }
+              },
+              req
+            );
+          }
+        } catch (activityError) {
+          console.warn('Failed to log profile update activity:', activityError.message);
+        }
 
         if (isAttemptingEmailUpdate) {
              return res.status(200).json({
@@ -385,7 +420,29 @@ const uploadResumeFile = async (req, res) => {
         };
         
         await user.save();
-        
+
+        // Log resume upload activity
+        try {
+          const activityType = oldResumeInfo ? 'resume_updated' : 'resume_uploaded';
+          const description = oldResumeInfo ? 'Updated resume file' : 'Uploaded new resume';
+          
+          await ActivityTracker.logLearnerActivity(
+            user._id,
+            activityType,
+            description,
+            {
+              fileName: req.file.originalname,
+              fileSize: req.file.size,
+              fileType: req.file.mimetype,
+              wasReplacement: !!oldResumeInfo,
+              oldFileName: oldResumeInfo?.fileName
+            },
+            req
+          );
+        } catch (activityError) {
+          console.warn('Failed to log resume upload activity:', activityError.message);
+        }
+
         // Delete old resume from ImageKit after successful save
         if (oldResumeInfo) {
             try {

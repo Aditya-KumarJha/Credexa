@@ -5,6 +5,7 @@ const { uploadFile, deleteFile } = require('../services/storageService');
 const { extractCredentialInfo } = require('../services/extractionService');
 const NSQFService = require('../services/nsqfService');
 const { generatePdfPreview, getFileType } = require('../services/pdfPreviewService');
+const ActivityTracker = require('../utils/activityTracker');
 
 
 // --- EXISTING DATABASE FUNCTIONS (UNCHANGED) ---
@@ -62,6 +63,24 @@ const createCredential = async (req, res) => {
     }
 
     const created = await Credential.create(payload);
+    
+    // Log activity for credential creation
+    try {
+      await ActivityTracker.logLearnerActivity(
+        req.user._id,
+        'credential_uploaded',
+        `Uploaded new credential: ${created.title}`,
+        {
+          credentialId: created._id,
+          credentialTitle: created.title,
+          issuer: created.issuer,
+          nsqfLevel: created.nsqfLevel
+        },
+        req
+      );
+    } catch (activityError) {
+      console.warn('Failed to log credential upload activity:', activityError.message);
+    }
     
     // Generate PDF preview if the credential URL is a PDF and no image was uploaded
     if (!req.file && payload.credentialUrl) {

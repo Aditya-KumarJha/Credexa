@@ -4,6 +4,7 @@ const ApiUsage = require('../models/apiUsageModel');
 const crypto = require('crypto');
 const axios = require('axios');
 const { generatePdfPreview, getFileType } = require('../services/pdfPreviewService');
+const ActivityTracker = require('../utils/activityTracker');
 
 // Validate certificate URL
 const validateCertificateUrl = async (url) => {
@@ -275,6 +276,34 @@ const submitCredential = async (req, res) => {
       { sort: { createdAt: -1 } }
     );
 
+    // Log activity for issuer
+    try {
+      await ActivityTracker.logActivity({
+        userId: req.issuer._id,
+        userRole: 'institute',
+        activityType: 'credential_issued',
+        description: `Issued credential "${credentialTitle}" to ${studentEmail} via API`,
+        metadata: {
+          credentialTitle,
+          studentEmail,
+          studentName: user.fullName ? `${user.fullName.firstName} ${user.fullName.lastName}` : 'N/A',
+          credentialType,
+          nsqfLevel,
+          skills: skills || [],
+          apiSubmission: true,
+          apiKeyName: req.apiKey.keyName,
+          certificateUrl
+        },
+        relatedEntityType: 'credential',
+        relatedEntityId: credential._id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    } catch (activityError) {
+      console.error('Activity logging failed:', activityError.message);
+      // Continue - activity logging failure shouldn't block the response
+    }
+
     // Send webhook notification if configured
     if (req.apiKey.webhookUrl) {
       try {
@@ -409,6 +438,34 @@ const bulkSubmitCredentials = async (req, res) => {
           credentialTitle: credentials[i]?.credentialTitle
         });
       }
+    }
+
+    // Log bulk activity for issuer
+    try {
+      await ActivityTracker.logActivity({
+        userId: req.issuer._id,
+        userRole: 'institute',
+        activityType: 'bulk_upload_completed',
+        description: `Bulk issued ${results.length} credentials via API (${errors.length} failed)`,
+        metadata: {
+          totalSubmitted: credentials.length,
+          successful: results.length,
+          failed: errors.length,
+          apiSubmission: true,
+          apiKeyName: req.apiKey.keyName,
+          successfulCredentials: results.map(r => ({
+            credentialTitle: r.credentialTitle,
+            studentEmail: r.studentEmail
+          }))
+        },
+        relatedEntityType: 'none',
+        relatedEntityId: null,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    } catch (activityError) {
+      console.error('Bulk activity logging failed:', activityError.message);
+      // Continue - activity logging failure shouldn't block the response
     }
 
     res.json({

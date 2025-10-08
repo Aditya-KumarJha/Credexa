@@ -88,12 +88,11 @@ export default function ApiIntegrationPage() {
       if (response.ok) {
         const data = await response.json();
         setApiKeys(data.data.apiKeys);
-      } else {
-        toast.error("Failed to fetch API keys");
       }
+      // Silently handle non-OK responses - user will see empty state
     } catch (error) {
       console.error("Error fetching API keys:", error);
-      toast.error("Failed to fetch API keys");
+      // Silently handle errors - user will see empty state
     } finally {
       setLoading(false);
     }

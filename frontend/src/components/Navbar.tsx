@@ -11,6 +11,9 @@ import {
   BarChart2,
   UsersIcon,
   Phone,
+  Activity,
+  User,
+  LogOut,
 } from "lucide-react";
 import ThemeToggleButton from "./ui/theme-toggle-button";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -19,6 +22,8 @@ const Navbar = () => {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(pathname);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -31,12 +36,53 @@ const Navbar = () => {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("authToken");
+    setIsAuthenticated(!!token);
+  }, []);
+
+  useEffect(() => {
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.user-dropdown')) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    if (userDropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [userDropdownOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setIsAuthenticated(false);
+    setUserDropdownOpen(false);
+    window.location.href = "/login";
+  };
+
+  const handleMyActivity = () => {
+    if (isAuthenticated) {
+      window.location.href = "/my-activity";
+    } else {
+      window.location.href = "/login";
+    }
+  };
+
+  const handleDashboard = () => {
+    window.location.href = "/dashboard/learner";
+  };
+
   const navItems = [
   { href: "/verify", label: "Verify", icon: ShieldCheck },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/explore", label: "Explore", icon: Search },
   { href: "/community", label: "Community", icon: UsersIcon },
   { href: "/#contact", label: "Contact Us", icon: Phone },
+  { href: "#", label: "My Activity", icon: Activity, isSpecial: true },
   ];
 
   const menuPanelVariants = {
@@ -73,27 +119,52 @@ const Navbar = () => {
           </a>
 
           <div className="hidden lg:flex gap-4 bg-gray-200/50 dark:bg-gray-800/50 p-2 rounded-full relative z-[1001]">
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onMouseOver={() => setHoveredPath(item.href)}
-                onMouseLeave={() => setHoveredPath(pathname)}
-                className={linkClass(item.href)}
-              >
-                {item.href === hoveredPath && (
-                  <motion.div
-                    layoutId="active-pill"
-                    className="absolute inset-0 bg-white dark:bg-gray-600 rounded-full"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-2">
-                  <item.icon size={18} />
-                  {item.label}
-                </span>
-              </a>
-            ))}
+            {navItems.map((item) => {
+              if (item.isSpecial) {
+                return (
+                  <button
+                    key={item.label}
+                    onClick={handleMyActivity}
+                    onMouseOver={() => setHoveredPath(item.href)}
+                    onMouseLeave={() => setHoveredPath(pathname)}
+                    className={linkClass(item.href)}
+                  >
+                    {item.href === hoveredPath && (
+                      <motion.div
+                        layoutId="active-pill"
+                        className="absolute inset-0 bg-white dark:bg-gray-600 rounded-full"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <item.icon size={18} />
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              }
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onMouseOver={() => setHoveredPath(item.href)}
+                  onMouseLeave={() => setHoveredPath(pathname)}
+                  className={linkClass(item.href)}
+                >
+                  {item.href === hoveredPath && (
+                    <motion.div
+                      layoutId="active-pill"
+                      className="absolute inset-0 bg-white dark:bg-gray-600 rounded-full"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    <item.icon size={18} />
+                    {item.label}
+                  </span>
+                </a>
+              );
+            })}
           </div>
 
           <div className="hidden lg:flex items-center gap-5">
@@ -104,6 +175,17 @@ const Navbar = () => {
           <div className="lg:hidden flex items-center gap-4">
             <LanguageSwitcher />
             <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+            
+            {/* Mobile Account Button */}
+            {isAuthenticated && (
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-300"
+              >
+                <User size={18} />
+              </button>
+            )}
+            
             <button
               onClick={() => setMobileOpen(true)}
               className="focus:outline-none z-50"
@@ -147,6 +229,40 @@ const Navbar = () => {
                     </a>
                   </motion.div>
                 ))}
+                
+                {/* Mobile User Actions */}
+                {isAuthenticated && (
+                  <>
+                    <motion.div variants={menuItemVariants}>
+                      <button 
+                        onClick={() => { handleDashboard(); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-4 text-lg font-medium p-4 rounded-lg transition-colors bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                      >
+                        <BarChart2 size={22} />
+                        Dashboard
+                      </button>
+                    </motion.div>
+                    <motion.div variants={menuItemVariants}>
+                      <button 
+                        onClick={() => { handleMyActivity(); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-4 text-lg font-medium p-4 rounded-lg transition-colors bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                      >
+                        <Activity size={22} />
+                        My Activity
+                      </button>
+                    </motion.div>
+                    <motion.div variants={menuItemVariants}>
+                      <button 
+                        onClick={() => { handleLogout(); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-4 text-lg font-medium p-4 rounded-lg transition-colors bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-900/50"
+                      >
+                        <LogOut size={22} />
+                        Logout
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+                
                 <div className="pt-2">
                   <LanguageSwitcher />
                 </div>
