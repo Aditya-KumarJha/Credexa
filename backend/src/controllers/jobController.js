@@ -475,6 +475,106 @@ module.exports = {
     }
   },
 
+  // Update job status
+  updateJobStatus: async (req, res) => {
+    try {
+      const employerId = req.user?.id;
+      const { jobId } = req.params;
+      const { status } = req.body;
+
+      if (!employerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      // Validate status
+      const validStatuses = ['active', 'closed', 'draft', 'paused'];
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid status. Must be one of: active, closed, draft, paused' 
+        });
+      }
+
+      // Find job and ensure it belongs to the employer
+      const job = await Job.findOne({ _id: jobId, employer: employerId });
+      if (!job) {
+        return res.status(404).json({ success: false, message: 'Job not found or not authorized' });
+      }
+
+      // Update status
+      job.status = status;
+      await job.save();
+
+      res.json({ 
+        success: true, 
+        job,
+        message: `Job status updated to ${status}` 
+      });
+    } catch (error) {
+      console.error('❌ Error updating job status:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update job status', 
+        error: error.message 
+      });
+    }
+  },
+
+  // Update job details
+  updateJob: async (req, res) => {
+    try {
+      const employerId = req.user?.id;
+      const { jobId } = req.params;
+      const updateData = req.body;
+
+      if (!employerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      // Find job and ensure it belongs to the employer
+      const job = await Job.findOne({ _id: jobId, employer: employerId });
+      if (!job) {
+        return res.status(404).json({ success: false, message: 'Job not found or not authorized' });
+      }
+
+      // Fields that can be updated
+      const allowedUpdates = [
+        'jobTitle', 'package', 'location', 'qualification', 'experience', 
+        'description', 'skills', 'contactEmail', 'contactPhone', 'status'
+      ];
+
+      // Filter and apply updates
+      const updates = {};
+      allowedUpdates.forEach(field => {
+        if (updateData[field] !== undefined) {
+          if (field === 'skills' && Array.isArray(updateData[field])) {
+            updates[field] = updateData[field];
+          } else if (field === 'package') {
+            updates[field] = updateData[field]; // Handle 'package' field
+          } else if (field !== 'skills') {
+            updates[field] = updateData[field];
+          }
+        }
+      });
+
+      // Update job
+      const updatedJob = await Job.findByIdAndUpdate(
+        jobId, 
+        updates, 
+        { new: true, runValidators: true }
+      );
+
+      res.json({ 
+        success: true, 
+        job: updatedJob,
+        message: 'Job updated successfully' 
+      });
+    } catch (error) {
+      console.error('❌ Error updating job:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update job', 
+        error: error.message 
+      });
+    }
+  },
+
   searchJobs,
   getJobRecommendations,
   testMLService

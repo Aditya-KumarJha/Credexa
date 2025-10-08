@@ -110,25 +110,42 @@ function CredentialsPageContent() {
   const handleAnchorCredentialClick = async (credentialId?: string) => {
     console.log('⚓ handleAnchorCredentialClick called with ID:', credentialId);
     
-    const transactionHash = await handleAnchorCredential(credentialId);
-    console.log('📄 Anchoring result - Transaction hash:', transactionHash);
-    
-    if (transactionHash && credentialId) {
+    const result: any = await handleAnchorCredential(credentialId);
+    console.log('📄 Anchoring result:', result);
+
+    if (result?.success) {
+      // success case
       console.log('✅ Anchoring successful, refreshing credentials list...');
-      // Refresh the credentials list to get the updated credentialHash
       await fetchItems();
       console.log('🔄 Credentials list refreshed');
-    } else {
-      console.log('❌ Anchoring failed or missing data');
+      return;
     }
+
+    // handle conflict cases returned by the backend
+    if (result?.reason === 'ALREADY_ANCHORED') {
+      // Only show the error from useCredentialActions, do not show another popup here
+      return;
+    }
+
+    if (result?.reason === 'DUPLICATE_CREDENTIAL') {
+      message.warning('A similar credential already exists in the system.');
+      if (result?.existingCredentialId) {
+        // Optionally navigate or show the existing credential
+        console.log('Existing credential id:', result.existingCredentialId);
+      }
+      return;
+    }
+
+    // Unknown failure
+    console.log('❌ Anchoring failed or missing data', result);
   };
+
 
   const submitForm = async () => {
     setSubmitting(true);
     const token = localStorage.getItem("authToken");
     const fd = new FormData();
     let payload: Record<string, any> = {};
-
     try {
       if (modalHook.addMethod === "sync") {
         if (!modalHook.file) {
@@ -157,9 +174,8 @@ function CredentialsPageContent() {
           message.error("Please go back and fill in the title field");
           return;
         }
-
-        const skillArray = Array.isArray(values.skills) 
-          ? values.skills 
+        const skillArray = Array.isArray(values.skills)
+          ? values.skills
           : String(values.skills || "")
               .split(",")
               .map((s: string) => s.trim())
@@ -194,17 +210,81 @@ function CredentialsPageContent() {
       }
 
       if (modalHook.editing?._id) {
-        const res = await api.put(`/api/credentials/${modalHook.editing._id}`, fd, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        updateCredential(res.data);
-        message.success("Credential updated successfully!");
+        try {
+          const res = await api.put(`/api/credentials/${modalHook.editing._id}`, fd, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          updateCredential(res.data);
+          message.success("Credential updated successfully!");
+        } catch (e: any) {
+          const status = e.response?.status;
+          const data = e.response?.data;
+          if (status === 409) {
+            if (data?.error === 'ALREADY_ANCHORED') {
+              const tx = data.transactionHash;
+              const hash = data.credentialHash || data.hash;
+              if (tx) {
+                message.error(
+                  <span>
+                    This credential is already anchored. <a href={`https://sepolia.etherscan.io/tx/${tx}`} target="_blank" rel="noreferrer">View transaction</a>
+                  </span>
+                );
+              } else if (hash) {
+                message.error('This credential is already anchored (hash: ' + hash.substring(0, 10) + '...)');
+              } else {
+                message.error('This credential is already anchored on-chain.');
+              }
+              modalHook.setIsModalOpen(false);
+              setSubmitting(false);
+              return;
+            }
+            if (data?.error === 'DUPLICATE_CREDENTIAL') {
+              message.error('A credential with the same title and issue date already exists for this student');
+              modalHook.setIsModalOpen(false);
+              setSubmitting(false);
+              return;
+            }
+          }
+          throw e;
+        }
       } else {
-        const res = await api.post(`/api/credentials`, fd, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        addCredential(res.data);
-        message.success("Credential created successfully!");
+        try {
+          const res = await api.post(`/api/credentials`, fd, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          addCredential(res.data);
+          message.success("Credential created successfully!");
+        } catch (e: any) {
+          const status = e.response?.status;
+          const data = e.response?.data;
+          if (status === 409) {
+            if (data?.error === 'ALREADY_ANCHORED') {
+              const tx = data.transactionHash;
+              const hash = data.credentialHash || data.hash;
+              if (tx) {
+                message.error(
+                  <span>
+                    This credential is already anchored. <a href={`https://sepolia.etherscan.io/tx/${tx}`} target="_blank" rel="noreferrer">View transaction</a>
+                  </span>
+                );
+              } else if (hash) {
+                message.error('This credential is already anchored (hash: ' + hash.substring(0, 10) + '...)');
+              } else {
+                message.error('This credential is already anchored on-chain.');
+              }
+              modalHook.setIsModalOpen(false);
+              setSubmitting(false);
+              return;
+            }
+            if (data?.error === 'DUPLICATE_CREDENTIAL') {
+              message.error('A credential with the same title and issue date already exists for this student');
+              modalHook.setIsModalOpen(false);
+              setSubmitting(false);
+              return;
+            }
+          }
+          throw e;
+        }
       }
 
       form.resetFields();

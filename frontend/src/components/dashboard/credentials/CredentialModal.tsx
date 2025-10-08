@@ -307,7 +307,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
       )}
 
       {currentStep === 1 && addMethod !== "sync" && (
-        <Form form={form} layout="vertical" initialValues={{ type: "certificate" }}>
+        <Form form={form} layout="vertical" initialValues={{ type: "certificate" }} className="credential-form">
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -517,6 +517,45 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
             </Button>
             <Button onClick={handleContinueToReview}>Continue</Button>
           </div>
+          {/* Scoped style override to ensure readable text colors in light theme (and dark fallbacks) */}
+          <style jsx global>{`
+            /* Base: make sure labels and form text render dark on light backgrounds */
+            .credential-form,
+            .credential-form .ant-form-item-label > label,
+            .credential-form .ant-typography {
+              color: #111827; /* gray-900 */
+            }
+            .credential-form .ant-input,
+            .credential-form .ant-input-affix-wrapper,
+            .credential-form .ant-select-selection-item,
+            .credential-form .ant-select-selection-placeholder,
+            .credential-form .ant-picker-input > input,
+            .credential-form .ant-select-selector {
+              color: #111827; /* gray-900 */
+            }
+            .credential-form .ant-input::placeholder,
+            .credential-form .ant-select-selection-placeholder {
+              color: #6b7280; /* gray-500 */
+            }
+
+            /* Dark mode: respect dark foreground */
+            .dark .credential-form,
+            .dark .credential-form .ant-form-item-label > label,
+            .dark .credential-form .ant-typography {
+              color: #e5e7eb; /* gray-200 */
+            }
+            .dark .credential-form .ant-input,
+            .dark .credential-form .ant-input-affix-wrapper,
+            .dark .credential-form .ant-select-selection-item,
+            .dark .credential-form .ant-picker-input > input,
+            .dark .credential-form .ant-select-selector {
+              color: #e5e7eb; /* gray-200 */
+            }
+            .dark .credential-form .ant-input::placeholder,
+            .dark .credential-form .ant-select-selection-placeholder {
+              color: #9ca3af; /* gray-400 */
+            }
+          `}</style>
         </Form>
       )}
 

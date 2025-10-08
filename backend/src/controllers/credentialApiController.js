@@ -3,6 +3,7 @@ const User = require('../models/userModel');
 const ApiUsage = require('../models/apiUsageModel');
 const crypto = require('crypto');
 const axios = require('axios');
+const { verifyCredential } = require('../services/blockchainService');
 const { generatePdfPreview, getFileType } = require('../services/pdfPreviewService');
 const ActivityTracker = require('../utils/activityTracker');
 
@@ -200,11 +201,95 @@ const submitCredential = async (req, res) => {
       });
     }
 
-    // Generate credential hash for verification
-    const credentialHash = crypto
-      .createHash('sha256')
-      .update(`${user._id}${credentialTitle}${req.issuer.institute.name}${issueDateObj.getTime()}`)
-      .digest('hex');
+    // Generate credential hash for verification (using credential id and issuer)
+    // Note: credential id is not available until after save, so we will use a temporary id for hash, then update after save
+    let credentialHash;
+    let credentialId;
+
+    // Create the credential first to get its credentialId
+    const newCredential = new Credential({
+      user: user._id,
+      title: credentialTitle,
+      description: description || '',
+      issuer: req.issuer.institute.name,
+      type: credentialType,
+      status: 'verified',
+      issuerVerification: {
+        status: 'verified',
+        verifiedAt: new Date(),
+        verifiedBy: req.issuer._id
+      },
+      issueDate: issueDateObj,
+      skills: Array.isArray(skills) ? skills : [],
+      nsqfLevel: nsqfLevel || null,
+      creditPoints: creditPoints || null,
+      imageUrl: certificateUrl,
+      credentialUrl: certificateUrl,
+      blockchainAddress: blockchainId || null,
+      transactionHash: verificationHash || null,
+      metadata: {
+        ...metadata,
+        submittedViaApi: true,
+        apiKeyId: req.apiKey._id,
+        courseCode: courseCode || null,
+        completionDate: completionDateObj,
+        apiSubmissionTime: new Date()
+      }
+    });
+    await newCredential.save();
+    credentialId = newCredential.credentialId;
+    credentialHash = crypto.createHash('sha256').update(`${credentialId}${req.issuer.institute.name}`).digest('hex');
+    newCredential.credentialHash = credentialHash;
+    await newCredential.save();
+
+    // Check if a credential with the same hash already exists in DB (after hash is set)
+    try {
+  const existingByHash = await Credential.findOne({ credentialHash: credentialHash, credentialId: { $ne: newCredential.credentialId } });
+      if (existingByHash) {
+        // If it's already in DB and has a transactionHash, it's anchored
+        if (existingByHash.transactionHash) {
+          return res.status(409).json({
+            success: false,
+            error: 'ALREADY_ANCHORED',
+            message: 'A credential with the same contents is already anchored on the blockchain',
+            existingCredentialId: existingByHash._id,
+            transactionHash: existingByHash.transactionHash,
+            credentialHash
+          });
+        }
+        // If exists in DB but not anchored, return conflict with DB id to avoid duplicate entries
+        return res.status(409).json({
+          success: false,
+          error: 'DUPLICATE_CREDENTIAL',
+          message: 'A credential with the same contents already exists for this student',
+          existingCredentialId: existingByHash._id,
+          credentialHash
+        });
+      }
+
+      // If not found in DB, check on-chain if the hash is anchored (this is a best-effort call)
+      try {
+        const onChain = await verifyCredential('0x' + credentialHash);
+        if (onChain && onChain.timestamp && onChain.timestamp !== 0n) {
+          return res.status(409).json({
+            success: false,
+            error: 'ALREADY_ANCHORED',
+            message: 'This credential has already been anchored on the blockchain',
+            credentialHash: '0x' + credentialHash,
+            blockchain: {
+              issuer: onChain.issuer,
+              timestamp: Number(onChain.timestamp)
+            }
+          });
+        }
+      } catch (chainErr) {
+        // If blockchain check fails, log and continue - don't block submission on RPC flakiness
+        console.warn('Blockchain verify call failed while checking duplicates:', chainErr.message);
+      }
+    } catch (checkErr) {
+      console.error('Error checking existing credential by hash:', checkErr);
+      // proceed - not fatal for submission
+    }
 
     // Create credential
     const credential = new Credential({

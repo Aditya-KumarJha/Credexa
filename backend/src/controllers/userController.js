@@ -525,59 +525,34 @@ const searchLearners = async (req, res) => {
         let q = (req.query.q || '').toString().trim();
         if (q.startsWith('@')) q = q.slice(1);
         const skillsParam = (req.query.skills || '').toString().trim();
-        const experience = (req.query.experience || '').toString().trim(); // reserved for future use
         const skills = skillsParam ? skillsParam.split(',').map(s => s.trim()).filter(Boolean) : [];
-        const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 24, 100));
+        const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 100, 100));
         const page = Math.max(1, parseInt(req.query.page) || 1);
 
-    // Build regex for text query (reuse across collections) and normalized alpha string
-    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = q ? new RegExp(escapedQ, 'i') : null;
-    const qAlpha = q ? q.toLowerCase().replace(/[^a-z0-9]+/g, '') : '';
-
-        // Phase 1: find users via names/institute, and also via credentials if query/skills provided
+        // Base query for learners only
         const userQuery = { role: 'learner' };
-        let credUserIds = [];
-        let userOr = [];
-        if (regex) {
-            userOr = [
-                // exact username match first, then partial username
-                { 'username': new RegExp(`^${escapedQ}$`, 'i') },
+        // If query provided, add name/username filters
+        if (q) {
+            const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedQ, 'i');
+            
+            userQuery.$or = [
                 { 'username': regex },
                 { 'fullName.firstName': regex },
                 { 'fullName.lastName': regex },
-                { 'institute.name': regex },
-                // fallback: concatenated first+last (for handle-like input)
-                { $expr: { $regexMatch: { input: { $toLower: { $concat: ['$fullName.firstName', '$fullName.lastName'] } }, regex: qAlpha } } },
+                // Match full name (first + last)
+                { $expr: { 
+                    $regexMatch: { 
+                        input: { $concat: ['$fullName.firstName', ' ', '$fullName.lastName'] }, 
+                        regex: escapedQ, 
+                        options: 'i' 
+                    } 
+                }}
             ];
         }
 
-        // If skills or q provided, pre-select users having matching credentials too
-        if (skills.length || regex) {
-            const credQueryForUsers = {};
-            if (skills.length) credQueryForUsers.skills = { $in: skills };
-            if (regex) {
-                credQueryForUsers.$or = [
-                    { title: regex },
-                    { issuer: regex },
-                    { skills: regex },
-                ];
-            }
-            try {
-                credUserIds = await Credential.distinct('user', credQueryForUsers);
-            } catch (_) {
-                credUserIds = [];
-            }
-        }
-
-        if (userOr.length || credUserIds.length) {
-            userQuery.$or = [];
-            if (userOr.length) userQuery.$or.push(...userOr);
-            if (credUserIds.length) userQuery.$or.push({ _id: { $in: credUserIds } });
-        }
-
         const users = await User.find(userQuery)
-            .select('fullName username email institute profileImage profilePic avatar settings')
+            .select('fullName username email institute profileImage profilePic avatar settings role')
             .lean();
 
         if (!users.length) {
@@ -586,18 +561,35 @@ const searchLearners = async (req, res) => {
 
         const userIds = users.map(u => u._id);
 
-        // Phase 2: fetch credentials for these users, optionally filter by skill
-            const credQuery = { user: { $in: userIds } };
+        // First, get all credentials to identify users who have credentials
+        const allCredentialsQuery = { user: { $in: userIds } };
+        const allCredentials = await Credential.find(allCredentialsQuery)
+            .select('user skills type createdAt creditPoints nsqfLevel transactionHash title issuer')
+            .lean();
+
+        // Get unique user IDs who have at least one credential
+        const usersWithCredentials = [...new Set(allCredentials.map(c => c.user.toString()))];
+        
+        if (usersWithCredentials.length === 0) {
+            return res.json({ success: true, total: 0, candidates: [] });
+        }
+
+        // Filter users to only include those who have credentials
+        const filteredUsers = users.filter(u => usersWithCredentials.includes(u._id.toString()));
+        
+        if (filteredUsers.length === 0) {
+            return res.json({ success: true, total: 0, candidates: [] });
+        }
+
+        // Now apply skill filtering if needed
+        const credQuery = { user: { $in: usersWithCredentials.map(id => id) } };
         if (skills.length) {
             credQuery.skills = { $in: skills };
         }
-            // If text query present, also try to match within credential fields (non-strict)
-            let credRegex = null;
-            if (regex) credRegex = regex;
 
-            const credentials = await Credential.find(credQuery)
-                .select('user skills type createdAt creditPoints nsqfLevel transactionHash title issuer')
-                .lean();
+        const credentials = await Credential.find(credQuery)
+            .select('user skills type createdAt creditPoints nsqfLevel transactionHash title issuer')
+            .lean();
 
         // Group credentials by user
         const credsByUser = new Map();
@@ -607,30 +599,20 @@ const searchLearners = async (req, res) => {
             credsByUser.get(key).push(c);
         }
 
-        // Compose candidate list
-            const rawCandidates = users.map(u => {
+        // Compose candidate list - only process users who we know have credentials
+        const rawCandidates = filteredUsers.map(u => {
             const { displayName, displayAvatar, isProfilePublic } = buildPublicIdentity(u);
-            // Respect opt-out
+            
+            // Respect privacy settings
             const showInLeaderboard = u.settings?.preferences?.privacy?.showInLeaderboard !== false;
             if (!showInLeaderboard) return null;
 
             const uCreds = credsByUser.get(u._id.toString()) || [];
-                // If no credentials and no text query, skip to keep results meaningful
-                if (!uCreds.length && !q) return null;
-
-                // If text query provided, ensure either user's name/institute matched or
-                // credential fields match the query
-                if (credRegex && !([
-                    u.username,
-                    u.fullName?.firstName,
-                    u.fullName?.lastName,
-                    u.institute?.name
-                ].some(v => v && credRegex.test(v))) ) {
-                    const hasCredTextMatch = uCreds.some(c => (
-                        credRegex.test(c.title || '') || credRegex.test(c.issuer || '') || (c.skills || []).some(s => credRegex.test(s))
-                    ));
-                    if (!hasCredTextMatch) return null;
-                }
+            
+            // This should never happen now since we pre-filtered, but keep as safety check
+            if (uCreds.length === 0) {
+                return null;
+            }
 
             // Unique skills and top skill
             const skillCounts = {};
@@ -651,12 +633,24 @@ const searchLearners = async (req, res) => {
             const first = u.fullName?.firstName || '';
             const last = u.fullName?.lastName || '';
             const fallbackHandle = (first + last).trim().toLowerCase() || (u.email ? u.email.split('@')[0] : `user_${u._id.toString().slice(-6)}`);
-            const handle = (u.username || '').toLowerCase() || fallbackHandle;
+            
+            // Check if username is meaningful (not auto-generated)
+            const originalUsername = (u.username || '').toLowerCase();
+            const nameCombined = (first + last).toLowerCase().replace(/\s+/g, '');
+            const isUsernameAutoGenerated = !originalUsername || 
+                                          originalUsername === nameCombined || 
+                                          originalUsername === 'unknownuser' ||
+                                          originalUsername.startsWith('user_') ||
+                                          originalUsername === (u.email ? u.email.split('@')[0] : '');
+            
+            // Only use the username if it's not auto-generated, otherwise use fallback
+            const handle = !isUsernameAutoGenerated ? originalUsername : fallbackHandle;
 
-                    return {
+            return {
                 id: u._id.toString(),
                 name: displayName,
                 username: handle,
+                hasRealUsername: !isUsernameAutoGenerated,
                 avatarUrl: displayAvatar,
                 role: `${topSkill} Professional`,
                 scores: { efficiency: eff, social: soc, performance: perf },
@@ -665,23 +659,11 @@ const searchLearners = async (req, res) => {
             };
         }).filter(Boolean);
 
-        // If a query exists, prioritize exact username matches first
-        let sorted = rawCandidates;
-        if (q) {
-            const qLower = q.toLowerCase();
-            sorted = [...rawCandidates].sort((a, b) => {
-                const aExact = a.username && a.username.toLowerCase() === qLower ? 1 : 0;
-                const bExact = b.username && b.username.toLowerCase() === qLower ? 1 : 0;
-                if (aExact !== bExact) return bExact - aExact;
-                return 0;
-            });
-        }
-
-        // Simple pagination on the sorted array
+        // Simple pagination
         const start = (page - 1) * limit;
-        const paged = sorted.slice(start, start + limit);
+        const paged = rawCandidates.slice(start, start + limit);
 
-                res.json({ success: true, total: rawCandidates.length, page, limit, candidates: paged });
+        res.json({ success: true, total: rawCandidates.length, page, limit, candidates: paged });
     } catch (err) {
         console.error('Search learners error:', err);
         res.status(500).json({ success: false, message: 'Failed to search learners' });

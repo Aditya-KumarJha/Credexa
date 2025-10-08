@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Select, Button, Tabs, Tag, Avatar, ConfigProvider, theme } from "antd";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion"; // Changed from "motion/react" to "framer-motion" (standard Next.js practice)
+import { Select, Button, Tabs, Tag, Avatar, ConfigProvider, theme, notification } from "antd";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 import EmployerSidebar from "@/components/dashboard/employer/EmployerSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
@@ -41,6 +42,13 @@ interface Candidate {
   topSkills: string[];
   email: string | null;
   phone: string | null;
+  resume: {
+    fileName?: string;
+    fileUrl?: string;
+    fileType?: string;
+    uploadedAt?: string;
+    fileSize?: number;
+  } | null;
   verifiedCredentials: VerifiedCredential[];
 }
 
@@ -48,6 +56,11 @@ interface AnimatedSearchBarProps {
   isSearching: boolean;
   setIsSearching: (value: boolean) => void;
   onSubmit: (query: string) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  onClear?: () => void;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
 interface CandidateCardProps {
@@ -60,88 +73,36 @@ interface CandidateProfileProps {
   onBack: () => void;
 }
 
-// --- MOCK DATA ---
-const mockCandidates: Candidate[] = [
-  {
-    id: "1",
-    name: "Johan Sundstein",
-    username: "N0tail",
-    avatarUrl: "https://i.pravatar.cc/150?u=johan",
-    role: "Senior Frontend Developer",
-    scores: {
-      efficiency: 103,
-      social: 79,
-      performance: 94,
-    },
-    skills: [
-      { subject: "React", A: 95, fullMark: 100 },
-      { subject: "Next.js", A: 90, fullMark: 100 },
-      { subject: "Teamwork", A: 85, fullMark: 100 },
-      { subject: "Communication", A: 88, fullMark: 100 },
-      { subject: "TypeScript", A: 92, fullMark: 100 },
-      { subject: "Problem Solving", A: 80, fullMark: 100 },
-    ],
-    topSkills: ["React", "Next.js", "Web3"],
-    email: "johan.sundstein@example.com",
-    phone: "+1 234 567 890",
-    verifiedCredentials: [
-      { id: "vc1", issuer: "MIT", name: "Advanced TypeScript", date: "2023-05-15" },
-      { id: "vc2", issuer: "Google", name: "Certified Cloud Architect", date: "2022-11-20" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Alexei Berezin",
-    username: "Solo",
-    avatarUrl: "https://i.pravatar.cc/150?u=alexei",
-    role: "Lead Backend Engineer",
-    scores: {
-      efficiency: 100,
-      social: 109,
-      performance: 87,
-    },
-    skills: [
-      { subject: "Node.js", A: 98, fullMark: 100 },
-      { subject: "MongoDB", A: 92, fullMark: 100 },
-      { subject: "Leadership", A: 90, fullMark: 100 },
-      { subject: "System Design", A: 95, fullMark: 100 },
-      { subject: "ethers.js", A: 85, fullMark: 100 },
-      { subject: "DevOps", A: 88, fullMark: 100 },
-    ],
-    topSkills: ["Node.js", "MongoDB", "System Architecture"],
-    email: "alexei.berezin@example.com",
-    phone: "+1 987 654 321",
-    verifiedCredentials: [
-      { id: "vc3", issuer: "Chainlink", name: "Smart Contract Developer", date: "2023-01-10" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Sasha Hostyn",
-    username: "Scarlett",
-    avatarUrl: "https://i.pravatar.cc/150?u=sasha",
-    role: "UI/UX Designer",
-    scores: {
-      efficiency: 95,
-      social: 92,
-      performance: 98,
-    },
-    skills: [
-      { subject: "Figma", A: 99, fullMark: 100 },
-      { subject: "User Research", A: 90, fullMark: 100 },
-      { subject: "Prototyping", A: 92, fullMark: 100 },
-      { subject: "Communication", A: 85, fullMark: 100 },
-      { subject: "Design Systems", A: 94, fullMark: 100 },
-      { subject: "Creativity", A: 96, fullMark: 100 },
-    ],
-    topSkills: ["Figma", "User Research", "Design Systems"],
-    email: "sasha.hostyn@example.com",
-    phone: "+1 555 123 456",
-    verifiedCredentials: [
-      { id: "vc4", issuer: "Nielsen Norman Group", name: "UX Certified", date: "2022-08-01" },
-    ],
-  },
-];
+// FIX: Notification Context Setup
+const NotificationContext = React.createContext<{ 
+    api: ReturnType<typeof notification.useNotification>[0]; 
+} | null>(null);
+
+const useAppNotification = () => {
+    const context = React.useContext(NotificationContext);
+    if (!context) {
+        // Fallback for components rendered outside the provider, though in this structured app it should always be available.
+        console.error("useAppNotification must be used within a NotificationWrapper");
+        return { api: notification };
+    }
+    return context;
+};
+
+const NotificationWrapper: React.FC<{ children: React.ReactNode; antTheme: any }> = ({ children, antTheme }) => {
+  const [api, contextHolder] = notification.useNotification();
+  
+  const contextValue = useMemo(() => ({ api }), [api]);
+
+  return (
+    <ConfigProvider theme={antTheme}>
+      {contextHolder} {/* This injects the notification service into the DOM */}
+      <NotificationContext.Provider value={contextValue}>
+        {children}
+      </NotificationContext.Provider>
+    </ConfigProvider>
+  );
+};
+// END FIX: Notification Context Setup
 
 // --- SVG ICONS (self-contained) ---
 const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -172,10 +133,32 @@ const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
+
 // --- SUB-COMPONENTS ---
-// Reusable SearchBar wrapped with shared layoutId for smooth morphing
-const SearchBar: React.FC<{ onFocus: () => void; onSubmit: (q: string) => void }> = ({ onFocus, onSubmit }) => {
-  const [query, setQuery] = useState("");
+// Reusable SearchBar with real-time search and clear functionality
+const SearchBar: React.FC<{ 
+  onFocus: () => void; 
+  onSubmit: (q: string) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  onClear?: () => void;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}> = ({ onFocus, onSubmit, searchQuery, onSearchChange, onClear, activeTab, onTabChange }) => {
+  const getPlaceholder = () => {
+    if (activeTab === "user") {
+      return "Search by name: 'Johan', 'Sara Khan', 'Aman Kumar'...";
+    } else {
+      return "Search by role: 'Frontend Developer', 'Python Developer'...";
+    }
+  };
+
   return (
   <motion.div
     layoutId="talent-searchbar"
@@ -185,17 +168,10 @@ const SearchBar: React.FC<{ onFocus: () => void; onSubmit: (q: string) => void }
   >
     <div className="flex items-center gap-2">
       <Tabs
-        defaultActiveKey="role"
+        activeKey={activeTab}
+        onChange={onTabChange}
         className="custom-tabs flex-shrink-0"
         items={[
-          {
-            key: "role",
-            label: (
-              <span className="flex items-center gap-2 px-2">
-                <BriefcaseIcon className="h-4 w-4" /> Roles
-              </span>
-            ),
-          },
           {
             key: "user",
             label: (
@@ -204,22 +180,42 @@ const SearchBar: React.FC<{ onFocus: () => void; onSubmit: (q: string) => void }
               </span>
             ),
           },
+          {
+            key: "role",
+            label: (
+              <span className="flex items-center gap-2 px-2">
+                <BriefcaseIcon className="h-4 w-4" /> Roles
+              </span>
+            ),
+          },
         ]}
       />
-      <input
-        type="text"
-        placeholder="Search for 'React Developer' or 'Johan'..."
-        className="w-full bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-lg px-4 py-2"
-        onFocus={onFocus}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") onSubmit(query);
-        }}
-      />
+      <div className="relative flex-1 flex items-center">
+        <input
+          type="text"
+          placeholder={getPlaceholder()}
+          className="w-full bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-lg px-4 py-2 pr-10"
+          onFocus={onFocus}
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSubmit(searchQuery);
+          }}
+        />
+        {/* Clear button - only visible when there's text */}
+        {searchQuery.trim() && onClear && (
+          <button
+            onClick={onClear}
+            className="absolute right-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            type="button"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        )}
+      </div>
       <button
         className="bg-blue-600 dark:bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-500 dark:hover:bg-blue-400 transition-colors"
-        onClick={() => onSubmit(query)}
+        onClick={() => onSubmit(searchQuery)}
       >
         <SearchIcon className="h-6 w-6" />
       </button>
@@ -228,7 +224,16 @@ const SearchBar: React.FC<{ onFocus: () => void; onSubmit: (q: string) => void }
 );
 };
 
-const AnimatedSearchBar: React.FC<AnimatedSearchBarProps> = ({ isSearching, setIsSearching, onSubmit }) => {
+const AnimatedSearchBar: React.FC<AnimatedSearchBarProps> = ({ 
+  isSearching, 
+  setIsSearching, 
+  onSubmit, 
+  searchQuery, 
+  onSearchChange,
+  onClear,
+  activeTab,
+  onTabChange
+}) => {
   return (
     <>
       <AnimatePresence initial={false}>
@@ -246,10 +251,18 @@ const AnimatedSearchBar: React.FC<AnimatedSearchBarProps> = ({ isSearching, setI
             <motion.div className="text-center mb-8">
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100">Find The Talent You Need.</h1>
               <p className="text-lg text-gray-600 dark:text-gray-300 mt-4 max-w-2xl">
-                Search by skill, role, or name to connect with verified professionals.
+                Search by name or role with smart matching. Find "Frontend" developers by searching "Front" or "React".
               </p>
             </motion.div>
-            <SearchBar onFocus={() => setIsSearching(true)} onSubmit={onSubmit} />
+            <SearchBar 
+              onFocus={() => setIsSearching(true)} 
+              onSubmit={onSubmit}
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
+              onClear={onClear}
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -264,7 +277,15 @@ const AnimatedSearchBar: React.FC<AnimatedSearchBarProps> = ({ isSearching, setI
           className="sticky top-0 z-30 bg-gradient-to-b from-white/80 dark:from-gray-950/80 to-transparent px-4 md:px-8 pt-4 pb-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md"
         >
           <div className="flex justify-center">
-            <SearchBar onFocus={() => {}} onSubmit={onSubmit} />
+            <SearchBar 
+              onFocus={() => {}} 
+              onSubmit={onSubmit}
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
+              onClear={onClear}
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+            />
           </div>
         </motion.div>
       )}
@@ -280,9 +301,8 @@ const FilterBar: React.FC<{
   onSkillsChange: (s: string[]) => void;
   experience?: string | null;
   onExperienceChange: (e: string | null) => void;
-  onApply: () => void;
   onReset: () => void;
-}> = ({ roles, onRolesChange, skills, onSkillsChange, experience, onExperienceChange, onApply, onReset }) => {
+}> = ({ roles, onRolesChange, skills, onSkillsChange, experience, onExperienceChange, onReset }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -300,6 +320,30 @@ const FilterBar: React.FC<{
             placeholder="e.g., React Developer, Backend Engineer"
             value={roles}
             onChange={(vals) => onRolesChange(vals as string[])}
+            options={[
+              { label: "Frontend Developer", value: "Frontend Developer" },
+              { label: "Backend Developer", value: "Backend Developer" },
+              { label: "Full Stack Developer", value: "Full Stack Developer" },
+              { label: "React Developer", value: "React Developer" },
+              { label: "Node.js Developer", value: "Node.js Developer" },
+              { label: "Python Developer", value: "Python Developer" },
+              { label: "Java Developer", value: "Java Developer" },
+              { label: "Mobile Developer", value: "Mobile Developer" },
+              { label: "DevOps Engineer", value: "DevOps Engineer" },
+              { label: "Data Scientist", value: "Data Scientist" },
+              { label: "Machine Learning Engineer", value: "Machine Learning Engineer" },
+              { label: "UI/UX Designer", value: "UI/UX Designer" },
+              { label: "Product Manager", value: "Product Manager" },
+              { label: "Software Engineer", value: "Software Engineer" },
+              { label: "System Administrator", value: "System Administrator" },
+              { label: "Database Administrator", value: "Database Administrator" },
+              { label: "Security Engineer", value: "Security Engineer" },
+              { label: "Quality Assurance Engineer", value: "Quality Assurance Engineer" },
+            ]}
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+            showSearch
           />
         </div>
         {/* Skill */}
@@ -311,6 +355,87 @@ const FilterBar: React.FC<{
             placeholder="e.g., React, Node.js"
             value={skills}
             onChange={(vals) => onSkillsChange(vals as string[])}
+            options={[
+              // Frontend Technologies
+              { label: "React", value: "React" },
+              { label: "Vue.js", value: "Vue.js" },
+              { label: "Angular", value: "Angular" },
+              { label: "Next.js", value: "Next.js" },
+              { label: "Svelte", value: "Svelte" },
+              { label: "TypeScript", value: "TypeScript" },
+              { label: "JavaScript", value: "JavaScript" },
+              { label: "HTML/CSS", value: "HTML/CSS" },
+              { label: "Tailwind CSS", value: "Tailwind CSS" },
+              { label: "Bootstrap", value: "Bootstrap" },
+              
+              // Backend Technologies
+              { label: "Node.js", value: "Node.js" },
+              { label: "Express.js", value: "Express.js" },
+              { label: "Python", value: "Python" },
+              { label: "Django", value: "Django" },
+              { label: "Flask", value: "Flask" },
+              { label: "FastAPI", value: "FastAPI" },
+              { label: "Java", value: "Java" },
+              { label: "Spring Boot", value: "Spring Boot" },
+              { label: "C#", value: "C#" },
+              { label: ".NET", value: ".NET" },
+              { label: "PHP", value: "PHP" },
+              { label: "Laravel", value: "Laravel" },
+              { label: "Ruby", value: "Ruby" },
+              { label: "Ruby on Rails", value: "Ruby on Rails" },
+              { label: "Go", value: "Go" },
+              { label: "Rust", value: "Rust" },
+              
+              // Databases
+              { label: "MongoDB", value: "MongoDB" },
+              { label: "PostgreSQL", value: "PostgreSQL" },
+              { label: "MySQL", value: "MySQL" },
+              { label: "Redis", value: "Redis" },
+              { label: "Elasticsearch", value: "Elasticsearch" },
+              { label: "Firebase", value: "Firebase" },
+              { label: "SQLite", value: "SQLite" },
+              
+              // Cloud & DevOps
+              { label: "AWS", value: "AWS" },
+              { label: "Azure", value: "Azure" },
+              { label: "Google Cloud", value: "Google Cloud" },
+              { label: "Docker", value: "Docker" },
+              { label: "Kubernetes", value: "Kubernetes" },
+              { label: "Jenkins", value: "Jenkins" },
+              { label: "GitLab CI", value: "GitLab CI" },
+              { label: "Terraform", value: "Terraform" },
+              
+              // Mobile Development
+              { label: "React Native", value: "React Native" },
+              { label: "Flutter", value: "Flutter" },
+              { label: "Swift", value: "Swift" },
+              { label: "Kotlin", value: "Kotlin" },
+              { label: "Xamarin", value: "Xamarin" },
+              
+              // Data Science & ML
+              { label: "Machine Learning", value: "Machine Learning" },
+              { label: "Deep Learning", value: "Deep Learning" },
+              { label: "TensorFlow", value: "TensorFlow" },
+              { label: "PyTorch", value: "PyTorch" },
+              { label: "Pandas", value: "Pandas" },
+              { label: "NumPy", value: "NumPy" },
+              { label: "Scikit-learn", value: "Scikit-learn" },
+              { label: "Data Analysis", value: "Data Analysis" },
+              
+              // Design & Tools
+              { label: "Figma", value: "Figma" },
+              { label: "Adobe XD", value: "Adobe XD" },
+              { label: "Sketch", value: "Sketch" },
+              { label: "Photoshop", value: "Photoshop" },
+              { label: "Git", value: "Git" },
+              { label: "GitHub", value: "GitHub" },
+              { label: "Jira", value: "Jira" },
+              { label: "Slack", value: "Slack" },
+            ]}
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+            showSearch
           />
         </div>
         {/* Experience */}
@@ -331,9 +456,9 @@ const FilterBar: React.FC<{
           />
         </div>
         {/* Actions */}
-        <div className="flex gap-2 md:ml-auto">
-          <Button onClick={onReset}>Reset</Button>
-          <Button type="primary" onClick={onApply}>Apply</Button>
+        <div className="w-full md:w-auto flex flex-col gap-2 md:ml-auto">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 md:opacity-0">Actions</div>
+          <Button onClick={onReset} type="default">Reset Filters</Button>
         </div>
       </div>
     </motion.div>
@@ -389,7 +514,44 @@ const CandidateProfile: React.FC<CandidateProfileProps> = ({ candidate, onBack }
   if (!candidate) return null;
 
   const { token } = theme.useToken();
+  // FIX: Use the notification API from the custom context hook
+  const { api: notificationApi } = useAppNotification();
   const [contact, setContact] = useState<{ email: string | null; phone: string | null }>({ email: candidate.email, phone: candidate.phone });
+
+  const handleDownloadResume = () => {
+    // Check if resume URL exists (based on user model structure)
+    const resumeUrl = candidate.resume?.fileUrl;
+    
+    // Handle all possible empty states
+    if (!candidate.resume || !resumeUrl || resumeUrl.trim() === '') {
+      notificationApi.warning({ // FIX: Using notificationApi
+        message: "Resume Not Available",
+        description: "User hasn't provided any resume yet.",
+        placement: 'topRight',
+        duration: 3,
+      });
+      return;
+    }
+
+    // Open resume in new tab
+    try {
+      window.open(resumeUrl, '_blank', 'noopener,noreferrer');
+      notificationApi.success({ // FIX: Using notificationApi
+        message: "Resume Opened",
+        description: "Resume opened successfully!",
+        placement: 'topRight',
+        duration: 2,
+      });
+    } catch (error) {
+      console.error('Error opening resume:', error);
+      notificationApi.error({ // FIX: Using notificationApi
+        message: "Resume Error",
+        description: "Failed to open resume. Please try again.",
+        placement: 'topRight',
+        duration: 3,
+      });
+    }
+  };
 
   // Static fetch to ensure latest contact details
   useEffect(() => {
@@ -457,7 +619,8 @@ const CandidateProfile: React.FC<CandidateProfileProps> = ({ candidate, onBack }
               <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">{candidate.role}</p>
               <div className="flex gap-2 mt-4">
                 <Button type="primary">Contact</Button>
-                <Button>Download Resume</Button>
+                {/* FIX: Change button text */}
+                <Button onClick={handleDownloadResume}>View Resume</Button>
               </div>
             </div>
           </div>
@@ -499,6 +662,7 @@ const CandidateProfile: React.FC<CandidateProfileProps> = ({ candidate, onBack }
 };
 
 // --- SVG BACKGROUND (LIGHT + DARK) ---
+// (PlexusBackground component is unchanged)
 const PlexusBackground: React.FC<{ isDark: boolean }> = ({ isDark }) => {
   if (isDark) {
     return (
@@ -667,6 +831,81 @@ const PlexusBackground: React.FC<{ isDark: boolean }> = ({ isDark }) => {
   );
 };
 
+// Custom debounce hook
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Smart role query enhancement for fuzzy matching
+const enhanceRoleQuery = (query: string): string => {
+  if (!query.trim()) return query;
+  
+  const lowerQuery = query.toLowerCase();
+  const roleExpansions: { [key: string]: string[] } = {
+    // Frontend variations
+    'frontend': ['frontend', 'front-end', 'front end', 'ui', 'react', 'vue', 'angular'],
+    'front': ['frontend', 'front-end', 'front end', 'ui developer'],
+    'react': ['react', 'frontend', 'javascript', 'js developer'],
+    'vue': ['vue', 'vuejs', 'frontend', 'javascript'],
+    'angular': ['angular', 'frontend', 'typescript', 'javascript'],
+    
+    // Backend variations  
+    'backend': ['backend', 'back-end', 'back end', 'server', 'api'],
+    'back': ['backend', 'back-end', 'back end', 'server developer'],
+    'python': ['python', 'backend', 'django', 'flask', 'fastapi'],
+    'node': ['node', 'nodejs', 'javascript', 'backend', 'express'],
+    'java': ['java', 'spring', 'backend', 'enterprise'],
+    
+    // Full stack
+    'full': ['full stack', 'fullstack', 'full-stack', 'frontend backend'],
+    'fullstack': ['full stack', 'fullstack', 'full-stack'],
+    
+    // Mobile
+    'mobile': ['mobile', 'android', 'ios', 'react native', 'flutter'],
+    'android': ['android', 'mobile', 'kotlin', 'java'],
+    'ios': ['ios', 'mobile', 'swift', 'objective-c'],
+    
+    // Data & ML
+    'data': ['data scientist', 'data analyst', 'machine learning', 'python'],
+    'ml': ['machine learning', 'data science', 'ai', 'python'],
+    'ai': ['artificial intelligence', 'machine learning', 'data science'],
+    
+    // DevOps
+    'devops': ['devops', 'infrastructure', 'aws', 'docker', 'kubernetes'],
+    'cloud': ['cloud', 'aws', 'azure', 'gcp', 'devops'],
+    
+    // Design
+    'ui': ['ui designer', 'frontend', 'react', 'vue', 'figma'],
+    'ux': ['ux designer', 'ui/ux', 'product designer', 'figma'],
+    'design': ['designer', 'ui', 'ux', 'figma', 'sketch'],
+  };
+
+  // Find matching expansions
+  let expandedTerms: string[] = [query];
+  
+  for (const [key, expansions] of Object.entries(roleExpansions)) {
+    if (lowerQuery.includes(key)) {
+      expandedTerms.push(...expansions);
+    }
+  }
+
+  // Remove duplicates and join with spaces for broader matching
+  const uniqueTerms = [...new Set(expandedTerms)];
+  return uniqueTerms.join(' ');
+};
+
 // --- EXPLORE PAGE CONTENT ---
 const ExploreContent: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
@@ -676,10 +915,452 @@ const ExploreContent: React.FC = () => {
   const [experience, setExperience] = useState<string | null>(null);
   const [results, setResults] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Search query state for real-time search
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms debounce
+  
+  // Search tab state (Users as default)
+  const [activeSearchTab, setActiveSearchTab] = useState("user");
+  
+  // Handle tab change - clear search query to avoid confusion
+  const handleTabChange = (newTab: string) => {
+    setActiveSearchTab(newTab);
+    setSearchQuery(""); // Clear search when switching tabs
+  };
+  
+  // Infinite scroll pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [isFiltered, setIsFiltered] = useState(false);
+  
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  // Memoize theme for Ant Design ConfigProvider
+  // Load all students initially (no filters, just all learners)
+  const loadAllStudents = async (resetResults = true) => {
+    setInitialLoading(true);
+    setLoading(true);
+    
+    try {
+      // Search for all students (learners) without any query or skills filter
+      const res = await apiSearchLearners({ 
+        q: "", 
+        skills: [], 
+        page: 1, 
+        limit: 24 
+      });
+      
+      if (res?.success) {
+        const candidateList = res.candidates || [];
+        // Convert CandidateListItem[] to Candidate[] by adding placeholder fields
+        const candidates: Candidate[] = candidateList.map((c) => ({
+          id: c.id,
+          name: c.name,
+          username: c.username,
+          avatarUrl: c.avatarUrl,
+          role: c.role,
+          scores: c.scores,
+          topSkills: c.topSkills || [],
+          // Placeholder fields - will be populated when profile is clicked
+          skills: [],
+          email: null,
+          phone: null,
+          resume: null,
+          verifiedCredentials: [],
+        }));
+        
+        setResults(resetResults ? candidates : [...results, ...candidates]);
+        setTotalStudents(res.total || 0);
+        setCurrentPage(1);
+        setHasMore(candidates.length >= 24 && candidates.length < res.total);
+        setIsFiltered(false);
+        
+        // Set isSearching to true to show results instead of hero
+        setIsSearching(true);
+      }
+    } catch (error) {
+      console.error('Error loading students:', error);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
+    }
+  };
+
+  // Load more students for infinite scroll
+  const loadMoreStudents = async () => {
+    if (loading || !hasMore) return;
+    
+    setLoading(true);
+    const nextPage = currentPage + 1;
+    
+    try {
+      const searchQuery = isFiltered 
+        ? [...roles].filter(Boolean).join(" ").trim()
+        : "";
+        
+      const res = await apiSearchLearners({ 
+        q: searchQuery, 
+        skills: isFiltered ? skills : [], 
+        page: nextPage, 
+        limit: 24 
+      });
+      
+      if (res?.success) {
+        const candidateList = res.candidates || [];
+        // Convert CandidateListItem[] to Candidate[] by adding placeholder fields
+        const newCandidates: Candidate[] = candidateList.map((c) => ({
+          id: c.id,
+          name: c.name,
+          username: c.username,
+          avatarUrl: c.avatarUrl,
+          role: c.role,
+          scores: c.scores,
+          topSkills: c.topSkills || [],
+          // Placeholder fields - will be populated when profile is clicked
+          skills: [],
+          email: null,
+          phone: null,
+          resume: null,
+          verifiedCredentials: [],
+        }));
+        
+        setResults(prev => [...prev, ...newCandidates]);
+        setCurrentPage(nextPage);
+        setHasMore(newCandidates.length >= 24 && results.length + newCandidates.length < res.total);
+      }
+    } catch (error) {
+      console.error('Error loading more students:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectCandidate = (candidate: Candidate) => {
+    // Fetch full profile from backend
+    fetchPublicProfile(candidate.id)
+      .then((res) => {
+        if (res?.success && res.candidate) {
+          setSelectedCandidate(res.candidate as any);
+        } else {
+          setSelectedCandidate(candidate);
+        }
+      })
+      .catch(() => setSelectedCandidate(candidate));
+  };
+
+  const handleBackToSearch = () => {
+    setSelectedCandidate(null);
+  };
+
+  // Load all students when component mounts
+  useEffect(() => {
+    loadAllStudents();
+  }, []); // Empty dependency array to run only on mount
+
+  // Real-time search effect - triggers when search query, roles, or skills change
+  useEffect(() => {
+    if (!isSearching) return; // Don't search if not in search mode
+
+    const hasFilters = debouncedSearchQuery.trim() || roles.length > 0 || skills.length > 0 || experience;
+    
+    if (hasFilters) {
+      performRealTimeSearch();
+    } else {
+      // If no filters, show all students
+      loadAllStudents();
+    }
+  }, [debouncedSearchQuery, roles, skills, experience]);
+
+  const performRealTimeSearch = useCallback(async () => {
+    setLoading(true);
+    setIsFiltered(true);
+    setCurrentPage(1);
+    
+    try {
+      let searchQuery = "";
+      
+      if (activeSearchTab === "user") {
+        // For user search, use the query directly for name-based search
+        searchQuery = debouncedSearchQuery.trim();
+      } else {
+        // For role search, combine with role filters and apply smart matching
+        const roleQuery = debouncedSearchQuery.trim();
+        const smartRoleQuery = enhanceRoleQuery(roleQuery);
+        searchQuery = [smartRoleQuery, ...roles].filter(Boolean).join(" ").trim();
+      }
+      
+      const res = await apiSearchLearners({ q: searchQuery, skills, page: 1, limit: 24 });
+      const list = (res?.candidates || []) as any[];
+      const items: Candidate[] = list.map((c) => ({
+        id: c.id,
+        name: c.name,
+        username: c.username,
+        avatarUrl: c.avatarUrl,
+        role: c.role,
+        scores: c.scores,
+        topSkills: c.topSkills || [],
+        skills: [],
+        email: null,
+        phone: null,
+        resume: null,
+        verifiedCredentials: [],
+      }));
+      setResults(items);
+      setTotalStudents(res?.total || 0);
+      setHasMore(items.length >= 24 && items.length < (res?.total || 0));
+    } catch (error) {
+      console.error('Error performing real-time search:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearchQuery, roles, skills, activeSearchTab]);
+
+  const performSearch = async (q: string) => {
+    setIsSearching(true);
+    setLoading(true);
+    setIsFiltered(true); // Mark as filtered search
+    setCurrentPage(1);
+    
+    try {
+      let searchQuery = "";
+      
+      if (activeSearchTab === "user") {
+        // For user search, use the query directly for name-based search
+        searchQuery = q.trim();
+      } else {
+        // For role search, combine with role filters and apply smart matching
+        const smartRoleQuery = enhanceRoleQuery(q);
+        searchQuery = [smartRoleQuery, ...roles].filter(Boolean).join(" ").trim();
+      }
+      
+      const res = await apiSearchLearners({ q: searchQuery, skills, page: 1, limit: 24 });
+      const list = (res?.candidates || []) as any[];
+      // Convert to Candidate shape for list view (without radar/creds)
+      const items: Candidate[] = list.map((c) => ({
+        id: c.id,
+        name: c.name,
+        username: c.username,
+        avatarUrl: c.avatarUrl,
+        role: c.role,
+        scores: c.scores,
+        topSkills: c.topSkills || [],
+        // placeholders; full details fetched on click
+        skills: [],
+        email: null,
+        phone: null,
+        resume: null,
+        verifiedCredentials: [],
+      }));
+      setResults(items);
+      setTotalStudents(res?.total || 0);
+      setHasMore(items.length >= 24 && items.length < (res?.total || 0));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clear search and reset to initial state
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setRoles([]);
+    setSkills([]);
+    setExperience(null);
+    setIsFiltered(false);
+    setCurrentPage(1);
+    loadAllStudents(true); // Reset and load all students
+  }, []);
+
+  // Apply current filters (roles, skills, experience)
+  const applyFilters = async () => {
+    if (roles.length === 0 && skills.length === 0 && !experience) {
+      // No filters applied, show all students
+      loadAllStudents();
+      return;
+    }
+
+    setIsSearching(true);
+    setLoading(true);
+    setIsFiltered(true);
+    setCurrentPage(1);
+    
+    try {
+      const combinedQ = roles.filter(Boolean).join(" ").trim();
+      const res = await apiSearchLearners({ q: combinedQ, skills, page: 1, limit: 24 });
+      const list = (res?.candidates || []) as any[];
+      const items: Candidate[] = list.map((c) => ({
+        id: c.id,
+        name: c.name,
+        username: c.username,
+        avatarUrl: c.avatarUrl,
+        role: c.role,
+        scores: c.scores,
+        topSkills: c.topSkills || [],
+        skills: [],
+        email: null,
+        phone: null,
+        resume: null,
+        verifiedCredentials: [],
+      }));
+      setResults(items);
+      setTotalStudents(res?.total || 0);
+      setHasMore(items.length >= 24 && items.length < (res?.total || 0));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset all filters and show all students
+  const resetFilters = () => {
+    setRoles([]);
+    setSkills([]);
+    setExperience(null);
+    loadAllStudents();
+  };
+
+  return (
+    // Removed ConfigProvider here
+    <>
+      <style jsx global>{`
+        .custom-tabs .ant-tabs-nav {
+          margin-bottom: 0 !important;
+          border-bottom: none !important;
+        }
+        .custom-tabs .ant-tabs-tab {
+          border: none !important;
+          background: transparent !important;
+        }
+        .custom-tabs .ant-tabs-nav::before {
+          border-bottom: none !important;
+        }
+      `}</style>
+      <main className="relative min-h-screen w-full transition-colors duration-500 bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 overflow-hidden">
+        {/* Decorative background */}
+        <PlexusBackground isDark={isDark} />
+        <div className="relative z-10 h-full">
+        <AnimatePresence mode="wait">
+          {selectedCandidate ? (
+            <CandidateProfile key="profile" candidate={selectedCandidate} onBack={handleBackToSearch} />
+          ) : (
+            <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
+              <div className={`relative ${isSearching ? "pt-8 px-4 md:px-8" : "h-screen"}`}>
+                <AnimatedSearchBar 
+                  isSearching={isSearching} 
+                  setIsSearching={setIsSearching} 
+                  onSubmit={performSearch}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onClear={clearSearch}
+                  activeTab={activeSearchTab}
+                  onTabChange={handleTabChange}
+                />
+              </div>
+
+              {isSearching && (
+                <div className="w-full flex flex-col gap-4 pb-8">
+                  {/* Horizontal Filter Bar */}
+                  <FilterBar
+                    roles={roles}
+                    onRolesChange={setRoles}
+                    skills={skills}
+                    onSkillsChange={setSkills}
+                    experience={experience}
+                    onExperienceChange={setExperience}
+                    onReset={resetFilters}
+                  />
+                  {/* Results Grid with Infinite Scroll */}
+                  <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
+                    {initialLoading ? (
+                      // Show loading skeleton for initial load
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="bg-white dark:bg-gray-900/60 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 animate-pulse">
+                            <div className="flex items-center gap-4 mb-4">
+                              <div className="w-16 h-16 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                              <div className="flex-1">
+                                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded mb-2"></div>
+                                <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-2/3"></div>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mb-6">
+                              <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                              <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                              <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded-full w-16"></div>
+                              <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded-full w-20"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        {results.length > 0 ? (
+                          <InfiniteScroll
+                            dataLength={results.length}
+                            next={loadMoreStudents}
+                            hasMore={hasMore}
+                            loader={
+                              <div className="flex justify-center items-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                <span className="ml-3 text-gray-600 dark:text-gray-300">Loading more students...</span>
+                              </div>
+                            }
+                            endMessage={
+                              <div className="text-center py-8">
+                                <p className="text-gray-600 dark:text-gray-300 font-medium">
+                                  🎉 You've seen all students!
+                                </p>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                                  Try adjusting your search filters to find more talent.
+                                </p>
+                              </div>
+                            }
+                            style={{ overflow: 'visible' }}
+                          >
+                            <motion.div
+                              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                              initial="hidden"
+                              animate="visible"
+                              variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+                            >
+                              {results.map((candidate) => (
+                                <CandidateCard key={candidate.id} candidate={candidate} onSelect={handleSelectCandidate} />
+                              ))}
+                            </motion.div>
+                          </InfiniteScroll>
+                        ) : (
+                          <div className="col-span-full text-center text-gray-600 dark:text-gray-300 py-16">
+                            <div className="text-6xl mb-4">👥</div>
+                            <h3 className="text-xl font-semibold mb-2">No students found</h3>
+                            <p className="text-gray-500 dark:text-gray-400">
+                              Try adjusting your search filters or check back later.
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        </div>
+      </main>
+    </>
+  );
+};
+
+// --- PAGE WRAPPER WITH EMPLOYER LAYOUT ---
+export default function EmployerTalentSearchPage() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  // FIX: Moved antTheme definition here, outside of ExploreContent
   const antTheme = useMemo(() => {
     return {
       algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
@@ -702,146 +1383,26 @@ const ExploreContent: React.FC = () => {
     } as const;
   }, [isDark]);
 
-  const handleSelectCandidate = (candidate: Candidate) => {
-    // Fetch full profile from backend
-    fetchPublicProfile(candidate.id)
-      .then((res) => {
-        if (res?.success && res.candidate) {
-          setSelectedCandidate(res.candidate as any);
-        } else {
-          setSelectedCandidate(candidate);
-        }
-      })
-      .catch(() => setSelectedCandidate(candidate));
-  };
-
-  const handleBackToSearch = () => {
-    setSelectedCandidate(null);
-  };
-
-  const performSearch = async (q: string) => {
-    setIsSearching(true);
-    setLoading(true);
-    try {
-      // Combine role tags with query for backend text search; skills go as dedicated param
-      const combinedQ = [q, ...roles].filter(Boolean).join(" ").trim();
-      const res = await apiSearchLearners({ q: combinedQ, skills });
-      const list = (res?.candidates || []) as any[];
-      // Convert to Candidate shape for list view (without radar/creds)
-      const items: Candidate[] = list.map((c) => ({
-        id: c.id,
-        name: c.name,
-        username: c.username,
-        avatarUrl: c.avatarUrl,
-        role: c.role,
-        scores: c.scores,
-        topSkills: c.topSkills || [],
-        // placeholders; full details fetched on click
-        skills: [],
-        email: "",
-        phone: "",
-        verifiedCredentials: [],
-      }));
-      setResults(items);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <ConfigProvider theme={antTheme}>
-      <style jsx global>{`
-        .custom-tabs .ant-tabs-nav {
-          margin-bottom: 0 !important;
-          border-bottom: none !important;
-        }
-        .custom-tabs .ant-tabs-tab {
-          border: none !important;
-          background: transparent !important;
-        }
-        .custom-tabs .ant-tabs-nav::before {
-          border-bottom: none !important;
-        }
-      `}</style>
-      <main className="relative min-h-screen w-full transition-colors duration-500 bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 overflow-hidden">
-  {/* Decorative background */}
-  <PlexusBackground isDark={isDark} />
-        <div className="relative z-10 h-full">
-        <AnimatePresence mode="wait">
-          {selectedCandidate ? (
-            <CandidateProfile key="profile" candidate={selectedCandidate} onBack={handleBackToSearch} />
-          ) : (
-            <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
-              <div className={`relative ${isSearching ? "pt-8 px-4 md:px-8" : "h-screen"}`}>
-                <AnimatedSearchBar isSearching={isSearching} setIsSearching={setIsSearching} onSubmit={performSearch} />
-              </div>
-
-              {isSearching && (
-                <div className="w-full flex flex-col gap-4 pb-8">
-                  {/* Horizontal Filter Bar */}
-                  <FilterBar
-                    roles={roles}
-                    onRolesChange={setRoles}
-                    skills={skills}
-                    onSkillsChange={setSkills}
-                    experience={experience}
-                    onExperienceChange={setExperience}
-                    onApply={() => performSearch("")}
-                    onReset={() => {
-                      setRoles([]);
-                      setSkills([]);
-                      setExperience(null);
-                      performSearch("");
-                    }}
-                  />
-                  {/* Results Grid */}
-                  <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
-                    <motion.div
-                      className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
-                      initial="hidden"
-                      animate="visible"
-                      variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-                    >
-                      {(loading ? [] : results).map((candidate) => (
-                        <CandidateCard key={candidate.id} candidate={candidate} onSelect={handleSelectCandidate} />
-                      ))}
-                      {!loading && results.length === 0 && (
-                        <div className="col-span-full text-center text-gray-600 dark:text-gray-300">
-                          Start searching to see candidates.
-                        </div>
-                      )}
-                    </motion.div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        </div>
-      </main>
-    </ConfigProvider>
-  );
-};
-
-// --- PAGE WRAPPER WITH EMPLOYER LAYOUT ---
-export default function EmployerTalentSearchPage() {
   return (
     <RoleGuard allowedRole="employer">
-      <div className="h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/10 flex relative overflow-hidden">
-        <EmployerSidebar />
-        <div className="flex-1 overflow-y-auto relative">
-          {/* Top Bar */}
-          <div className="flex items-center justify-end p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <LanguageSwitcher />
-              <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+      {/* FIX: Wrap the application with NotificationWrapper, which contains ConfigProvider */}
+      <NotificationWrapper antTheme={antTheme}>
+        <div className="h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50 dark:from-gray-900 dark:via-green-900/20 dark:to-emerald-900/10 flex relative overflow-hidden">
+          <EmployerSidebar />
+          <div className="flex-1 overflow-y-auto relative">
+            {/* Top Bar */}
+            <div className="flex items-center justify-end p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <LanguageSwitcher />
+                <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+              </div>
             </div>
-          </div>
 
-          {/* Content */}
-          <ExploreContent />
+            {/* Content */}
+            <ExploreContent />
+          </div>
         </div>
-      </div>
+      </NotificationWrapper>
     </RoleGuard>
   );
 }
