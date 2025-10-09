@@ -26,13 +26,36 @@ import { Credential, CredentialFilters } from "@/types/credentials";
 
 function CredentialsPageContent() {
   const { message } = App.useApp();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const { theme: mode } = useTheme();
-  const isDark = (mode ?? "light") === "dark";
-
   // Use our custom hooks
   const { items, loading, handleDelete, addCredential, updateCredential, fetchItems } = useCredentials();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    // Try to set userId from credentials
+    if (items && items.length > 0) {
+      // Try to find userId from credential fields
+      const cred = items[0] as any;
+      if (cred.userId) {
+        localStorage.setItem("userId", cred.userId);
+      } else if (cred.user && cred.user._id) {
+        localStorage.setItem("userId", cred.user._id);
+      }
+    }
+    // If not found, fetch from /api/users/me
+    if (!localStorage.getItem("userId")) {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        api.get("/api/users/me", { headers: { Authorization: `Bearer ${token}` } })
+          .then(res => {
+            if (res.data?.user?._id) {
+              localStorage.setItem("userId", res.data.user._id);
+            }
+          });
+      }
+    }
+  }, [items]);
+  const { theme: mode } = useTheme();
+  const isDark = (mode ?? "light") === "dark";
   const { skillsData, loadingSkills } = useSkills();
   const { anchoringId, loadingDetails, handleAnchorCredential, handleViewDetails, fetchOnChainDetails } = useCredentialActions();
   
@@ -413,7 +436,21 @@ function CredentialsPageContent() {
                   variant="outline" 
                   size="lg"
                   className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-white/30 dark:border-gray-700/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-300 transition-all duration-300 rounded-xl shadow-lg" 
-                  onClick={() => message.info("Share coming soon")}
+                  onClick={async () => {
+                    // Get userId from localStorage only
+                    const userId = localStorage.getItem("userId");
+                    if (!userId) {
+                      message.error("Unable to find your profile ID.");
+                      return;
+                    }
+                    const url = `${window.location.origin}/profile/${userId}`;
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      message.success(<span>Profile link copied! <a href={url} target="_blank" rel="noopener noreferrer" className="underline text-emerald-600">View</a></span>);
+                    } catch {
+                      message.info(<span>Share this link: <a href={url} target="_blank" rel="noopener noreferrer" className="underline text-emerald-600">{url}</a></span>);
+                    }
+                  }}
                 >
                   <Share2 className="w-4 h-4 mr-2" /> Share Profile
                 </Button>
