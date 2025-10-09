@@ -31,14 +31,14 @@ interface Job {
   hasApplied?: boolean;
   applicationStatus?: string;
   applicationDate?: string;
-  employer: {
+  employer?: {
     id: string;
-    fullName: {
+    fullName?: {
       firstName?: string;
       lastName?: string;
     };
     email: string;
-  };
+  } | null;
 }
 
 function JobsPageContent() {
@@ -104,6 +104,11 @@ function JobsPageContent() {
   }, [searchTerm, locationFilter, skillsFilter]);
 
   const handleJobClick = (job: Job) => {
+    if (!job || !job.id) {
+      console.error('Invalid job data:', job);
+      return;
+    }
+    console.log('Opening job details for:', job.jobTitle);
     setSelectedJob(job);
     setShowJobDetails(true);
   };
@@ -131,9 +136,9 @@ function JobsPageContent() {
     return 'bg-orange-100 text-orange-800';
   };
 
-  const formatEmployerName = (fullName: { firstName?: string; lastName?: string } | string): string => {
+  const formatEmployerName = (fullName?: { firstName?: string; lastName?: string } | string | null): string => {
     if (typeof fullName === 'string') {
-      return fullName;
+      return fullName || 'Unknown Employer';
     }
     if (fullName && typeof fullName === 'object') {
       const { firstName = '', lastName = '' } = fullName;
@@ -358,6 +363,10 @@ function JobsPageContent() {
                           size="sm" 
                           className={job.hasApplied ? "bg-green-600 hover:bg-green-700" : ""}
                           disabled={job.hasApplied}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent event bubbling to parent div
+                            handleJobClick(job);
+                          }}
                         >
                           {job.hasApplied ? 'Already Applied' : 'View Details'}
                         </Button>

@@ -22,14 +22,14 @@ interface Job {
   hasApplied?: boolean;
   applicationStatus?: string;
   applicationDate?: string;
-  employer: {
+  employer?: {
     id: string;
-    fullName: {
+    fullName?: {
       firstName?: string;
       lastName?: string;
     };
     email: string;
-  };
+  } | null;
 }
 
 interface JobDetailsModalProps {
@@ -41,8 +41,13 @@ interface JobDetailsModalProps {
 export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalProps) {
   const [isApplying, setIsApplying] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState("");
-  const [applied, setApplied] = useState(job.hasApplied || false);
+  const [applied, setApplied] = useState(job?.hasApplied || false);
   const [currentJob, setCurrentJob] = useState(job);
+
+  // Early return if no job data
+  if (!job) {
+    return null;
+  }
 
   // Fetch fresh job details when modal opens
   useEffect(() => {
@@ -77,9 +82,9 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
     setApplied(hasApplied);
   }, [currentJob.hasApplied, currentJob.applicationStatus]);
 
-  const formatEmployerName = (fullName: { firstName?: string; lastName?: string } | string): string => {
+  const formatEmployerName = (fullName?: { firstName?: string; lastName?: string } | string | null): string => {
     if (typeof fullName === 'string') {
-      return fullName;
+      return fullName || 'Unknown Employer';
     }
     if (fullName && typeof fullName === 'object') {
       const { firstName = '', lastName = '' } = fullName;
@@ -177,7 +182,7 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {formatEmployerName(currentJob.employer.fullName)}
+                {formatEmployerName(currentJob.employer?.fullName)}
               </h3>
               <Badge variant="outline" className={`border-0 ${getStatusColor(currentJob.status)}`}>
                 {currentJob.status}
@@ -227,23 +232,29 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
           )}
 
           {/* Contact Information */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-gray-900 dark:text-white">Contact Information</h4>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                <Mail className="h-4 w-4" />
-                <a href={`mailto:${currentJob.contactEmail}`} className="hover:text-cyan-600">
-                  {currentJob.contactEmail}
-                </a>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                <Phone className="h-4 w-4" />
-                <a href={`tel:${currentJob.contactPhone}`} className="hover:text-cyan-600">
-                  {currentJob.contactPhone}
-                </a>
+          {(currentJob.contactEmail || currentJob.contactPhone) && (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-900 dark:text-white">Contact Information</h4>
+              <div className="space-y-2">
+                {currentJob.contactEmail && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <Mail className="h-4 w-4" />
+                    <a href={`mailto:${currentJob.contactEmail}`} className="hover:text-cyan-600">
+                      {currentJob.contactEmail}
+                    </a>
+                  </div>
+                )}
+                {currentJob.contactPhone && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <Phone className="h-4 w-4" />
+                    <a href={`tel:${currentJob.contactPhone}`} className="hover:text-cyan-600">
+                      {currentJob.contactPhone}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
           {/* Posted Date */}
           <div className="text-sm text-gray-500">
