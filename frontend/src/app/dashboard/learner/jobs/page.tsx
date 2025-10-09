@@ -213,7 +213,7 @@ function JobsPageContent() {
           </div>
 
           {/* Search and Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-card/50 rounded-lg border border-border">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/40 rounded-lg border border-emerald-200 dark:border-emerald-800">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <input
@@ -221,7 +221,7 @@ function JobsPageContent() {
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full pl-10 pr-4 py-2 border border-emerald-200 dark:border-emerald-700 rounded-md bg-white dark:bg-gray-800 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
             <div className="relative">
@@ -231,7 +231,7 @@ function JobsPageContent() {
                 placeholder="Location..."
                 value={locationFilter}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-10 pr-4 py-2 border border-emerald-200 dark:border-emerald-700 rounded-md bg-white dark:bg-gray-800 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
             <input
@@ -239,7 +239,7 @@ function JobsPageContent() {
               placeholder="Skills (comma separated)..."
               value={skillsFilter}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSkillsFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 border border-emerald-200 dark:border-emerald-700 rounded-md bg-white dark:bg-gray-800 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
             <Button 
               variant="outline" 
@@ -256,10 +256,11 @@ function JobsPageContent() {
           </div>
 
           {/* Jobs Grid */}
+          <div className="mt-8">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-card rounded-lg shadow-md p-6 border border-border">
+                <div key={i} className="animate-pulse bg-emerald-100 dark:bg-emerald-900/40 rounded-lg shadow-md p-6 border border-emerald-200 dark:border-emerald-800">
                   <div className="space-y-2">
                     <div className="h-4 bg-muted rounded w-3/4"></div>
                     <div className="h-3 bg-muted rounded w-1/2"></div>
@@ -273,11 +274,11 @@ function JobsPageContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                 {jobs.map((job) => (
                   <div 
                     key={job.id} 
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary bg-card rounded-lg shadow-md p-6 border border-border hover:border-primary/50"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary bg-emerald-100 dark:bg-emerald-900/40 rounded-lg shadow-md p-6 border border-emerald-200 dark:border-emerald-800 hover:border-primary/50 h-fit"
                     onClick={() => handleJobClick(job)}
                   >
                     <div className="pb-4">
@@ -408,6 +409,7 @@ function JobsPageContent() {
               )}
             </>
           )}
+          </div>
 
           {/* Job Details Modal */}
           {selectedJob && (

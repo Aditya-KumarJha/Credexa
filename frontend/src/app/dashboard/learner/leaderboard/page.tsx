@@ -70,13 +70,13 @@ export default function LeaderboardPage() {
         theme={{
           algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
           token: {
-            colorBgBase: "var(--color-background)",
+            colorBgBase: isDark ? "#1f2937" : "#f0fdf4",
             colorText: "var(--color-foreground)",
             colorTextSecondary: "var(--color-muted-foreground)",
-            colorBorder: "var(--color-border)",
+            colorBorder: isDark ? "#065f46" : "#a7f3d0",
           colorPrimary: "var(--color-primary)",
-          colorBgContainer: "var(--color-card)",
-          colorBgElevated: "var(--color-card)",
+          colorBgContainer: isDark ? "rgba(31, 41, 55, 0.6)" : "rgba(255, 255, 255, 0.6)",
+          colorBgElevated: isDark ? "rgba(31, 41, 55, 0.8)" : "rgba(255, 255, 255, 0.8)",
           zIndexPopupBase: 2000,
           borderRadius: 12,
         },
@@ -89,25 +89,38 @@ export default function LeaderboardPage() {
                 inkBarColor: "var(--color-primary)",
               },
               Pagination: {
-                itemActiveBg: "var(--color-card)",
+                itemActiveBg: "rgba(31, 41, 55, 0.6)",
                 colorText: "var(--color-foreground)",
                 colorTextDisabled: "var(--color-muted-foreground)",
+              },
+              Table: {
+                headerBg: "rgba(31, 41, 55, 0.8)",
+                headerColor: "var(--color-foreground)",
+                colorText: "var(--color-foreground)",
+                colorTextSecondary: "var(--color-muted-foreground)",
+                borderColor: "#065f46",
+                rowHoverBg: "rgba(31, 41, 55, 0.4)",
+                rowSelectedBg: "rgba(31, 41, 55, 0.6)",
+                rowSelectedHoverBg: "rgba(31, 41, 55, 0.6)",
+                headerSortActiveBg: "rgba(31, 41, 55, 0.6)",
+                headerSortHoverBg: "rgba(31, 41, 55, 0.4)",
+                bodySortBg: "rgba(31, 41, 55, 0.2)",
               },
             }
           : {
               Table: {
-                headerBg: "#F8F9FA", // Very Light Gray / Off-White
-                headerColor: "#212529", // Primary Text
-                colorText: "#212529",
-                colorTextSecondary: "#6C757D",
-                borderColor: "#E9ECEF",
-                rowHoverBg: "#F1F3F5",
-                rowSelectedBg: "#E9ECEF",
-                rowSelectedHoverBg: "#E9ECEF",
-                // Light backgrounds for sorting states
-                headerSortActiveBg: "#F1F3F5",
-                headerSortHoverBg: "#F1F3F5",
-                bodySortBg: "#F8F9FA",
+                headerBg: "#f0fdf4", // Emerald light background
+                headerColor: "#065f46", // Emerald dark text
+                colorText: "#065f46",
+                colorTextSecondary: "#059669",
+                borderColor: "#a7f3d0",
+                rowHoverBg: "#ecfdf5",
+                rowSelectedBg: "#d1fae5",
+                rowSelectedHoverBg: "#d1fae5",
+                // Light emerald backgrounds for sorting states
+                headerSortActiveBg: "#ecfdf5",
+                headerSortHoverBg: "#ecfdf5",
+                bodySortBg: "#f0fdf4",
               },
             },
       }}

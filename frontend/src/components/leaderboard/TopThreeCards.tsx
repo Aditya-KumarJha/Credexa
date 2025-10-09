@@ -29,9 +29,12 @@ export default function TopThreeCards({ list, sortType = 'rank' }: TopThreeCards
         {list.slice(0, 3).map((rec, idx) => (
         <Col xs={24} md={8} key={rec.id}>
           <div
-            className={"rounded-2xl p-6 border shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:scale-105 bg-card relative cursor-pointer"}
+            className={`rounded-2xl p-6 border-2 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:scale-105 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm relative cursor-pointer ${
+              idx === 0 ? "border-yellow-400/70 hover:border-yellow-400" : 
+              idx === 1 ? "border-blue-400/70 hover:border-blue-400" : 
+              "border-orange-400/70 hover:border-orange-400"
+            }`}
             style={{
-              borderColor: idx === 0 ? "rgba(234,179,8,0.5)" : idx === 1 ? "rgba(59,130,246,0.4)" : "rgba(249,115,22,0.4)",
               boxShadow: idx === 0 ? "0 20px 40px -15px rgba(234,179,8,0.4)" : idx === 1 ? "0 20px 40px -15px rgba(59,130,246,0.3)" : "0 20px 40px -15px rgba(249,115,22,0.3)",
             }}
           >

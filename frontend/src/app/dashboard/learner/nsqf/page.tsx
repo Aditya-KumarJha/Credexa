@@ -202,12 +202,12 @@ function NSQFProgressPageContent() {
       theme={{
         algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          colorBgBase: "var(--color-background)",
-          colorBgContainer: "var(--color-card)",
-          colorBgElevated: "var(--color-card)",
+          colorBgBase: isDark ? "#1f2937" : "#f0fdf4",
+          colorBgContainer: isDark ? "rgba(31, 41, 55, 0.6)" : "rgba(255, 255, 255, 0.6)",
+          colorBgElevated: isDark ? "rgba(31, 41, 55, 0.8)" : "rgba(255, 255, 255, 0.8)",
           colorText: "var(--color-foreground)",
           colorTextSecondary: "var(--color-muted-foreground)",
-          colorBorder: "var(--color-border)",
+          colorBorder: isDark ? "#065f46" : "#a7f3d0",
           colorPrimary: "var(--color-primary)",
           colorLink: "var(--color-primary)",
           colorLinkHover: "var(--color-primary)",
@@ -215,8 +215,9 @@ function NSQFProgressPageContent() {
         },
         components: {
           Card: {
-            colorBgContainer: "var(--color-card)",
-            headerBg: "var(--color-card)",
+            colorBgContainer: isDark ? "rgba(31, 41, 55, 0.6)" : "rgba(255, 255, 255, 0.6)",
+            headerBg: isDark ? "rgba(31, 41, 55, 0.6)" : "rgba(255, 255, 255, 0.6)",
+            colorBorderSecondary: isDark ? "#065f46" : "#a7f3d0",
           },
           Progress: {
             defaultColor: "var(--color-primary)",
@@ -247,7 +248,7 @@ function NSQFProgressPageContent() {
               <Row gutter={[20, 20]}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Col xs={24} sm={12} lg={8} key={i}>
-                    <AntCard className="border-0 shadow-lg bg-card/80">
+                    <AntCard className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg">
                       <Skeleton active avatar paragraph={{ rows: 3 }} />
                     </AntCard>
                   </Col>
@@ -255,7 +256,7 @@ function NSQFProgressPageContent() {
               </Row>
             </div>
           ) : !profile ? (
-            <AntCard className="py-12 border-0 shadow-lg bg-card/80">
+            <AntCard className="py-12 border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg">
               <Empty 
                 description="No NSQF data found. Start by adding some credentials to build your skill profile!" 
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -266,25 +267,25 @@ function NSQFProgressPageContent() {
               {/* Overall Stats */}
               <Row gutter={[20, 20]}>
                 <Col xs={24} sm={6}>
-                  <AntCard className="border-0 shadow-lg bg-card/80 text-center">
+                  <AntCard className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg text-center">
                     <div className="text-3xl font-bold text-primary mb-2">{profile.totalSkills}</div>
                     <div className="text-sm text-muted-foreground">Skill Domains</div>
                   </AntCard>
                 </Col>
                 <Col xs={24} sm={6}>
-                  <AntCard className="border-0 shadow-lg bg-card/80 text-center">
+                  <AntCard className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg text-center">
                     <div className="text-3xl font-bold text-primary mb-2">{profile.highestLevel}</div>
                     <div className="text-sm text-muted-foreground">Highest Level</div>
                   </AntCard>
                 </Col>
                 <Col xs={24} sm={6}>
-                  <AntCard className="border-0 shadow-lg bg-card/80 text-center">
+                  <AntCard className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg text-center">
                     <div className="text-3xl font-bold text-primary mb-2">{profile.totalCredentials}</div>
                     <div className="text-sm text-muted-foreground">Total Credentials</div>
                   </AntCard>
                 </Col>
                 <Col xs={24} sm={6}>
-                  <AntCard className="border-0 shadow-lg bg-card/80 text-center">
+                  <AntCard className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg text-center">
                     <div className="text-3xl font-bold text-primary mb-2">{profile.totalPoints}</div>
                     <div className="text-sm text-muted-foreground">Total Points</div>
                   </AntCard>
@@ -345,7 +346,7 @@ function NSQFProgressPageContent() {
                   {profile.skills.map((skill) => (
                     <Col xs={24} sm={12} lg={8} key={skill.skillDomain}>
                       <AntCard
-                        className={`border-0 shadow-lg bg-card/80 cursor-pointer transition-all hover:shadow-xl ${selectedSkill === skill.skillDomain ? 'ring-2 ring-primary' : ''}`}
+                        className={`border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg cursor-pointer transition-all hover:shadow-xl ${selectedSkill === skill.skillDomain ? 'ring-2 ring-primary' : ''}`}
                         onClick={() => setSelectedSkill(skill.skillDomain)}
                         styles={{ body: { padding: "24px" } }}
                       >
@@ -398,7 +399,7 @@ function NSQFProgressPageContent() {
                       {selectedSkill} - Detailed Progress
                     </div>
                   }
-                  className="border-0 shadow-lg bg-card/80 mt-8 mb-12"
+                  className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg mt-8 mb-12"
                   extra={
                     <Button
                       variant="ghost"
@@ -610,7 +611,7 @@ function NSQFProgressPageContent() {
                     {/* Priority Recommendation */}
                     {recommendations.length > 0 && (
                       <Col xs={24}>
-                        <AntCard className="border-0 shadow-lg bg-gradient-to-r from-primary/10 to-accent/10">
+                        <AntCard className="border-emerald-200 dark:border-emerald-700 shadow-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
                           <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/20 rounded-full">
                               <Star className="w-8 h-8 text-primary" />
@@ -654,7 +655,7 @@ function NSQFProgressPageContent() {
                     {recommendations.slice(1, 4).map((rec, index) => (
                       <Col xs={24} sm={12} lg={8} key={rec.skillDomain}>
                         <AntCard
-                          className="border-0 shadow-lg bg-card/80 h-full"
+                          className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg h-full"
                           styles={{ body: { padding: "20px" } }}
                         >
                           <div className="space-y-4">
@@ -740,7 +741,7 @@ function NSQFProgressPageContent() {
                 <Row gutter={[20, 20]}>
                   {/* Recent Achievements & Completed Levels */}
                   <Col xs={24} lg={8}>
-                    <AntCard className="border-0 shadow-lg bg-gradient-to-br from-success/10 to-success/5 h-full">
+                    <AntCard className="border-emerald-200 dark:border-emerald-700 shadow-lg bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 h-full">
                       <div className="space-y-4">
                         <h3 className="font-semibold text-center flex items-center justify-center gap-2">
                           <Award className="w-4 h-4 text-success" />
@@ -798,7 +799,7 @@ function NSQFProgressPageContent() {
 
                   {/* Current Active Goals */}
                   <Col xs={24} lg={8}>
-                    <AntCard className="border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5 h-full">
+                    <AntCard className="border-emerald-200 dark:border-emerald-700 shadow-lg bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 h-full">
                       <div className="space-y-4">
                         <h3 className="font-semibold text-center flex items-center justify-center gap-2">
                           <Target className="w-4 h-4 text-primary" />
@@ -869,7 +870,7 @@ function NSQFProgressPageContent() {
 
                   {/* Next Milestones & Industry Insights */}
                   <Col xs={24} lg={8}>
-                    <AntCard className="border-0 shadow-lg bg-card/80 h-full">
+                    <AntCard className="border-emerald-100 dark:border-emerald-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm shadow-lg h-full">
                       <div className="space-y-4">
                         {/* Next Milestones */}
                         <div>

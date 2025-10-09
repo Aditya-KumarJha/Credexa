@@ -16,7 +16,7 @@ type Props = {
 
 export default function LeaderboardFilters({ query, setQuery, timeframe, setTimeframe, category, setCategory, course, setCourse, courses }: Props) {
   return (
-    <Card className="mb-6 border-0 shadow-lg bg-card/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur" styles={{ body: { background: "transparent" } }}>
+    <Card className="mb-6 border-emerald-100 dark:border-emerald-800 shadow-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur supports-[backdrop-filter]:backdrop-blur" styles={{ body: { background: "transparent" } }}>
       <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
         <Input placeholder="Search by name or institute" value={query} onChange={(e) => setQuery(e.target.value)} allowClear className="max-w-xl" />
         <div className="flex items-center gap-3 flex-wrap">
