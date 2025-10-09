@@ -38,7 +38,10 @@ export const OnChainDetailsModal: React.FC<OnChainDetailsModalProps> = ({
           <div>
             <p className="text-sm font-semibold text-gray-500">ANCHORED ON (TIMESTAMP)</p>
             <p className="font-mono bg-gray-100 p-2 rounded text-sm text-gray-900 dark:text-gray-900">
-              {dayjs.unix(data.timestamp).format("MMMM D, YYYY h:mm:ss A")}
+              {data.timestamp && data.timestamp > 0 
+                ? dayjs.unix(data.timestamp).format("MMMM D, YYYY h:mm:ss A")
+                : "Invalid Date"
+              }
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { Modal, Steps, Button as AntButton, Form, Input, Select, Row, Col, DatePicker, Upload, Space, Spin, Alert } from "antd";
+import { Modal, Steps, Button as AntButton, Form, Input, Select, Row, Col, DatePicker, Upload, Space, Spin, Alert, App } from "antd";
 import { Button } from "@/components/ui/button";
 import { extractCertificateInfo, platforms } from "@/utils/credentialUtils";
 import { AddMethod, Platform, CredentialFormValues } from "@/types/credentials";
@@ -50,6 +50,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
   submitting,
   form,
 }) => {
+  const { message } = App.useApp();
   // Initialize or reset form only when the Form is actually rendered (step 1)
   const [extractingFromUrl, setExtractingFromUrl] = useState(false);
   const [extractingFromImage, setExtractingFromImage] = useState(false);
@@ -106,6 +107,11 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
       });
     } else {
       form.resetFields();
+      // Set placeholders for auto-filled fields in new credential creation
+      form.setFieldsValue({
+        credentialId: undefined,
+        nsqfLevel: undefined,
+      });
     }
   }, [isOpen, currentStep, editing, form]);
 
@@ -140,10 +146,24 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           values.imageUrl = d.storedImageUrl;
           setAutoImageUrl(d.storedImageUrl);
         }
-        form.setFieldsValue(values);
         if (d.aiExtracted) {
+          // Check if credential ID extraction failed - STOP IMMEDIATELY
+          if (d.credentialId === 'ID_NOT_FOUND' || !d.credentialId || d.credentialId.trim() === '') {
+            message.error({
+              content: 'Certificate ID not visible or available! This certificate from URL cannot be processed. Please use a different certificate source with a clearly visible ID number.',
+              duration: 8,
+              style: { marginTop: '10px' }
+            });
+            setExtractionError('Certificate ID is mandatory but not visible/available from this URL source. Please try a different certificate source.');
+            // Do NOT set any form values - just return
+            return;
+          }
+          
+          // Only set form values if we have a valid credential ID
+          form.setFieldsValue(values);
           setExtractionSuccess('Certificate downloaded and analyzed with AI! Form fields have been auto-filled.');
         } else {
+          form.setFieldsValue(values);
           setExtractionError('Certificate image attached but AI analysis failed. Please fill the fields manually.');
         }
       } else {
@@ -243,6 +263,19 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                 // Extract certificate information using AI
                 const extracted = await extractCertificateInfo(f);
                 if (extracted) {
+                  // Check if credential ID extraction failed - STOP IMMEDIATELY
+                  if (extracted.credentialId === 'ID_NOT_FOUND' || !extracted.credentialId || extracted.credentialId.trim() === '') {
+                    message.error({
+                      content: 'Certificate ID not visible or available! This certificate cannot be processed. Please upload a certificate with a clearly visible ID number.',
+                      duration: 8,
+                      style: { marginTop: '10px' }
+                    });
+                    setExtractionError('Certificate ID is mandatory but not visible/available in this certificate. Please try a different certificate.');
+                    // Do NOT set any form values - just return
+                    return;
+                  }
+                  
+                  // Only reach here if we have a VALID credential ID
                   // Auto-fill form fields with AI-extracted data
                   form.setFieldsValue({
                     title: extracted.title || '',
@@ -250,9 +283,10 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                     nsqfLevel: extracted.nsqfLevel || '',
                     issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
                     description: extracted.description || '',
-                    credentialId: extracted.credentialId || '',
+                    credentialId: extracted.credentialId, // This is guaranteed to be valid now
                     creditPoints: extracted.creditPoints || '',
                   });
+                  
                   setExtractionSuccess('Certificate analyzed successfully with AI! Form fields have been auto-filled.');
                 } else {
                   setExtractionError('Failed to extract information from certificate. Please fill the fields manually.');
@@ -334,8 +368,14 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="nsqfLevel" label="NSQF Level">
-                <Input type="number" min={1} />
+              <Form.Item name="nsqfLevel" label="NSQF Level" extra="Auto-filled from certificate">
+                <Input 
+                  type="number" 
+                  min={1} 
+                  disabled
+                  placeholder="Will be auto-filled from certificate"
+                  className="bg-gray-50 dark:bg-gray-800/50 cursor-not-allowed"
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -423,8 +463,12 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           ) : null}
           <Row gutter={12}>
             <Col span={12}>
-              <Form.Item name="credentialId" label="Credential ID">
-                <Input />
+              <Form.Item name="credentialId" label="Credential ID" rules={[{ required: true }]} extra="Auto-extracted from certificate">
+                <Input 
+                  disabled
+                  placeholder="Will be auto-extracted from certificate"
+                  className="bg-gray-50 dark:bg-gray-800/50 cursor-not-allowed"
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -448,6 +492,19 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                       // Extract certificate information using AI
                       const extracted = await extractCertificateInfo(f);
                       if (extracted) {
+                        // Check if credential ID extraction failed - STOP IMMEDIATELY
+                        if (extracted.credentialId === 'ID_NOT_FOUND' || !extracted.credentialId || extracted.credentialId.trim() === '') {
+                          message.error({
+                            content: 'Certificate ID not visible or available! This certificate cannot be processed. Please upload a certificate with a clearly visible ID number.',
+                            duration: 8,
+                            style: { marginTop: '10px' }
+                          });
+                          setExtractionError('Certificate ID is mandatory but not visible/available in this certificate. Please try a different certificate.');
+                          // Do NOT set any form values - just return
+                          return;
+                        }
+                        
+                        // Only reach here if we have a VALID credential ID
                         // Auto-fill form fields with AI-extracted data
                         form.setFieldsValue({
                           title: extracted.title || '',
@@ -455,9 +512,10 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                           nsqfLevel: extracted.nsqfLevel || '',
                           issueDate: extracted.issueDate ? dayjs(extracted.issueDate) : null,
                           description: extracted.description || '',
-                          credentialId: extracted.credentialId || '',
+                          credentialId: extracted.credentialId, // This is guaranteed to be valid now
                           creditPoints: extracted.creditPoints || '',
                         });
+                        
                         setExtractionSuccess('Certificate analyzed successfully with AI! Form fields have been auto-filled.');
                       } else {
                         setExtractionError('Failed to extract information from certificate. Please fill the fields manually.');
@@ -538,6 +596,16 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
               color: #6b7280; /* gray-500 */
             }
 
+            /* Disabled fields styling */
+            .credential-form .ant-input[disabled] {
+              background-color: #f9fafb !important; /* gray-50 */
+              border-color: #e5e7eb !important; /* gray-200 */
+              color: #6b7280 !important; /* gray-500 */
+            }
+            .credential-form .ant-input[disabled]::placeholder {
+              color: #9ca3af !important; /* gray-400 */
+            }
+
             /* Dark mode: respect dark foreground */
             .dark .credential-form,
             .dark .credential-form .ant-form-item-label > label,
@@ -554,6 +622,16 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
             .dark .credential-form .ant-input::placeholder,
             .dark .credential-form .ant-select-selection-placeholder {
               color: #9ca3af; /* gray-400 */
+            }
+
+            /* Dark mode disabled fields */
+            .dark .credential-form .ant-input[disabled] {
+              background-color: #374151 !important; /* gray-700 */
+              border-color: #4b5563 !important; /* gray-600 */
+              color: #9ca3af !important; /* gray-400 */
+            }
+            .dark .credential-form .ant-input[disabled]::placeholder {
+              color: #6b7280 !important; /* gray-500 */
             }
           `}</style>
         </Form>

@@ -90,7 +90,20 @@ export const useCredentialActions = () => {
       console.log('✅ API response received:', response);
       console.log('📊 Response data:', response.data);
       console.log('📈 Response status:', response.status);
-      return response.data;
+      
+      // Extract blockchain data from the response
+      const data = response.data;
+      if (data && data.blockchain) {
+        const blockchainData: OnChainDetails = {
+          issuer: data.blockchain.issuer || 'Unknown',
+          timestamp: data.blockchain.timestamp || 0
+        };
+        return blockchainData;
+      } else {
+        console.warn('⚠️ No blockchain data found in response');
+        message.error("No blockchain data found for this credential.");
+        return null;
+      }
     } catch (error: any) {
       console.error('❌ API request failed:', error);
       console.error('📋 Error details:', {

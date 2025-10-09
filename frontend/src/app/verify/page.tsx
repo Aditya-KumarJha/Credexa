@@ -269,7 +269,12 @@ export default function VerifyCredentialPage() {
   };
 
   const handleQRScanSuccess = (decodedText: string) => {
-    console.log('QR code scanned:', decodedText);
+    console.log('QR Scan Debug Info:');
+    console.log('- Decoded Text:', decodedText);
+    console.log('- Text Length:', decodedText.length);
+    console.log('- Contains /verify:', decodedText.includes('/verify'));
+    console.log('- URL Match Test:', /[?&]hash=([a-fA-F0-9x]+)/.test(decodedText));
+    
     let hash = decodedText;
     
     try {
@@ -318,32 +323,46 @@ export default function VerifyCredentialPage() {
   };
 
   const parseUrlHash = (decodedText: string) => {
+    console.log('Parse URL Hash Debug:');
+    console.log('- Input Text:', decodedText);
+    
     let hash = decodedText;
     
     // Extract hash from URL if it's a full URL
     if (decodedText.includes('/verify')) {
-      const urlMatch = decodedText.match(/[?&]hash=([a-fA-F0-9x]+)/);
+      console.log('- Contains /verify: true');
+      const urlMatch = decodedText.match(/[?&]hash=(0x[a-fA-F0-9]+)/);
+      console.log('- URL Match Result:', urlMatch);
       if (urlMatch && urlMatch[1]) {
         hash = urlMatch[1];
+        console.log('- Extracted Hash:', hash);
       }
     } else if (decodedText.includes('/api/credentials/verify/')) {
-      const apiMatch = decodedText.match(/api\/credentials\/verify\/([a-fA-F0-9x]+)/);
+      console.log('- Contains /api/credentials/verify: true');
+      const apiMatch = decodedText.match(/api\/credentials\/verify\/(0x[a-fA-F0-9]+)/);
+      console.log('- API Match Result:', apiMatch);
       if (apiMatch && apiMatch[1]) {
         hash = apiMatch[1];
+        console.log('- Extracted API Hash:', hash);
       }
     } else if (decodedText.startsWith('0x') && decodedText.length === 66) {
       hash = decodedText;
     }
     
-    console.log('Extracted hash:', hash);
+    console.log('Final Parse Results:');
+    console.log('- Extracted hash:', hash);
+    console.log('- Hash length:', hash.length);
+    console.log('- Starts with 0x:', hash.startsWith('0x'));
+    
     setCredentialHash(hash);
     showToast("QR code scanned successfully!", 'success');
     
     // Auto-verify if hash is valid
     if (hash.startsWith('0x') && hash.length === 66) {
-      console.log('Auto-verifying scanned hash');
+      console.log('Auto-verifying scanned hash - VALID FORMAT');
       setTimeout(() => handleVerify(hash), 500);
     } else {
+      console.log('Invalid hash format - NOT AUTO-VERIFYING');
       showToast('Invalid credential hash format. Please check and verify manually.', 'warning');
     }
   };
@@ -407,6 +426,18 @@ export default function VerifyCredentialPage() {
   const verificationUrl = credentialHash
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/verify?hash=${credentialHash}`
     : "";
+
+  // Debug logging for QR code content
+  useEffect(() => {
+    if (verificationUrl && credentialHash) {
+      console.log('QR Code Debug Info:');
+      console.log('- Credential Hash:', credentialHash);
+      console.log('- Verification URL:', verificationUrl);
+      console.log('- Hash Length:', credentialHash.length);
+      console.log('- Starts with 0x:', credentialHash.startsWith('0x'));
+      console.log('- URL Pattern Test:', /[?&]hash=([a-fA-F0-9x]+)/.test(verificationUrl));
+    }
+  }, [verificationUrl, credentialHash]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(verificationUrl);

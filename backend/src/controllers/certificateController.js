@@ -99,6 +99,15 @@ async function importCertificateFromUrl(req, res) {
       aiExtracted: true,
     };
 
+    // Validate credential ID before returning success
+    if (data.credentialId === 'ID_NOT_FOUND' || !data.credentialId || data.credentialId.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'CREDENTIAL_ID_NOT_FOUND',
+        message: 'Certificate ID not visible or available in this certificate. Please use a certificate with a clearly visible ID number.' 
+      });
+    }
+
     return res.json({ success: true, data, message: 'Certificate downloaded and analyzed with AI' });
   } catch (err) {
     console.error('Certificate import error:', err);

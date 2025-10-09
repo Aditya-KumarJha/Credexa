@@ -1,6 +1,6 @@
 import React from "react";
 import { Row, Col } from "antd";
-import { Shield, Clock } from "lucide-react";
+import { Shield, Clock, Award, TrendingUp } from "lucide-react";
 import { Credential } from "@/types/credentials";
 
 interface CredentialStatsProps {
@@ -12,29 +12,80 @@ export const CredentialStats: React.FC<CredentialStatsProps> = ({ items }) => {
   const notAnchoredCount = items.filter((i) => !i.transactionHash).length;
 
   return (
-    <div className="mb-8 border-0 shadow bg-card/80 p-0 rounded-lg">
-      <div className="p-5 pb-4">
-        <Row gutter={[12, 12]}>
-          <Col xs={12} md={6}>
-            <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
-              <div className="text-xs text-muted-foreground">Total</div>
-              <div className="text-xl font-semibold">{items.length}</div>
+    <div className="mb-8 relative overflow-hidden rounded-2xl">
+      {/* Enhanced gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:via-teal-500/20 dark:to-cyan-500/20" />
+      <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm" />
+      
+      <div className="relative z-10 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg">
+            <TrendingUp className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Credential Overview</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Track your achievement statistics</p>
+          </div>
+        </div>
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl blur-sm group-hover:blur-md transition-all duration-300" />
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 rounded-xl p-4 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      <Award className="w-4 h-4" />
+                      Total Credentials
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{items.length}</div>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Award className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
             </div>
           </Col>
-          <Col xs={12} md={6}>
-            <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-emerald-500" /> On-Chain Proof
+
+          <Col xs={24} md={8}>
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-xl blur-sm group-hover:blur-md transition-all duration-300" />
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 rounded-xl p-4 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-1">
+                      <Shield className="w-4 h-4" />
+                      On-Chain Verified
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{anchoredCount}</div>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               </div>
-              <div className="text-xl font-semibold">{anchoredCount}</div>
             </div>
           </Col>
-          <Col xs={12} md={6}>
-            <div className="px-3 py-2 rounded-lg border bg-background relative z-20">
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-gray-500" /> No On-Chain Proof
+
+          <Col xs={24} md={8}>
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl blur-sm group-hover:blur-md transition-all duration-300" />
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 rounded-xl p-4 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400 mb-1">
+                      <Clock className="w-4 h-4" />
+                      Pending Verification
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{notAnchoredCount}</div>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               </div>
-              <div className="text-xl font-semibold">{notAnchoredCount}</div>
             </div>
           </Col>
         </Row>

@@ -35,10 +35,163 @@ interface DashboardUser {
   walletAddress?: string;
 }
 
+interface Credential {
+  _id: string;
+  title: string;
+  issuer: string;
+  type: string;
+  status: string;
+  nsqfLevel?: number;
+  creditPoints?: number;
+  skills: string[];
+  createdAt: string;
+}
+
+interface UserStats {
+  credentialsCount: number;
+  uniqueSkills: number;
+  totalPoints: number;
+  averageNSQFLevel: number;
+  verifiedCredentials: number;
+  userRank?: number;
+  totalUsers?: number;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<DashboardUser | null>(null);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [userStats, setUserStats] = useState<UserStats>({
+    credentialsCount: 0,
+    uniqueSkills: 0,
+    totalPoints: 0,
+    averageNSQFLevel: 0,
+    verifiedCredentials: 0
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch user data and statistics
+  const fetchUserData = async (token: string) => {
+    try {
+      setError(null);
+      
+      // Fetch user profile
+      const userResponse = await api.get("/api/users/me", { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      console.log("User data fetched:", userResponse.data.user);
+      setUser(userResponse.data.user);
+
+      // Fetch user credentials
+      const credentialsResponse = await api.get("/api/credentials", { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      console.log("Credentials fetched:", credentialsResponse.data);
+      setCredentials(credentialsResponse.data);
+
+      // Fetch user rank (optional - don't fail if this doesn't work)
+      let userRankData = null;
+      try {
+        const rankResponse = await api.get("/api/user-rank", { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
+        userRankData = rankResponse.data;
+        console.log("User rank fetched:", userRankData);
+      } catch (error) {
+        console.log("User rank not available (this is optional):", error);
+      }
+
+      // Calculate statistics from credentials
+      const stats = calculateUserStats(credentialsResponse.data, userRankData);
+      setUserStats(stats);
+
+    } catch (error: any) {
+      console.error("Failed to fetch user data:", error);
+      
+      if (error.response?.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem("authToken");
+        router.replace("/login?error=session_expired");
+      } else {
+        // Other errors - show error message but don't redirect
+        setError("Failed to load dashboard data. Please try refreshing the page.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Retry function for error recovery
+  const retryFetch = () => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      setLoading(true);
+      fetchUserData(token);
+    }
+  };
+
+  // Calculate user statistics from credentials
+  const calculateUserStats = (credentials: Credential[], rankData: any = null): UserStats => {
+    const credentialsCount = credentials.length;
+    const verifiedCredentials = credentials.filter(c => c.status === 'verified').length;
+    
+    // Get unique skills from all credentials
+    const allSkills = credentials.flatMap(c => c.skills || []);
+    const uniqueSkills = new Set(allSkills).size;
+    
+    // Calculate total credit points
+    const totalPoints = credentials.reduce((sum, c) => sum + (c.creditPoints || 0), 0);
+    
+    // Calculate average NSQF level (only from credentials that have NSQF levels)
+    const credentialsWithNSQF = credentials.filter(c => c.nsqfLevel && c.nsqfLevel > 0);
+    const averageNSQFLevel = credentialsWithNSQF.length > 0 
+      ? credentialsWithNSQF.reduce((sum, c) => sum + (c.nsqfLevel || 0), 0) / credentialsWithNSQF.length
+      : 0;
+
+    return {
+      credentialsCount,
+      uniqueSkills,
+      totalPoints,
+      averageNSQFLevel: Math.round(averageNSQFLevel * 10) / 10, // Round to 1 decimal
+      verifiedCredentials,
+      userRank: rankData?.rank,
+      totalUsers: rankData?.totalUsers
+    };
+  };
+
+  // Calculate next level progress (simplified NSQF progression)
+  const calculateProgressToNextLevel = (currentLevel: number, totalPoints: number): number => {
+    // NSQF level requirements (simplified)
+    const levelRequirements = {
+      1: { min: 0, max: 20 },
+      2: { min: 21, max: 50 },
+      3: { min: 51, max: 100 },
+      4: { min: 101, max: 200 },
+      5: { min: 201, max: 350 },
+      6: { min: 351, max: 550 },
+      7: { min: 551, max: 800 },
+      8: { min: 801, max: 1100 },
+      9: { min: 1101, max: 1500 },
+      10: { min: 1501, max: 2000 }
+    };
+
+    const nextLevel = Math.min(Math.floor(currentLevel) + 1, 10);
+    const nextLevelReq = levelRequirements[nextLevel as keyof typeof levelRequirements];
+    
+    if (!nextLevelReq || currentLevel >= 10) return 100; // Max level reached
+    
+    const pointsNeeded = nextLevelReq.min - totalPoints;
+    if (pointsNeeded <= 0) return 100; // Already at or above next level
+    
+    const currentLevelReq = levelRequirements[Math.floor(currentLevel) as keyof typeof levelRequirements];
+    const levelRange = nextLevelReq.min - (currentLevelReq?.min || 0);
+    const pointsInCurrentLevel = totalPoints - (currentLevelReq?.min || 0);
+    
+    return Math.round((pointsInCurrentLevel / levelRange) * 100);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -47,20 +200,7 @@ export default function Dashboard() {
       return;
     }
 
-    // Fetch user data
-    api
-      .get("/api/users/me", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        console.log("User data fetched:", res.data.user);
-        console.log("Projects:", res.data.user.projects);
-        setUser(res.data.user);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch user data:", error);
-        localStorage.removeItem("authToken");
-        router.replace("/login?error=session_expired");
-      })
-      .finally(() => setLoading(false));
+    fetchUserData(token);
 
     // Setup MetaMask event listeners
     const handleAccountsChanged = (accounts: string[]) => {
@@ -203,7 +343,32 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-emerald-500"></div>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-emerald-500"></div>
+          <p className="text-emerald-600 dark:text-emerald-400 font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+        <div className="flex flex-col items-center space-y-4 text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Oops! Something went wrong</h3>
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <button 
+            onClick={retryFetch}
+            className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -220,20 +385,32 @@ export default function Dashboard() {
           <StatCard
             icon={<BarChart3 className="h-8 w-8 text-emerald-500 mb-4" />}
             title="My Credentials"
-            description="You have 12 verified micro-credentials."
+            description={`You have ${userStats.credentialsCount} credentials (${userStats.verifiedCredentials} verified).`}
             linkText="View Credentials"
+            linkHref="/dashboard/learner/credentials"
           />
           <StatCard
             icon={<KeyRound className="h-8 w-8 text-teal-500 mb-4" />}
             title="Skill Tracker"
-            description="Tracking 8 skills across NSQF levels."
+            description={`Tracking ${userStats.uniqueSkills} skills with ${userStats.totalPoints} total points.`}
             linkText="View Skills"
+            linkHref="/dashboard/learner/nsqf"
           />
           <StatCard
             icon={<CreditCard className="h-8 w-8 text-cyan-500 mb-4" />}
             title="Learning Progress"
-            description="You are 70% towards your next NSQF level."
-            linkText="View Path"
+            description={
+              userStats.averageNSQFLevel > 0 
+                ? (() => {
+                    const progress = calculateProgressToNextLevel(userStats.averageNSQFLevel, userStats.totalPoints);
+                    const nextLevel = Math.min(Math.floor(userStats.averageNSQFLevel) + 1, 10);
+                    const rankInfo = userStats.userRank ? ` • Rank #${userStats.userRank}/${userStats.totalUsers}` : '';
+                    return `Level ${userStats.averageNSQFLevel} • ${progress}% to Level ${nextLevel}${rankInfo}`;
+                  })()
+                : "Start adding credentials to track your NSQF progress!"
+            }
+            linkText="View Progress"
+            linkHref="/dashboard/learner/leaderboard"
           />
         </div>
       </main>

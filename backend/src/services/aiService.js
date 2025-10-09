@@ -35,17 +35,22 @@ async function generateDetails(base64ImageFile) {
         "creditPoints": "Points this certificate should contribute (15-50 based on complexity)",
         "issueDate": "Date in YYYY-MM-DD format if available, otherwise null",
         "description": "Brief description of what was learned or achieved",
-        "credentialId": "Certificate ID or verification number if visible, otherwise null",
+        "credentialId": "Certificate ID or verification number - MANDATORY field, use ID_NOT_FOUND only if absolutely no ID exists",
         "skills": ["Array of specific skills learned"],
         "estimatedDuration": "Course duration if mentioned (in hours/weeks), otherwise null"
       }
       
-      NSQF Level Guidelines:
-      - Level 1-2: Basic awareness and foundational skills (15-20 credit points)
-      - Level 3-4: Intermediate skills with some complexity (20-30 credit points)
-      - Level 5-6: Advanced skills requiring significant knowledge (30-40 credit points)
-      - Level 7-8: Specialized professional skills (40-45 credit points)
-      - Level 9-10: Expert level with research/innovation capabilities (45-50 credit points)
+      STRICT NSQF Level Guidelines (BE VERY PRECISE):
+      - Level 1: Basic awareness, introductory concepts only (15-18 credit points)
+      - Level 2: Foundational skills with basic application (18-22 credit points)
+      - Level 3: Intermediate skills with practical knowledge (22-26 credit points)
+      - Level 4: Applied intermediate skills with problem-solving (26-30 credit points)
+      - Level 5: Advanced skills requiring significant expertise (30-34 credit points)
+      - Level 6: Specialized advanced knowledge with complex applications (34-38 credit points)
+      - Level 7: Professional-level expertise with strategic thinking (38-42 credit points)
+      - Level 8: Senior professional skills with leadership capabilities (42-46 credit points)
+      - Level 9: Expert level with research and innovation skills (46-48 credit points)
+      - Level 10: Master expert level with cutting-edge research capabilities (48-50 credit points)
       
       Skill Domain Examples:
       - "Python Programming", "JavaScript Development", "Web Development"
@@ -53,15 +58,27 @@ async function generateDetails(base64ImageFile) {
       - "Cloud Computing", "AWS Services", "DevOps"
       - "Digital Marketing", "Project Management", "Cybersecurity"
       
-      Credit Points Logic:
-      - Basic/Introductory courses: 15-25 points
-      - Intermediate courses: 25-35 points
-      - Advanced/Professional courses: 35-45 points
-      - Expert/Specialization courses: 45-50 points
+      MANDATORY CREDENTIAL ID EXTRACTION:
+      You MUST extract the credential ID from the certificate. Look for ANY of these patterns:
+      - "Certificate ID", "Credential ID", "Cert ID", "Certificate Number", "Verification ID"
+      - "Serial Number", "Reference Number", "Course ID", "Completion ID", "Badge ID"
+      - "License Number", "Authentication Code", "Verification Code", "Document ID"
+      - Alphanumeric codes like: "CERT123456", "NPT21-ABC123", "COUR-2023-XYZ", "ID: ABC123"
+      - QR code associated numbers, barcode numbers
+      - Platform-specific IDs (e.g., Coursera: course certificates have verification URLs with IDs)
+      - Look in corners, headers, footers, and near signatures
+      - Check small text, watermarks, or embedded codes
+      
+      If you cannot find ANY credential identifier after thorough analysis:
+      - Look again more carefully in ALL areas of the certificate
+      - Check for partial numbers, codes, or references
+      - If absolutely no ID exists, return "ID_NOT_FOUND" for credentialId field
+      
+      IMPORTANT: Credit points are automatically calculated based on NSQF level - do not override this logic.
       
       CRITICAL: Return ONLY the JSON object or the exact error message. No markdown formatting, no code blocks, no additional text.
-      Extract only what is clearly visible in the certificate. Use null for fields that are not available.
-      Be smart about inferring skillDomain from the course title and content.
+      Extract only what is clearly visible in the certificate. Use "ID_NOT_FOUND" for credentialId if truly no identifier exists.
+      Be extremely thorough in credential ID extraction - it's MANDATORY.
       `
     }
   });
@@ -127,56 +144,66 @@ function determineSkillDomain(title, description = '', skills = []) {
   return "General Skills";
 }
 
-// Function to calculate credit points based on NSQF level and course characteristics
+// Function to calculate credit points based on STRICT NSQF level and course characteristics
 function calculateCreditPoints(nsqfLevel, title, description = '', estimatedDuration = null) {
   let basePoints = 0;
   
-  // Base points by NSQF level
+  // Strict base points by individual NSQF level
   switch(nsqfLevel) {
     case 1:
-    case 2:
       basePoints = 15;
       break;
+    case 2:
+      basePoints = 18;
+      break;
     case 3:
+      basePoints = 22;
+      break;
     case 4:
-      basePoints = 25;
+      basePoints = 26;
       break;
     case 5:
+      basePoints = 30;
+      break;
     case 6:
-      basePoints = 35;
+      basePoints = 34;
       break;
     case 7:
+      basePoints = 38;
+      break;
     case 8:
       basePoints = 42;
       break;
     case 9:
+      basePoints = 46;
+      break;
     case 10:
-      basePoints = 50;
+      basePoints = 48;
       break;
     default:
-      basePoints = 25;
+      basePoints = 22; // Default to level 3
   }
   
-  // Adjust based on course characteristics
+  // Conservative adjustments for strict NSQF system
   const titleLower = title.toLowerCase();
   const descLower = description.toLowerCase();
   
-  // Bonus for advanced/professional courses
+  // Small bonus for advanced/professional courses (max +2)
   if (titleLower.match(/\b(advanced|professional|expert|master|specialization)\b/)) {
-    basePoints += 5;
+    basePoints += 2;
   }
   
-  // Bonus for certification programs
+  // Small bonus for certification programs (max +2)
   if (titleLower.match(/\b(certification|certified|certificate program)\b/)) {
-    basePoints += 3;
+    basePoints += 2;
   }
   
-  // Bonus for comprehensive courses
+  // Small bonus for comprehensive courses (max +2)
   if (titleLower.match(/\b(complete|comprehensive|full|bootcamp)\b/)) {
-    basePoints += 5;
+    basePoints += 2;
   }
   
-  // Adjust based on estimated duration if available
+  // Conservative duration-based adjustment
   if (estimatedDuration) {
     const durationLower = estimatedDuration.toLowerCase();
     if (durationLower.match(/\b(\d+)\s*(week|month)/)) {
@@ -184,14 +211,34 @@ function calculateCreditPoints(nsqfLevel, title, description = '', estimatedDura
       const months = durationLower.match(/(\d+)\s*month/) ? parseInt(durationLower.match(/(\d+)\s*month/)[1]) * 4 : 0;
       const totalWeeks = weeks + months;
       
-      if (totalWeeks >= 12) basePoints += 8;
-      else if (totalWeeks >= 8) basePoints += 5;
-      else if (totalWeeks >= 4) basePoints += 3;
+      if (totalWeeks >= 16) basePoints += 3; // Only for very long courses
+      else if (totalWeeks >= 12) basePoints += 2;
+      else if (totalWeeks >= 8) basePoints += 1;
     }
   }
   
-  // Ensure points are within reasonable bounds
-  return Math.min(Math.max(basePoints, 15), 50);
+  // Strict bounds - ensure points stay within NSQF level ranges
+  const maxPointsForLevel = nsqfLevel === 1 ? 18 : 
+                           nsqfLevel === 2 ? 22 :
+                           nsqfLevel === 3 ? 26 :
+                           nsqfLevel === 4 ? 30 :
+                           nsqfLevel === 5 ? 34 :
+                           nsqfLevel === 6 ? 38 :
+                           nsqfLevel === 7 ? 42 :
+                           nsqfLevel === 8 ? 46 :
+                           nsqfLevel === 9 ? 48 : 50;
+  
+  const minPointsForLevel = nsqfLevel === 1 ? 15 :
+                           nsqfLevel === 2 ? 18 :
+                           nsqfLevel === 3 ? 22 :
+                           nsqfLevel === 4 ? 26 :
+                           nsqfLevel === 5 ? 30 :
+                           nsqfLevel === 6 ? 34 :
+                           nsqfLevel === 7 ? 38 :
+                           nsqfLevel === 8 ? 42 :
+                           nsqfLevel === 9 ? 46 : 48;
+  
+  return Math.min(Math.max(basePoints, minPointsForLevel), maxPointsForLevel);
 }
 
 module.exports = {

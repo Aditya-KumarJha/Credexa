@@ -54,6 +54,15 @@ const createCredential = async (req, res) => {
       creditPoints: body.creditPoints ? Number(body.creditPoints) : undefined,
     };
 
+    // Validate credential ID - reject ID_NOT_FOUND
+    if (payload.credentialId === 'ID_NOT_FOUND' || !payload.credentialId || payload.credentialId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_CREDENTIAL_ID',
+        message: 'Credential ID is mandatory and cannot be ID_NOT_FOUND. Please upload a certificate with a visible ID number.'
+      });
+    }
+
     if (req.file) {
       const uploaded = await uploadFile(req.file.buffer, `credential_${Date.now()}`);
       payload.imageUrl = uploaded.url;

@@ -379,25 +379,53 @@ function CredentialsPageContent() {
         },
       }}
     >
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 text-gray-800 dark:text-gray-200 flex">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 text-gray-800 dark:text-gray-200 flex relative overflow-hidden">
+        {/* Enhanced background patterns */}
+        <div className="absolute inset-0 opacity-30 dark:opacity-20">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-r from-indigo-400/10 to-purple-400/10 rounded-full blur-2xl" />
+        </div>
+        
         <Sidebar />
-        <main className="flex-1 p-6 md:p-10">
-          <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                My Credentials
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">Manage and showcase your verified achievements</p>
+        <main className="flex-1 p-6 md:p-10 relative z-10">
+          {/* Enhanced header section */}
+          <div className="relative mb-8 overflow-hidden rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:via-teal-500/20 dark:to-cyan-500/20" />
+            <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm" />
+            
+            <div className="relative z-10 p-6 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-xl">
+                  <div className="text-2xl">🎓</div>
+                </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-1">
+                    My Credentials
+                  </h1>
+                  <p className="text-base text-gray-600 dark:text-gray-400">Manage and showcase your verified achievements</p>
+                </div>
+              </div>
+              
+              <Space size="middle">
+                <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-white/30 dark:border-gray-700/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-300 transition-all duration-300 rounded-xl shadow-lg" 
+                  onClick={() => message.info("Share coming soon")}
+                >
+                  <Share2 className="w-4 h-4 mr-2" /> Share Profile
+                </Button>
+                <Button 
+                  size="lg"
+                  onClick={modalHook.openCreate} 
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-xl text-white font-medium"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Credential
+                </Button>
+              </Space>
             </div>
-            <Space>
-              <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
-              <Button variant="outline" className="bg-transparent border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => message.info("Share coming soon")}>
-                <Share2 className="w-4 h-4 mr-2" /> Share Profile
-              </Button>
-              <Button onClick={modalHook.openCreate} className="shadow bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-0">
-                <Plus className="w-4 h-4 mr-2" /> Add Credential
-              </Button>
-            </Space>
           </div>
 
           {/* Stats summary */}
@@ -412,39 +440,63 @@ function CredentialsPageContent() {
 
           {/* Credentials Grid */}
           {loading ? (
-            <Row gutter={[20, 20]} className="mt-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Col xs={24} sm={12} lg={8} key={i}>
-                  <AntCard className="border-0 shadow-lg bg-card/80" styles={{ body: { padding: "20px" } }}>
-                    <Skeleton active avatar paragraph={{ rows: 3 }} />
-                  </AntCard>
-                </Col>
-              ))}
-            </Row>
+            <div className="relative">
+              <Row gutter={[24, 24]} className="mt-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Col xs={24} sm={12} lg={8} key={i}>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-gray-200/50 to-gray-300/50 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl blur-sm" />
+                      <AntCard className="relative border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl" styles={{ body: { padding: "24px" } }}>
+                        <Skeleton active avatar paragraph={{ rows: 3 }} />
+                      </AntCard>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </div>
           ) : filteredItems.length === 0 ? (
-            <AntCard
-              className="py-12 mt-6 border-0 shadow-lg bg-card/80"
-              styles={{ body: { background: "transparent", padding: "48px 24px" } }}
-            >
-              <Empty description="No credentials found" />
-            </AntCard>
-          ) : (
-            <Row gutter={[20, 20]} className="mt-6">
-              {filteredItems.map((credential) => (
-                <Col xs={24} sm={12} lg={8} key={credential._id || credential.title}>
-                  <CredentialCard
-                    credential={credential}
-                    onDelete={handleDelete}
-                    onViewImage={imageModal.setViewingImage}
-                    onViewDetails={handleViewDetailsClick}
-                    onAnchor={handleAnchorCredentialClick}
-                    onShowOnChainDetails={handleShowOnChainDetails}
-                    anchoringId={anchoringId}
-                    loadingDetails={loadingDetails}
+            <div className="relative mt-6 overflow-hidden rounded-2xl">
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 via-slate-500/10 to-gray-500/10 dark:from-gray-500/20 dark:via-slate-500/20 dark:to-gray-500/20" />
+              <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm" />
+              
+              <AntCard
+                className="relative border-0 shadow-lg py-16"
+                styles={{ body: { background: "transparent", padding: "48px 24px" } }}
+              >
+                <div className="text-center">
+                  <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-2xl flex items-center justify-center">
+                    <div className="text-4xl">🎓</div>
+                  </div>
+                  <Empty 
+                    description={
+                      <div className="text-gray-600 dark:text-gray-400">
+                        <p className="text-lg font-medium mb-2">No credentials found</p>
+                        <p className="text-sm">Start building your professional portfolio by adding your first credential!</p>
+                      </div>
+                    } 
                   />
-                </Col>
-              ))}
-            </Row>
+                </div>
+              </AntCard>
+            </div>
+          ) : (
+            <div className="relative">
+              <Row gutter={[24, 24]} className="mt-6">
+                {filteredItems.map((credential) => (
+                  <Col xs={24} sm={12} lg={8} key={credential._id || credential.title}>
+                    <CredentialCard
+                      credential={credential}
+                      onDelete={handleDelete}
+                      onViewImage={imageModal.setViewingImage}
+                      onViewDetails={handleViewDetailsClick}
+                      onAnchor={handleAnchorCredentialClick}
+                      onShowOnChainDetails={handleShowOnChainDetails}
+                      anchoringId={anchoringId}
+                      loadingDetails={loadingDetails}
+                    />
+                  </Col>
+                ))}
+              </Row>
+            </div>
           )}
 
           {/* Modals */}
