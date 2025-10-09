@@ -63,11 +63,11 @@ function FloatingShape({
       <meshStandardMaterial
         color={color}
         transparent
-        opacity={0.15}
+        opacity={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 0.15 : 0.25}
         roughness={0.3}
         metalness={0.1}
         emissive={color}
-        emissiveIntensity={0.05}
+        emissiveIntensity={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 0.05 : 0.08}
       />
     </mesh>
   );
@@ -139,15 +139,19 @@ function AmbientScene() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [handleMouseMove]);
 
+  // Dynamic colors based on theme
+  const isDarkMode = typeof window !== 'undefined' && 
+    document.documentElement.classList.contains('dark');
+
   const shapes = [
-    { position: [-6, 3, -5] as [number, number, number], shape: 'box' as const, color: '#3b82f6', size: 0.3 },
-    { position: [4, -2, -3] as [number, number, number], shape: 'sphere' as const, color: '#8b5cf6', size: 0.4 },
-    { position: [-3, -4, -2] as [number, number, number], shape: 'octahedron' as const, color: '#06b6d4', size: 0.35 },
-    { position: [6, 2, -6] as [number, number, number], shape: 'tetrahedron' as const, color: '#10b981', size: 0.25 },
-    { position: [-8, 0, -4] as [number, number, number], shape: 'box' as const, color: '#f59e0b', size: 0.3 },
-    { position: [2, 4, -3] as [number, number, number], shape: 'sphere' as const, color: '#ef4444', size: 0.2 },
-    { position: [8, -3, -5] as [number, number, number], shape: 'octahedron' as const, color: '#8b5cf6', size: 0.4 },
-    { position: [-2, 5, -2] as [number, number, number], shape: 'tetrahedron' as const, color: '#06b6d4', size: 0.3 },
+    { position: [-6, 3, -5] as [number, number, number], shape: 'box' as const, color: isDarkMode ? '#3b82f6' : '#1e40af', size: 0.3 },
+    { position: [4, -2, -3] as [number, number, number], shape: 'sphere' as const, color: isDarkMode ? '#8b5cf6' : '#6d28d9', size: 0.4 },
+    { position: [-3, -4, -2] as [number, number, number], shape: 'octahedron' as const, color: isDarkMode ? '#06b6d4' : '#0891b2', size: 0.35 },
+    { position: [6, 2, -6] as [number, number, number], shape: 'tetrahedron' as const, color: isDarkMode ? '#10b981' : '#047857', size: 0.25 },
+    { position: [-8, 0, -4] as [number, number, number], shape: 'box' as const, color: isDarkMode ? '#f59e0b' : '#d97706', size: 0.3 },
+    { position: [2, 4, -3] as [number, number, number], shape: 'sphere' as const, color: isDarkMode ? '#ef4444' : '#dc2626', size: 0.2 },
+    { position: [8, -3, -5] as [number, number, number], shape: 'octahedron' as const, color: isDarkMode ? '#8b5cf6' : '#6d28d9', size: 0.4 },
+    { position: [-2, 5, -2] as [number, number, number], shape: 'tetrahedron' as const, color: isDarkMode ? '#06b6d4' : '#0891b2', size: 0.3 },
   ];
 
   return (

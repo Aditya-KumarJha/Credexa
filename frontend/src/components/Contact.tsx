@@ -49,7 +49,7 @@ const Contact = forwardRef<HTMLElement>((props, ref) => {
   };
 
   return (
-    <section id="contact" ref={ref} className="pb-20 pt-10 px-6 bg-gray-50 dark:bg-zinc-900">
+    <section id="contact" ref={ref} className="pb-20 pt-10 px-6">
       <div className="container mx-auto">
         <h2 className="text-4xl font-bold mb-12 text-center flex items-center justify-center gap-3 text-blue-600 dark:text-blue-400">
           <Mail className="w-8 h-8" />
@@ -159,4 +159,3 @@ const Contact = forwardRef<HTMLElement>((props, ref) => {
 
 Contact.displayName = 'Contact';
 export default Contact;
-

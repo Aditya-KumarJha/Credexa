@@ -22,7 +22,8 @@ const WrapButton: React.FC<WrapButtonProps> = ({
         <Link href={href}>
           <div
             className={cn(
-              "group cursor-pointer border border-gray-300 dark:border-[#3B3A3A] bg-white dark:bg-[#151515] gap-2 h-[64px] flex items-center p-[11px] rounded-full shadow-lg hover:shadow-xl transition-shadow",
+              // RESOLVED LINE: Using softer bg-gray-100 but keeping the shadow/hover effects from HEAD
+              "group cursor-pointer border border-gray-300 dark:border-[#3B3A3A] bg-gray-100 dark:bg-[#151515] gap-2 h-[64px] flex items-center p-[11px] rounded-full shadow-lg hover:shadow-xl transition-shadow",
               className
             )}
           >
@@ -43,7 +44,8 @@ const WrapButton: React.FC<WrapButtonProps> = ({
         <div
           onClick={onClick}   
           className={cn(
-            "group cursor-pointer border border-gray-300 dark:border-[#3B3A3A] bg-white dark:bg-[#151515] gap-2 h-[64px] flex items-center p-[11px] rounded-full shadow-lg hover:shadow-xl transition-shadow",
+            // RESOLVED LINE: Using softer bg-gray-100 but keeping the shadow/hover effects from HEAD
+            "group cursor-pointer border border-gray-300 dark:border-[#3B3A3A] bg-gray-100 dark:bg-[#151515] gap-2 h-[64px] flex items-center p-[11px] rounded-full shadow-lg hover:shadow-xl transition-shadow",
             className
           )}
         >
@@ -65,4 +67,4 @@ const WrapButton: React.FC<WrapButtonProps> = ({
   )
 }
 
-export default WrapButton
+export default WrapButton;
