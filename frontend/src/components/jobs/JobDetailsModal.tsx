@@ -64,10 +64,10 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
           if (response.data.success) {
             setCurrentJob(response.data.job);
             setApplied(response.data.job.hasApplied || false);
-            console.log('Refreshed job details:', response.data.job);
+            // ...existing code...
           }
         } catch (error) {
-          console.error('Error fetching job details:', error);
+          // ...existing code...
         }
       };
 
@@ -78,7 +78,7 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
   // Update applied state when job changes
   useEffect(() => {
     const hasApplied = currentJob.hasApplied || false;
-    console.log('Job details modal - hasApplied:', hasApplied, 'applicationStatus:', currentJob.applicationStatus);
+  // ...existing code...
     setApplied(hasApplied);
   }, [currentJob.hasApplied, currentJob.applicationStatus]);
 
@@ -128,7 +128,7 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
         alert(response.data.message || 'Failed to apply for the job. Please try again.');
       }
     } catch (error: any) {
-      console.error('Error applying for job:', error);
+  // ...existing code...
       
       // Handle specific error cases
       if (error.response?.status === 400) {
@@ -160,7 +160,7 @@ export default function JobDetailsModal({ job, open, onClose }: JobDetailsModalP
 
   // Debug: Check application status
   const isApplied = applied || currentJob.hasApplied;
-  console.log('Modal render - applied:', applied, 'currentJob.hasApplied:', currentJob.hasApplied, 'isApplied:', isApplied);
+  // ...existing code...
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
