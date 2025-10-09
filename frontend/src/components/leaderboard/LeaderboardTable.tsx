@@ -114,8 +114,8 @@ const LeaderboardTable = memo(function LeaderboardTable({ list, loading, isDark,
     sortOrder: sortedInfo.columnKey === 'points' ? sortedInfo.order : null,
     render: (p: number) => (
       <div className="flex items-center gap-2 font-semibold">
-        <Star className="w-4 h-4 text-yellow-500" /> 
-        <span className={sortedInfo.columnKey === 'points' ? 'text-green-500' : ''}>
+        <Star className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /> 
+        <span className={sortedInfo.columnKey === 'points' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-700 dark:text-gray-300'}>
           {p.toLocaleString()}
         </span>
       </div>
@@ -136,8 +136,8 @@ const LeaderboardTable = memo(function LeaderboardTable({ list, loading, isDark,
     sortOrder: sortedInfo.columnKey === 'credentials' ? sortedInfo.order : null,
     render: (c: number) => (
       <div className="flex items-center gap-2 font-semibold">
-        <span className="text-blue-500">🏅</span> 
-        <span className={sortedInfo.columnKey === 'credentials' ? 'text-green-500' : ''}>{c}</span>
+        <span className="text-emerald-500">🏅</span> 
+        <span className={sortedInfo.columnKey === 'credentials' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-700 dark:text-gray-300'}>{c}</span>
       </div>
     ),
     sorter: (a: LeaderItem, b: LeaderItem) => a.credentials - b.credentials 
@@ -156,8 +156,8 @@ const LeaderboardTable = memo(function LeaderboardTable({ list, loading, isDark,
     sortOrder: sortedInfo.columnKey === 'skills' ? sortedInfo.order : null,
     render: (s: number) => (
       <div className="flex items-center gap-2 font-semibold">
-        <span className="text-orange-500">🔧</span> 
-        <span className={sortedInfo.columnKey === 'skills' ? 'text-green-500' : ''}>{s}</span>
+        <span className="text-emerald-500">🔧</span> 
+        <span className={sortedInfo.columnKey === 'skills' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-700 dark:text-gray-300'}>{s}</span>
       </div>
     ),
     sorter: (a: LeaderItem, b: LeaderItem) => a.skills - b.skills 
@@ -216,7 +216,7 @@ const LeaderboardTable = memo(function LeaderboardTable({ list, loading, isDark,
           (Click column headers to sort)
         </span>
       </h3>
-      <Card className="border-0 shadow-xl overflow-hidden">
+      <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-br from-emerald-50/30 to-white dark:from-emerald-900/10 dark:to-gray-800">
         <Table
           key={`leaderboard-table-${isDark ? 'dark' : 'light'}`}
           loading={loading}

@@ -279,98 +279,115 @@ function JobsPageContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {jobs.map((job) => (
                   <div 
                     key={job.id} 
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary bg-emerald-100 dark:bg-emerald-900/40 rounded-lg shadow-md p-6 border border-emerald-200 dark:border-emerald-800 hover:border-primary/50 h-fit"
+                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:scale-[1.02] overflow-hidden"
                     onClick={() => handleJobClick(job)}
                   >
-                    <div className="pb-4">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-semibold text-foreground line-clamp-1">
-                          {job.jobTitle}
-                        </h3>
-                    <div className="flex flex-col gap-1">
-                      <Badge variant="outline" className={`text-xs border-0 ${getStatusColor(job.status)}`}>
-                        {job.status}
-                      </Badge>
-                      {job.hasApplied && (
-                        <Badge 
-                          variant={job.applicationStatus === 'pending' ? 'default' : 
-                                  job.applicationStatus === 'reviewed' ? 'secondary' :
-                                  job.applicationStatus === 'shortlisted' ? 'default' :
-                                  job.applicationStatus === 'hired' ? 'default' : 'destructive'} 
-                          className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-0"
-                        >
-                          {job.applicationStatus === 'pending' && '⏳ Applied'}
-                          {job.applicationStatus === 'reviewed' && '👀 Reviewed'}  
-                          {job.applicationStatus === 'shortlisted' && '⭐ Shortlisted'}
-                          {job.applicationStatus === 'hired' && '🎉 Hired'}
-                          {job.applicationStatus === 'rejected' && '❌ Rejected'}
-                          {!job.applicationStatus && '✅ Applied'}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {formatEmployerName(job.employer?.fullName)}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{job.location}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <DollarSign className="h-4 w-4" />
-                        <span>{job.package}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <Badge className={getExperienceColor(job.experience)} variant="secondary">
-                          {job.experience}
-                        </Badge>
-                      </div>
-
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {job.description}
-                      </p>
-
-                      {job.skills && job.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {job.skills.slice(0, 3).map((skill, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {job.skills.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{job.skills.length - 3} more
+                    {/* Header Section */}
+                    <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-2 leading-tight">
+                            {job.jobTitle}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                            {formatEmployerName(job.employer?.fullName)}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2 ml-4 items-end">
+                          <Badge variant="outline" className={`text-xs font-medium ${getStatusColor(job.status)}`}>
+                            {job.status}
+                          </Badge>
+                          {job.hasApplied && (
+                            <Badge 
+                              variant={job.applicationStatus === 'pending' ? 'default' : 
+                                      job.applicationStatus === 'reviewed' ? 'secondary' :
+                                      job.applicationStatus === 'shortlisted' ? 'default' :
+                                      job.applicationStatus === 'hired' ? 'default' : 'destructive'} 
+                              className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700"
+                            >
+                              {job.applicationStatus === 'pending' && '⏳ Applied'}
+                              {job.applicationStatus === 'reviewed' && '👀 Reviewed'}  
+                              {job.applicationStatus === 'shortlisted' && '⭐ Shortlisted'}
+                              {job.applicationStatus === 'hired' && '🎉 Hired'}
+                              {job.applicationStatus === 'rejected' && '❌ Rejected'}
+                              {!job.applicationStatus && '✅ Applied'}
                             </Badge>
                           )}
                         </div>
-                      )}
-
-                      <div className="flex justify-between items-center pt-2">
-                        <span className="text-xs text-muted-foreground">
-                          Posted {formatDate(job.createdAt)}
-                        </span>
-                        <Button 
-                          size="sm" 
-                          className={job.hasApplied ? "bg-green-600 hover:bg-green-700" : ""}
-                          disabled={job.hasApplied}
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent event bubbling to parent div
-                            handleJobClick(job);
-                          }}
-                        >
-                          {job.hasApplied ? 'Already Applied' : 'View Details'}
-                        </Button>
                       </div>
+                    </div>
+                    
+                    {/* Content Section */}
+                    <div className="p-6 space-y-4">
+                      {/* Key Info Grid */}
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{job.location}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{job.package}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                          <Badge className={`${getExperienceColor(job.experience)} text-xs font-medium`} variant="secondary">
+                            {job.experience}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="pt-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                          {job.description}
+                        </p>
+                      </div>
+
+                      {/* Skills */}
+                      {job.skills && job.skills.length > 0 && (
+                        <div className="pt-2">
+                          <div className="flex flex-wrap gap-2">
+                            {job.skills.slice(0, 3).map((skill, index) => (
+                              <Badge key={index} variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700">
+                                {skill}
+                              </Badge>
+                            ))}
+                            {job.skills.length > 3 && (
+                              <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600">
+                                +{job.skills.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Section */}
+                    <div className="p-6 pt-0 flex justify-between items-center border-t border-gray-100 dark:border-gray-700 mt-4">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        Posted {formatDate(job.createdAt)}
+                      </span>
+                      <Button 
+                        size="sm" 
+                        className={job.hasApplied 
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm" 
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm group-hover:shadow-md transition-all duration-200"
+                        }
+                        disabled={job.hasApplied}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJobClick(job);
+                        }}
+                      >
+                        {job.hasApplied ? 'Already Applied' : 'View Details'}
+                      </Button>
                     </div>
                   </div>
                 ))}
