@@ -599,19 +599,22 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-black">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
   
   return (
     <RoleGuard allowedRole="learner">
-      <div className="min-h-screen bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 flex">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-200 flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Your Profile</h1>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">Your Profile</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your personal information and showcase your achievements</p>
+            </div>
             <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
           </div>
 
@@ -623,8 +626,8 @@ export default function ProfilePage() {
                  </button>
                 <h3 className="text-xl font-bold mb-2">Verify Your New Email</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">An OTP has been sent to your new email address.</p>
-                <input type="text" value={otp} onKeyDown={handleOtpKeyDown} onChange={(e) => setOtp(e.target.value)} maxLength={6} className="w-full text-center text-2xl tracking-[0.5em] px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 mb-4" />
-                <button onClick={handleOtpSubmit} disabled={isSubmitting || otp.length < 6} className="w-full mb-2 px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg shadow-md transition disabled:bg-gray-400 flex items-center justify-center">
+                <input type="text" value={otp} onKeyDown={handleOtpKeyDown} onChange={(e) => setOtp(e.target.value)} maxLength={6} className="w-full text-center text-2xl tracking-[0.5em] px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500 mb-4" />
+                <button onClick={handleOtpSubmit} disabled={isSubmitting || otp.length < 6} className="w-full mb-2 px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-lg shadow-md transition disabled:bg-gray-400 flex items-center justify-center">
                   Verify & Update
                 </button>
                 <button onClick={handleResendOtp} disabled={countdown > 0} className="text-xs text-gray-500 hover:underline disabled:cursor-not-allowed disabled:opacity-50">
@@ -634,17 +637,22 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className="max-w-4xl mx-auto bg-white dark:bg-gray-950 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800">
+          <div className="max-w-4xl mx-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-emerald-200 dark:border-emerald-800">
             <form onSubmit={handleSubmit}>
               <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
                 <div className="relative">
-                  <img src={previewUrl || user?.profilePic || `https://avatar.vercel.sh/${user?._id}.png`} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover border-4 border-cyan-500" onError={(e) => {
+                  <img src={previewUrl || user?.profilePic || `https://avatar.vercel.sh/${user?._id}.png`} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover border-4 border-gradient-to-r from-emerald-400 to-teal-400 shadow-lg" onError={(e) => {
                     (e.target as HTMLImageElement).src = `https://avatar.vercel.sh/${user?._id}.png`;
                   }} />
+                  <div className="absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 p-1">
+                    <img src={previewUrl || user?.profilePic || `https://avatar.vercel.sh/${user?._id}.png`} alt="Profile Preview" className="w-full h-full rounded-full object-cover" onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://avatar.vercel.sh/${user?._id}.png`;
+                    }} />
+                  </div>
                 </div>
                 <div className="text-center md:text-left">
                   <label htmlFor="profilePic" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Picture</label>
-                  <input id="profilePic" type="file" accept="image/*" onChange={handleFileChange} disabled={isSubmitting} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
+                  <input id="profilePic" type="file" accept="image/*" onChange={handleFileChange} disabled={isSubmitting} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/20 dark:file:text-emerald-300" />
                   <p className="text-xs text-gray-500 mt-1">JPG, PNG, or GIF. Max 5MB.</p>
                 </div>
               </div>
@@ -656,17 +664,17 @@ export default function ProfilePage() {
                 
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
-                  <input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleInputChange} disabled={isSubmitting || isNameLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                  <input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleInputChange} disabled={isSubmitting || isNameLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                   {isNameLocked && <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1"><ShieldAlert size={12}/>Your name is managed by your social provider.</p>}
                 </div>
                 <div>
                   <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
-                  <input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} disabled={isSubmitting || isNameLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                  <input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} disabled={isSubmitting || isNameLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                 </div>
                 
                 <div>
                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
-                   <input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} disabled={isSubmitting || isEmailLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                   <input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} disabled={isSubmitting || isEmailLocked} className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                    {isEmailLocked && <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1"><ShieldAlert size={12}/>Your email is managed by your social provider.</p>}
                 </div>
                 
@@ -710,7 +718,7 @@ export default function ProfilePage() {
                     onChange={handleInputChange} 
                     disabled={isSubmitting} 
                     placeholder="+1 (555) 123-4567"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed" 
                   />
                 </div>
             </div>
@@ -721,7 +729,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="linkedin" className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                     </svg>
                     LinkedIn
@@ -734,7 +742,7 @@ export default function ProfilePage() {
                     onChange={handleSocialLinksChange} 
                     disabled={isSubmitting}
                     placeholder="https://linkedin.com/in/username"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500" 
                   />
                 </div>
                 <div>
@@ -752,7 +760,7 @@ export default function ProfilePage() {
                     onChange={handleSocialLinksChange} 
                     disabled={isSubmitting}
                     placeholder="https://github.com/username"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500" 
                   />
                 </div>
                 <div>
@@ -770,7 +778,7 @@ export default function ProfilePage() {
                     onChange={handleSocialLinksChange} 
                     disabled={isSubmitting}
                     placeholder="https://twitter.com/username"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500" 
                   />
                 </div>
                 <div>
@@ -788,7 +796,7 @@ export default function ProfilePage() {
                     onChange={handleSocialLinksChange} 
                     disabled={isSubmitting}
                     placeholder="https://yourportfolio.com"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500" 
                   />
                 </div>
                 <div>
@@ -806,12 +814,12 @@ export default function ProfilePage() {
                     onChange={handleSocialLinksChange} 
                     disabled={isSubmitting}
                     placeholder="https://instagram.com/username"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500" 
                   />
                 </div>
                 <div>
                   <label htmlFor="facebook" className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                     Facebook
@@ -824,7 +832,7 @@ export default function ProfilePage() {
                     onChange={handleSocialLinksChange} 
                     disabled={isSubmitting}
                     placeholder="https://facebook.com/username"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500" 
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500" 
                   />
                 </div>
               </div>
@@ -838,7 +846,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={handleAddProject}
-                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -866,7 +874,7 @@ export default function ProfilePage() {
                         value={editingProject?.title || newProject.title}
                         onChange={handleProjectInputChange}
                         placeholder="My Awesome Project"
-                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                         required
                       />
                     </div>
@@ -880,7 +888,7 @@ export default function ProfilePage() {
                         value={(editingProject?.technologies || newProject.technologies || []).join(', ')}
                         onChange={handleTechnologiesChange}
                         placeholder="React, Node.js, MongoDB"
-                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                       />
                     </div>
                   </div>
@@ -895,7 +903,7 @@ export default function ProfilePage() {
                       onChange={handleProjectInputChange}
                       placeholder="Brief description of your project..."
                       rows={3}
-                      className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                      className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
 
@@ -910,7 +918,7 @@ export default function ProfilePage() {
                         value={editingProject?.projectUrl || newProject.projectUrl}
                         onChange={handleProjectInputChange}
                         placeholder="https://myproject.com"
-                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                       />
                     </div>
                     
@@ -924,7 +932,7 @@ export default function ProfilePage() {
                         value={editingProject?.githubUrl || newProject.githubUrl}
                         onChange={handleProjectInputChange}
                         placeholder="https://github.com/username/repo"
-                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                       />
                     </div>
                   </div>
@@ -937,7 +945,7 @@ export default function ProfilePage() {
                       type="file"
                       accept="image/*"
                       onChange={handleProjectImageChange}
-                      className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                      className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     />
                     {projectImagePreview && (
                       <div className="mt-2">
@@ -1157,7 +1165,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={isSubmitting || !isFormDirty || (!!formData.username && formData.username.length >= 3 && usernameAvailable === false)}
-                className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg shadow-md transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-lg shadow-md transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>

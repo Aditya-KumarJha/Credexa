@@ -130,7 +130,7 @@ export default function SidebarComponent() {
       >
         {isLocked ? (
           <ChevronsLeft 
-            className="h-6 w-6 text-cyan-500" 
+            className="h-6 w-6 text-emerald-500" 
           />
         ) : (
           <ChevronsRight 
@@ -140,7 +140,7 @@ export default function SidebarComponent() {
       </button>
 
       <Sidebar open={open} setOpen={() => {}} animate={true}>
-        <SidebarBody className="justify-between gap-10 h-screen bg-gray-100 dark:bg-black border-r border-gray-200 dark:border-gray-800">
+        <SidebarBody className="justify-between gap-10 h-screen bg-gradient-to-b from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 border-r border-emerald-200 dark:border-emerald-800">
           <div className="flex flex-1 flex-col">
             {/* Logo area - Static, no hover */}
             <div className="px-2 py-6 mt-8">
@@ -168,8 +168,8 @@ export default function SidebarComponent() {
                     "rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative",
                     getSelectedKey() === link.label.toLowerCase().replace(/\s+/g, "-") 
                       ? open 
-                        ? "bg-cyan-500 text-white mx-2" 
-                        : "bg-cyan-500 text-white border-l-4 border-cyan-500"
+                        ? "bg-emerald-500 text-white mx-2" 
+                        : "bg-emerald-500 text-white border-l-4 border-emerald-500"
                       : "mx-2",
                     open ? "p-2" : "p-2 flex justify-center"
                   )}
@@ -214,7 +214,7 @@ export const Logo = () => {
       translate="no"
       onClick={() => window.location.href = "/dashboard/learner"}
     >
-      <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
+      <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 flex items-center justify-center">
         <span className="text-white font-bold text-lg notranslate" translate="no">CX</span>
       </div>
       <motion.span
@@ -236,7 +236,7 @@ export const LogoIcon = () => {
       translate="no"
       onClick={() => window.location.href = "/dashboard/learner"}
     >
-      <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center">
+      <div className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 flex items-center justify-center">
         <span className="text-white font-bold text-lg notranslate" translate="no">CX</span>
       </div>
     </div>

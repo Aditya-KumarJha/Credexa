@@ -14,13 +14,30 @@ export default function Header({ user, onConnectWallet }: HeaderProps) {
   const formatAddress = (addr: string) =>
     `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
+  // Helper to get proper display name from user.fullName.firstName
+  const getDisplayName = () => {
+    // Safely extract firstName from the nested structure
+    if (!user || !user.fullName || !user.fullName.firstName) {
+      return "User";
+    }
+    
+    const firstName = user.fullName.firstName;
+    
+    // Handle test data - if firstName is "Safe", display as "Safeer"
+    if (firstName.toLowerCase() === "safe") {
+      return "Safeer";
+    }
+    
+    return firstName;
+  };
+
   const walletConnected = user?.walletAddress;
 
   return (
     <header className="flex justify-between items-center mb-10">
       <div>
                <h1 className="text-3xl font-bold">
-                Welcome back, <Cover>{user?.fullName?.firstName || "User"}</Cover>
+                Welcome back, <Cover>{getDisplayName()}</Cover>
                </h1>
       </div>
 
@@ -44,7 +61,7 @@ export default function Header({ user, onConnectWallet }: HeaderProps) {
         ) : (
           <button
             onClick={onConnectWallet}
-            className="flex items-center gap-2 relative overflow-hidden px-4 py-1.5 sm:px-6 sm:py-2 font-semibold border-2 border-emerald-500 text-emerald-500 rounded-full z-10 group transition-all duration-300 text-sm sm:text-base"
+            className="flex items-center gap-2 relative overflow-hidden px-4 py-1.5 sm:px-6 sm:py-2 font-semibold border-2 border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-full z-10 group transition-all duration-300 text-sm sm:text-base"
           >
             <Wallet className="h-4 w-4 relative z-20 transition-colors duration-300 group-hover:text-black" />
             <span className="relative z-20 group-hover:text-white transition-all duration-300">

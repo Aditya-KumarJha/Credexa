@@ -379,22 +379,22 @@ function CredentialsPageContent() {
         },
       }}
     >
-      <div className="min-h-screen bg-background text-foreground flex">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 text-gray-800 dark:text-gray-200 flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
           <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
                 My Credentials
               </h1>
               <p className="text-sm text-muted-foreground mt-1">Manage and showcase your verified achievements</p>
             </div>
             <Space>
               <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
-              <Button variant="outline" className="bg-transparent" onClick={() => message.info("Share coming soon")}>
+              <Button variant="outline" className="bg-transparent border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => message.info("Share coming soon")}>
                 <Share2 className="w-4 h-4 mr-2" /> Share Profile
               </Button>
-              <Button onClick={modalHook.openCreate} className="shadow">
+              <Button onClick={modalHook.openCreate} className="shadow bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-0">
                 <Plus className="w-4 h-4 mr-2" /> Add Credential
               </Button>
             </Space>

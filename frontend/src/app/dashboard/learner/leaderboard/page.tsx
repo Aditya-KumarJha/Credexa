@@ -113,12 +113,12 @@ export default function LeaderboardPage() {
       }}
       getPopupContainer={() => document.body}
     >
-      <div className="min-h-screen bg-background text-foreground flex">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 text-gray-800 dark:text-gray-200 flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
           <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
                 🏆 Leaderboard
               </h1>
               <p className="text-sm text-muted-foreground">Compete, learn, and climb the ranks • Updated in real-time</p>

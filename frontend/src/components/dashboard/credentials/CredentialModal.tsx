@@ -284,7 +284,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
             <Button variant="outline" className="bg-transparent">Upload File</Button>
           </Upload>
           {extractingFromImage && (
-            <div className="flex items-center justify-center mt-3 text-sm text-blue-600">
+            <div className="flex items-center justify-center mt-3 text-sm text-emerald-600">
               <Spin size="small" className="mr-2" />
               Certificate extraction and parsing...
             </div>
@@ -401,7 +401,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                   />
                 </Form.Item>
                 {extractingFromUrl && (
-                  <div className="flex items-center mt-2 text-sm text-blue-600">
+                  <div className="flex items-center mt-2 text-sm text-emerald-600">
                     <Spin size="small" className="mr-2" />
                     Extracting certificate...
                   </div>
@@ -490,7 +490,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
                 </Upload>
               </Form.Item>
               {extractingFromImage && (
-                <div className="flex items-center justify-center mt-2 text-sm text-blue-600">
+                <div className="flex items-center justify-center mt-2 text-sm text-emerald-600">
                   <Spin size="small" className="mr-2" />
                   Certificate extraction and parsing...
                 </div>

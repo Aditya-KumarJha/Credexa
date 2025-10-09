@@ -63,7 +63,7 @@ export default function SettingsPage() {
           },
         }}
       >
-        <div className="min-h-screen bg-background text-foreground flex">
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 text-gray-800 dark:text-gray-200 flex">
           <Sidebar />
           <main className="flex-1 p-6 md:p-10">
             <div className="flex items-center justify-center h-96">
@@ -91,7 +91,7 @@ export default function SettingsPage() {
           },
       }}
     >
-      <div className="min-h-screen bg-background text-foreground flex">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 text-gray-800 dark:text-gray-200 flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
           <div className="max-w-4xl">

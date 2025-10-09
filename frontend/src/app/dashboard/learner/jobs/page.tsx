@@ -190,12 +190,12 @@ function JobsPageContent() {
         },
       }}
     >
-      <div className="min-h-screen bg-background text-foreground flex">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800 text-foreground flex">
         <Sidebar />
         <main className="flex-1 p-6 md:p-10">
           <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground via-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
                 💼 Job Opportunities
               </h1>
               <p className="text-sm text-muted-foreground">Discover your next career opportunity • Updated in real-time</p>
@@ -221,7 +221,7 @@ function JobsPageContent() {
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
             <div className="relative">
@@ -308,7 +308,7 @@ function JobsPageContent() {
                     </div>
                   </div>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {formatEmployerName(job.employer.fullName)}
+                        {formatEmployerName(job.employer?.fullName)}
                       </p>
                     </div>
                     
