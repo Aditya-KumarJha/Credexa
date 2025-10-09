@@ -28,9 +28,6 @@ export default function HeroSection() {
 
   return (
     <section className="relative overflow-hidden pt-0 md:pt-10">
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-600 opacity-20 rounded-full filter blur-3xl animate-[slowPulse_8s_infinite_cubic-bezier(0.4,0,0.6,1)]"></div>
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gradient-to-tr from-sky-400 via-cyan-400 to-teal-500 opacity-20 rounded-full filter blur-3xl animate-[slowPulse_8s_infinite_cubic-bezier(0.4,0,0.6,1)]"></div>
-
       <div className="container mx-auto px-6 flex flex-col md:flex-row items-start md:justify-between gap-12 relative z-10">
         <div className="md:w-3/5 mt-8 flex flex-col items-start text-left space-y-4">
           <h1 

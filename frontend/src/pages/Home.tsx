@@ -11,6 +11,8 @@ import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import { Performance3DProvider } from "@/components/3d/Performance3DProvider";
 import Ambient3DBackground from "@/components/3d/Ambient3DBackground";
+import AnimatedBackgroundIcons from "@/components/AnimatedBackgroundIcons";
+import FloatingParticles from "@/components/FloatingParticles";
 
 const SmoothScrollStyle = () => {
   return (
@@ -30,10 +32,12 @@ export default function Page() {
       <div className="bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-gray-100 min-h-screen relative">
         <SmoothScrollStyle />
         
-        {/* Ambient 3D Background */}
+        <FloatingParticles />
+        
         <Ambient3DBackground intensity={0.6} />
         
-        {/* Main Content */}
+        <AnimatedBackgroundIcons />
+        
         <div className="relative z-10">
           <Navbar />
           <Hero />

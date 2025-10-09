@@ -114,7 +114,9 @@ const Navbar = () => {
     <>
   <nav className="w-full top-0 left-0 z-[1000] backdrop-blur-lg shadow-sm relative">
   <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-8 py-4 overflow-visible">
-          <a href="/" className="text-3xl font-extrabold tracking-wide text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105 notranslate" translate="no">
+          <a href="/" className="flex items-center gap-2 text-3xl font-extrabold tracking-wide text-gray-900 dark:text-gray-100 transition-all duration-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105 notranslate" translate="no">
+            {/* LOGO ADDED HERE */}
+            <img src="/logo.png" alt="Credexa Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
             Credexa
           </a>
 

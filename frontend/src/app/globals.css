@@ -126,9 +126,42 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Disable text selection globally */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
+  
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Disable image dragging globally */
+  img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+  }
+  
+  /* Re-enable text selection for input fields and text areas where needed */
+  input[type="text"],
+  input[type="email"], 
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  textarea,
+  [contenteditable="true"],
+  .select-text {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
   }
 }
 

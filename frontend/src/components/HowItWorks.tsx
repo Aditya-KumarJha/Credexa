@@ -88,18 +88,18 @@ export default function HowItWorks() {
             </div>
             
             {/* 3D Visualization Container */}
-            <div className="relative mt-10 mb-2">
+            <div className="relative mt-10 mb-2 flex justify-center items-center w-20 h-20 mx-auto">
               {/* 3D Visualization */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 absolute inset-0 -top-4">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 absolute inset-0 flex justify-center items-center">
                 <Step3DVisualization 
                   step={s.visualType}
                   isVisible={visibleSteps.has(idx)}
-                  className="w-20 h-20 mx-auto"
+                  className="w-20 h-20"
                 />
               </div>
               
               {/* Fallback 2D Icon */}
-              <div className="text-4xl text-blue-600 dark:text-blue-400 opacity-100 group-hover:opacity-0 transition-opacity duration-500">
+              <div className="text-4xl text-blue-600 dark:text-blue-400 opacity-100 group-hover:opacity-0 transition-opacity duration-500 flex justify-center items-center">
                 {s.icon}
               </div>
             </div>
