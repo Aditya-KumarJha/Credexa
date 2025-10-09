@@ -215,29 +215,47 @@ export default function ApiIntegrationPage() {
 
   return (
     <RoleGuard allowedRole="institute">
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
-        <InstituteSidebar />
-        
-        <div className="flex-1 p-8 overflow-x-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10">
+        {/* Mobile Header */}
+        <div className="md:hidden sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">
                 API Integration
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Manage API keys and integrate credential submission into your systems
-              </p>
             </div>
-            <div className="flex items-center gap-4">
-              <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+            <div className="flex items-center gap-2">
               <LanguageSwitcher />
+              <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
             </div>
           </div>
+        </div>
+        
+        <div className="md:flex">
+          <InstituteSidebar />
+          
+          <div className="flex-1 overflow-y-auto w-full">
+            {/* Desktop Header */}
+            <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 gap-4">
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  API Integration
+                </h1>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">
+                  Manage API keys and integrate credential submission into your systems
+                </p>
+              </div>
+              <div className="flex items-center gap-2 md:gap-4">
+                <LanguageSwitcher />
+                <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+              </div>
+            </div>
+            
+            <div className="p-4 md:p-8">
 
           {/* Stats Cards */}
           {analytics && (
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -589,6 +607,7 @@ export default function ApiIntegrationPage() {
               )}
             </div>
           </div>
+          </div>
         </div>
 
         {/* Modals */}
@@ -602,6 +621,7 @@ export default function ApiIntegrationPage() {
           isOpen={isDocModalOpen}
           onClose={() => setIsDocModalOpen(false)}
         />
+        </div>
       </div>
     </RoleGuard>
   );

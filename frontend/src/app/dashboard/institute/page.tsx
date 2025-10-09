@@ -180,20 +180,31 @@ export default function CredentialIssuerDashboard() {
 
   return (
     <RoleGuard allowedRole="institute">
-      <div className="h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10 flex relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10">
 
-        <InstituteSidebar />
-        
-        <div className="flex-1 overflow-y-auto relative">
-        {/* Top Bar with Theme Toggle */}
-        <div className="flex items-center justify-end p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+        {/* Mobile header - only visible on mobile */}
+        <div className="md:hidden sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-end p-4">
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
+              <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+            </div>
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="md:flex">
+          <InstituteSidebar />
+          
+          <div className="flex-1 overflow-y-auto w-full">
+            {/* Desktop Top Bar with Theme Toggle */}
+            <div className="hidden md:flex items-center justify-end p-4 md:p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 md:gap-4">
+                <LanguageSwitcher />
+                <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+              </div>
+            </div>
+
+        <div className="p-4 md:p-8">
           {/* Enhanced Header */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
@@ -202,16 +213,16 @@ export default function CredentialIssuerDashboard() {
             className="mb-12 relative"
           >
             <div>
-              <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4 relative">
+              <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 relative">
                 Credential Issuer Dashboard
-                <div className="absolute -top-2 -right-8">
-                  <Crown className="h-8 w-8 text-purple-500" />
+                <div className="absolute -top-2 -right-4 md:-right-8">
+                  <Crown className="h-6 w-6 md:h-8 md:w-8 text-purple-500" />
                 </div>
               </h1>
               {/* Display issuer type and name */}
               {userProfile?.institute && (
-                <div className="flex items-center gap-2 mt-2">
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                  <div className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                     userProfile.institute.issuerType === 'university' 
                       ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                       : userProfile.institute.issuerType === 'edtech'
@@ -222,15 +233,15 @@ export default function CredentialIssuerDashboard() {
                      userProfile.institute.issuerType === 'edtech' ? '💻 EdTech Platform' :
                      '📚 Training Provider'}
                   </div>
-                  <span className="text-gray-600 dark:text-gray-400">•</span>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                  <span className="hidden sm:inline text-gray-600 dark:text-gray-400">•</span>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium text-sm sm:text-base">
                     {userProfile.institute.name}
                   </span>
                 </div>
               )}
             </div>
-            <p className="text-gray-600 dark:text-gray-300 text-lg flex items-center gap-2 mt-4">
-              <Lightbulb className="h-5 w-5 text-purple-500" />
+            <p className="text-gray-600 dark:text-gray-300 text-sm md:text-lg flex items-center gap-2 mt-4">
+              <Lightbulb className="h-4 w-4 md:h-5 md:w-5 text-purple-500 flex-shrink-0" />
               Welcome back! Manage your learners, courses, and credential issuance. 🎓
             </p>
           </motion.div>
@@ -265,7 +276,7 @@ export default function CredentialIssuerDashboard() {
           </motion.div>
 
           {/* Main Content Grid */}
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             {/* Quick Actions */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -277,7 +288,7 @@ export default function CredentialIssuerDashboard() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
                   Quick Actions
                 </h2>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {quickActions.map((action, index) => (
                     <div
                       key={index}
@@ -382,6 +393,7 @@ export default function CredentialIssuerDashboard() {
               </div>
             </div>
           </motion.div>
+          </div>
         </div>
         </div>
       </div>

@@ -221,31 +221,47 @@ export default function CredentialsPage() {
 
   return (
     <RoleGuard allowedRole="institute">
-      <div className="h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10 flex relative overflow-hidden">
-        <InstituteSidebar />
-        
-        <div className="flex-1 overflow-y-auto relative">
-          {/* Top Bar */}
-          <div className="flex items-center justify-between p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-violet-900/10">
+        {/* Mobile header */}
+        <div className="md:hidden sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Credentials Management
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+                Credentials
               </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                Manage digital credentials issued by your institute
-              </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <LanguageSwitcher />
               <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
             </div>
           </div>
+        </div>
 
-          <div className="p-8">
+        <div className="md:flex">
+          <InstituteSidebar />
+          
+          <div className="flex-1 overflow-y-auto w-full">
+            {/* Desktop Top Bar */}
+            <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 gap-4">
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  Credentials Management
+                </h1>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">
+                  Manage digital credentials issued by your institute
+                </p>
+              </div>
+              <div className="flex items-center gap-2 md:gap-4">
+                <LanguageSwitcher />
+                <ThemeToggleButton variant="gif" url="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWI1ZmNvMGZyemhpN3VsdWp4azYzcWUxcXIzNGF0enp0eW1ybjF0ZyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/Fa6uUw8jgJHFVS6x1t/giphy.gif" />
+            </div>
+          </div>
+
+          <div className="p-4 md:p-8">
             {/* Header Actions */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="relative flex-1 sm:w-96">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 md:mb-8 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
+                <div className="relative flex-1 sm:w-80 lg:w-96">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <input
                     type="text"
@@ -564,6 +580,7 @@ export default function CredentialsPage() {
             setIsIssueModalOpen(false);
           }}
         />
+        </div>
       </div>
     </RoleGuard>
   );

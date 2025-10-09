@@ -15,17 +15,35 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar, SidebarBody, SidebarLink } from "../../ui/sidebar";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export default function InstituteSidebar() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false); // Default to closed on mobile
   const [isLocked, setIsLocked] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setOpen(false); // Close sidebar on mobile by default
+      } else {
+        setOpen(true); // Open sidebar on desktop by default
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -33,12 +51,18 @@ export default function InstituteSidebar() {
   };
 
   const toggleLock = () => {
-    if (isLocked) {
-      setIsLocked(false);
-      setOpen(false);
+    // On mobile, just toggle open/close
+    if (isMobile) {
+      setOpen(!open);
     } else {
-      setIsLocked(true);
-      setOpen(true);
+      // On desktop, use lock/unlock behavior
+      if (isLocked) {
+        setIsLocked(false);
+        setOpen(false);
+      } else {
+        setIsLocked(true);
+        setOpen(true);
+      }
     }
   };
 
@@ -123,34 +147,36 @@ export default function InstituteSidebar() {
   ];
 
   return (
-    <div className="sticky top-0 h-screen">
-      {/* Toggle button */}
-      <button
-        onClick={toggleLock}
-        className={cn(
-          "absolute top-6 z-20 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm border border-gray-300 dark:border-gray-600",
-          open 
-            ? "right-4"
-            : "left-1/2 transform -translate-x-1/2"
-        )}
-        title={isLocked ? "Unlock sidebar" : "Lock sidebar"}
-      >
-        {isLocked ? (
-          <ChevronsLeft 
-            className="h-6 w-6 text-purple-500" 
-          />
-        ) : (
-          <ChevronsRight 
-            className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" 
-          />
-        )}
-      </button>
+    <>
+      {/* Desktop Toggle button - only show on desktop */}
+      {!isMobile && (
+        <button
+          onClick={toggleLock}
+          className={cn(
+            "fixed top-6 z-30 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm border border-gray-300 dark:border-gray-600",
+            open 
+              ? "left-[260px]" // Position when sidebar is open
+              : "left-4" // Position when sidebar is closed
+          )}
+          title={isLocked ? "Unlock sidebar" : "Lock sidebar"}
+        >
+          {isLocked ? (
+            <ChevronsLeft 
+              className="h-6 w-6 text-purple-500" 
+            />
+          ) : (
+            <ChevronsRight 
+              className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" 
+            />
+          )}
+        </button>
+      )}
 
-      <Sidebar open={open} setOpen={() => {}} animate={true}>
-        <SidebarBody className="justify-between gap-10 h-screen bg-gray-100 dark:bg-black border-r border-gray-200 dark:border-gray-800">
+      <Sidebar open={open} setOpen={setOpen} animate={true}>
+        <SidebarBody className="justify-between gap-10 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg">
           <div className="flex flex-1 flex-col">
             {/* Logo area */}
-            <div className="px-2 py-6 mt-8">
+            <div className="px-2 py-6 mt-8 md:mt-8">
               {open ? <Logo /> : <LogoIcon />}
             </div>
             
@@ -210,7 +236,7 @@ export default function InstituteSidebar() {
           </div>
         </SidebarBody>
       </Sidebar>
-    </div>
+    </>
   );
 }
 
