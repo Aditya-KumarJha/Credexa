@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+// motion/react is part of Framer Motion
 import { motion, AnimatePresence } from "motion/react";
 import { X, Copy, Check, ExternalLink, Code2, BookOpen, Zap } from "lucide-react";
 
@@ -355,17 +356,20 @@ Invoke-RestMethod -Uri "https://credexa.onrender.com/api/external/credentials" -
               onClick={() => copyToClipboard(code, language)}
               className="flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              {copiedSnippet === language ? (
-                <>
-                  <Check className="h-4 w-4 mr-1" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </>
-              )}
+              {/* FIX APPLIED HERE: Add a key to the conditional element to force a clean re-render/re-mount */}
+              <span key={copiedSnippet === language ? 'copied' : 'copy'} className="flex items-center">
+                {copiedSnippet === language ? (
+                  <>
+                    <Check className="h-4 w-4 mr-1" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </>
+                )}
+              </span>
             </button>
           </div>
           <div className="p-4 bg-gray-900 dark:bg-gray-950 overflow-x-auto">
