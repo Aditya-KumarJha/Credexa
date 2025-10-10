@@ -6,6 +6,7 @@ import api from "@/utils/axios";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Header from "@/components/dashboard/Header";
 import ProfileCard from "@/components/dashboard/ProfileCard";
+import Link from "next/link";
 import StatCard from "@/components/dashboard/StatCard";
 import { BarChart3, KeyRound, CreditCard } from "lucide-react";
 import { ethers } from "ethers";
@@ -33,6 +34,21 @@ interface DashboardUser {
   provider: string;
   projects?: UserProject[];
   walletAddress?: string;
+  resume?: {
+    fileName: string;
+    fileUrl: string;
+    fileType: string;
+    uploadedAt: string;
+    fileSize: number;
+  };
+  socialLinks?: {
+    linkedin?: string;
+    github?: string;
+    twitter?: string;
+    portfolio?: string;
+    instagram?: string;
+    facebook?: string;
+  };
 }
 
 interface Credential {
@@ -380,6 +396,37 @@ export default function Dashboard() {
         <Header user={user} onConnectWallet={handleConnectWallet} />
 
         <ProfileCard user={user} />
+
+        {/* User Details Section removed as requested */}
+
+        {/* Projects Section */}
+        {user?.projects && user.projects.length > 0 && (
+          <div className="max-w-4xl mx-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-6 rounded-xl shadow border border-emerald-200 dark:border-emerald-800 mb-8">
+            <h2 className="text-xl font-semibold mb-4">My Projects</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {user.projects.map((project) => (
+                <div key={project._id || project.title} className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow">
+                  <h3 className="font-bold text-lg mb-2">{project.title}</h3>
+                  {project.description && <p className="mb-2 text-gray-700 dark:text-gray-300">{project.description}</p>}
+                  {project.imageUrl && (
+                    <img src={project.imageUrl} alt={project.title} className="mb-2 rounded w-full h-40 object-cover" />
+                  )}
+                  <div className="flex flex-col gap-1">
+                    {project.projectUrl && (
+                      <Link href={project.projectUrl} target="_blank" className="text-emerald-600 underline">Project Link</Link>
+                    )}
+                    {project.githubUrl && (
+                      <Link href={project.githubUrl} target="_blank" className="text-teal-600 underline">GitHub</Link>
+                    )}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Tech: {project.technologies.join(", ")}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-10">
           <StatCard

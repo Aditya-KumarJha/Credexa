@@ -103,23 +103,24 @@ def submit_credential():
 
 submit_credential()`,
     curl: `# Submit a credential (Linux/Mac)
-curl -X POST https://credexa.onrender.com/api/external/credentials \\
-  -H "Authorization: Bearer your-api-key-here" \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:4000/api/external/credentials \
+  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
   -d '{
-    "studentEmail": "student@university.edu",
-    "credentialTitle": "Computer Science Degree",
+    "studentEmail": "demo@demo.com",
+    "credentialTitle": "IT CORE",
     "completionDate": "2024-01-15",
-    "certificateUrl": "https://university.edu/certificate/123.pdf",
+    "certificateUrl": "https://ik.imagekit.io/wl9xamwdr/credexa/resumes/resume_68e675881d36b4ac99a8049f_QmVWyGyQcM1Ebntf_U9I9_FAnO4YBJY.pdf",
     "nsqfLevel": 7,
     "skills": ["Programming", "Data Structures", "Algorithms"],
     "credentialType": "degree",
     "metadata": {
-      "program": "Computer Science",
+      "program": "CSE",
       "grade": "A",
       "credits": 120
     }
-  }'`,
+  }'
+`,
     powershell: `# Submit a credential (Windows PowerShell)
 $body = '{
     "studentEmail": "student@university.edu",
