@@ -27,7 +27,7 @@ async function createTestJobApplications() {
         isVerified: true
       });
 
-      testJob = await Job.create({
+        testJob = await Job.create({
         employer: testEmployer._id,
         jobTitle: 'MERN Stack Developer',
         package: '450$',
@@ -38,7 +38,7 @@ async function createTestJobApplications() {
         skills: ['React', 'Node.js', 'MongoDB', 'Express'],
         contactEmail: 'employer@test.com',
         contactPhone: '+91-1234567890',
-        status: 'published'
+        status: 'active'
       });
       console.log('✅ Created test job:', testJob._id);
     }

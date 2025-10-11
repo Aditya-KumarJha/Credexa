@@ -433,7 +433,7 @@ module.exports = {
         skills = [],
         contactEmail,
         contactPhone,
-        status = 'published',
+        status = 'active',
       } = req.body;
 
       if (!jobTitle || !pkg || !location || !qualification || !experience || !description || !contactEmail || !contactPhone) {

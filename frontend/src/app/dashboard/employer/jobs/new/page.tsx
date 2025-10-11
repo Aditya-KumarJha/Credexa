@@ -3,9 +3,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import api from "@/utils/axios";
 import { useRouter } from "next/navigation";
-import { ConfigProvider, notification, theme, Modal, Avatar, Button } from "antd"; // Import Ant Design components
-import { motion } from "framer-motion";
-import { useTheme } from "next-themes"; // For dark mode
+import { ConfigProvider, notification, theme, Modal, Avatar, Button } from "antd";
+import { motion, AnimatePresence } from "framer-motion"; // AnimatePresence added
+import { useTheme } from "next-themes";
 import EmployerSidebar from "@/components/dashboard/employer/EmployerSidebar";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -255,18 +255,22 @@ interface Applicant {
   status?: 'pending' | 'reviewed' | 'shortlisted' | 'rejected';
 }
 
-// --- FIX 1: Create a context hook for notifications ---
-const NotificationContext = React.createContext<{ 
-    api: ReturnType<typeof notification.useNotification>[0]; 
-} | null>(null);
+// Notification context: we'll provide an `api` object whose methods enqueue requests.
+const NotificationContext = React.createContext<any | null>(null);
 
 const useAppNotification = () => {
-    const context = React.useContext(NotificationContext);
-    if (!context) {
-        // Fallback for components rendered outside the provider, though in this structured app it should always be available.
-        return { api: notification };
-    }
-    return context;
+  const context = React.useContext(NotificationContext);
+
+  const noopApi = React.useMemo(() => ({
+    open: () => {},
+    success: () => {},
+    error: () => {},
+    info: () => {},
+    warning: () => {},
+  }), []);
+
+  if (!context) return { api: noopApi };
+  return context;
 };
 
 // Additional icons for job management
@@ -1167,269 +1171,275 @@ function JobPostForm() {
       `}</style>
   );
 
-  // Show applicant profile if one is selected
-  if (selectedApplicantProfile) {
-    return (
-      <>
-        <CustomStyles />
-        <div className="w-full bg-transparent dark:bg-transparent">
-          <ApplicantProfile 
-            applicant={selectedApplicantProfile} 
-            onBack={handleBackFromProfile}
-          />
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <CustomStyles />
-      <div className="w-full flex gap-6 p-4 md:p-10 font-sans bg-transparent dark:bg-transparent">
-        {/* Left Side - Job Form (60%) */}
-        <div className="w-3/5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 space-y-6 animate-fadeIn border border-white/30 dark:border-gray-700/30 relative overflow-hidden">
-          {/* Subtle inner glow */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 dark:from-indigo-400/10 dark:to-purple-400/10 pointer-events-none"></div>
-          <div className="relative z-10">
-          {/* --- Header --- */}
-          <div className="text-center space-y-2">
-            <div className="flex justify-center">
-              <BriefcaseIcon />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create a Job Posting</h1>
-            <p className="text-gray-600 dark:text-gray-300">Fill out the details below to find your next great hire.</p>
-          </div>
-
-          {/* --- Form --- */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* --- Form Fields --- */}
-            <div className="grid grid-cols-1 gap-4">
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.2s" }}>
-                <label htmlFor="jobTitle" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <BriefcaseIcon /> Job Title
-                </label>
-                <input
-                  type="text"
-                  id="jobTitle"
-                  name="jobTitle"
-                  value={formData.jobTitle}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., Senior Software Developer"
-                  required
-                />
-              </div>
-
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.3s" }}>
-                <label htmlFor="package" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <DollarSignIcon /> Package / Perks
-                </label>
-                <input
-                  type="text"
-                  id="package"
-                  name="package"
-                  value={formData.package}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., $120k + Benefits"
-                  required
-                />
-              </div>
-
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.4s" }}>
-                <label htmlFor="location" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <MapPinIcon /> Location
-                </label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., San Francisco, CA (Remote)"
-                  required
-                />
-              </div>
-
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.5s" }}>
-                <label htmlFor="qualification" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <GraduationCapIcon /> Qualification
-                </label>
-                <input
-                  type="text"
-                  id="qualification"
-                  name="qualification"
-                  value={formData.qualification}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., Bachelor's in CS"
-                  required
-                />
-              </div>
-
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.6s" }}>
-                <label htmlFor="experience" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <BarChartIcon /> Experience
-                </label>
-                <input
-                  type="text"
-                  id="experience"
-                  name="experience"
-                  value={formData.experience}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., 3-5 Years"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* --- Job Description --- */}
-            <div className="form-group animate-slideIn" style={{ animationDelay: "0.65s" }}>
-              <label htmlFor="description" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                <FileTextIcon /> Job Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="input-field min-h-[120px]"
-                placeholder="Describe the role, responsibilities, required skills, and nice-to-haves"
-                required
+      {/* CRITICAL FIX: Wrap conditional rendering in AnimatePresence to manage exit animations */}
+      <motion.div layout className="relative w-full">
+        <AnimatePresence mode="wait" initial={false}>
+          {selectedApplicantProfile ? (
+            <div key="applicant-profile" className="w-full bg-transparent dark:bg-transparent">
+              <ApplicantProfile 
+                applicant={selectedApplicantProfile} 
+                onBack={handleBackFromProfile}
               />
             </div>
+          ) : (
+            <motion.div
+              key="job-form-and-list"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="w-full flex gap-6 p-4 md:p-10 font-sans bg-transparent dark:bg-transparent"
+            >
+              {/* Left Side - Job Form (60%) */}
+              <div className="w-3/5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 space-y-6 animate-fadeIn border border-white/30 dark:border-gray-700/30 relative overflow-hidden">
+                {/* Subtle inner glow */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 dark:from-indigo-400/10 dark:to-purple-400/10 pointer-events-none"></div>
+                <div className="relative z-10">
+                {/* --- Header --- */}
+                <div className="text-center space-y-2">
+                  <div className="flex justify-center">
+                    <BriefcaseIcon />
+                  </div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create a Job Posting</h1>
+                  <p className="text-gray-600 dark:text-gray-300">Fill out the details below to find your next great hire.</p>
+                </div>
 
-            {/* --- Contact Details --- */}
-            <div className="grid grid-cols-1 gap-4">
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.7s" }}>
-                <label htmlFor="contactEmail" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <MailIcon /> Contact Email
-                </label>
-                <input
-                  type="email"
-                  id="contactEmail"
-                  name="contactEmail"
-                  value={formData.contactEmail}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., hiring@company.com"
-                  required
-                />
-              </div>
-              <div className="form-group animate-slideIn" style={{ animationDelay: "0.75s" }}>
-                <label htmlFor="contactPhone" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  <PhoneIcon /> Contact Phone
-                </label>
-                <input
-                  type="tel"
-                  id="contactPhone"
-                  name="contactPhone"
-                  value={formData.contactPhone}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="e.g., +1 (555) 123-4567"
-                  pattern="^[0-9+()\-\s]{7,}$"
-                  title="Enter a valid phone number"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* --- Skills Section --- */}
-            <div className="form-group animate-slideIn" style={{ animationDelay: "0.7s" }}>
-              <label htmlFor="skills" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                <CodeIcon /> Skills Required
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  id="skills"
-                  value={currentSkill}
-                  onChange={handleSkillChange}
-                  onKeyDown={handleSkillKeyDown}
-                  className="input-field"
-                  placeholder="Type a skill and press Enter"
-                />
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {skills.map((skill, index) => (
-                    <div
-                      key={`${skill}-${index}`}
-                      className="flex items-center bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-sm font-medium px-3 py-1 rounded-full animate-popIn border border-transparent dark:border-indigo-800/60"
-                    >
-                      <span>{skill}</span>
-                      <XIcon onClick={() => removeSkill(skill)} />
+                {/* --- Form --- */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* --- Form Fields --- */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.2s" }}>
+                      <label htmlFor="jobTitle" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <BriefcaseIcon /> Job Title
+                      </label>
+                      <input
+                        type="text"
+                        id="jobTitle"
+                        name="jobTitle"
+                        value={formData.jobTitle}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., Senior Software Developer"
+                        required
+                      />
                     </div>
-                  ))}
+
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.3s" }}>
+                      <label htmlFor="package" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <DollarSignIcon /> Package / Perks
+                      </label>
+                      <input
+                        type="text"
+                        id="package"
+                        name="package"
+                        value={formData.package}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., $120k + Benefits"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.4s" }}>
+                      <label htmlFor="location" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <MapPinIcon /> Location
+                      </label>
+                      <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value={formData.location}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., San Francisco, CA (Remote)"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.5s" }}>
+                      <label htmlFor="qualification" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <GraduationCapIcon /> Qualification
+                      </label>
+                      <input
+                        type="text"
+                        id="qualification"
+                        name="qualification"
+                        value={formData.qualification}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., Bachelor's in CS"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.6s" }}>
+                      <label htmlFor="experience" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <BarChartIcon /> Experience
+                      </label>
+                      <input
+                        type="text"
+                        id="experience"
+                        name="experience"
+                        value={formData.experience}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., 3-5 Years"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* --- Job Description --- */}
+                  <div className="form-group animate-slideIn" style={{ animationDelay: "0.65s" }}>
+                    <label htmlFor="description" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                      <FileTextIcon /> Job Description
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      className="input-field min-h-[120px]"
+                      placeholder="Describe the role, responsibilities, required skills, and nice-to-haves"
+                      required
+                    />
+                  </div>
+
+                  {/* --- Contact Details --- */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.7s" }}>
+                      <label htmlFor="contactEmail" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <MailIcon /> Contact Email
+                      </label>
+                      <input
+                        type="email"
+                        id="contactEmail"
+                        name="contactEmail"
+                        value={formData.contactEmail}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., hiring@company.com"
+                        required
+                      />
+                    </div>
+                    <div className="form-group animate-slideIn" style={{ animationDelay: "0.75s" }}>
+                      <label htmlFor="contactPhone" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                        <PhoneIcon /> Contact Phone
+                      </label>
+                      <input
+                        type="tel"
+                        id="contactPhone"
+                        name="contactPhone"
+                        value={formData.contactPhone}
+                        onChange={handleInputChange}
+                        className="input-field"
+                        placeholder="e.g., +1 (555) 123-4567"
+                        pattern="^[0-9+()\-\s]{7,}$"
+                        title="Enter a valid phone number"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* --- Skills Section --- */}
+                  <div className="form-group animate-slideIn" style={{ animationDelay: "0.7s" }}>
+                    <label htmlFor="skills" className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                      <CodeIcon /> Skills Required
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="skills"
+                        value={currentSkill}
+                        onChange={handleSkillChange}
+                        onKeyDown={handleSkillKeyDown}
+                        className="input-field"
+                        placeholder="Type a skill and press Enter"
+                      />
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {skills.map((skill, index) => (
+                          <div
+                            key={`${skill}-${index}`}
+                            className="flex items-center bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-sm font-medium px-3 py-1 rounded-full animate-popIn border border-transparent dark:border-indigo-800/60"
+                          >
+                            <span>{skill}</span>
+                            <XIcon onClick={() => removeSkill(skill)} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* --- Submit Button --- */}
+                  <div className="pt-4 animate-slideIn" style={{ animationDelay: "0.8s" }}>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="group w-full flex justify-center items-center py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Posting...
+                        </>
+                      ) : (
+                        <>
+                          Post Job
+                          <SendIcon />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
                 </div>
               </div>
-            </div>
 
-            {/* --- Submit Button --- */}
-            <div className="pt-4 animate-slideIn" style={{ animationDelay: "0.8s" }}>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group w-full flex justify-center items-center py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Posting...
-                  </>
-                ) : (
-                  <>
-                    Post Job
-                    <SendIcon />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-          </div>
-        </div>
-
-        {/* Right Side - Posted Jobs (40%) */}
-        <div className="w-2/5 space-y-6">
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/30 dark:border-gray-700/30 relative overflow-hidden">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5 dark:from-purple-400/10 dark:to-indigo-400/10 pointer-events-none"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <BriefcaseIcon />
-                  Your Posted Jobs
-                </h2>
-                <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium">
-                  {jobs.length} {jobs.length === 1 ? 'Job' : 'Jobs'}
-                </span>
-              </div>
-
-              <div className="max-h-[calc(100vh-200px)] overflow-y-auto space-y-4">
-                {loading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                  </div>
-                ) : jobs.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                      <BriefcaseIcon />
+              {/* Right Side - Posted Jobs (40%) */}
+              <div className="w-2/5 space-y-6">
+                <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/30 dark:border-gray-700/30 relative overflow-hidden">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5 dark:from-purple-400/10 dark:to-indigo-400/10 pointer-events-none"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <BriefcaseIcon />
+                        Your Posted Jobs
+                      </h2>
+                      <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium">
+                        {jobs.length} {jobs.length === 1 ? 'Job' : 'Jobs'}
+                      </span>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No jobs posted yet</h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm">
-                      Post your first job using the form to get started finding great candidates.
-                    </p>
+
+                    <div className="max-h-[calc(100vh-200px)] overflow-y-auto space-y-4">
+                      {loading ? (
+                        <div className="flex justify-center items-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        </div>
+                      ) : jobs.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                            <BriefcaseIcon />
+                          </div>
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No jobs posted yet</h3>
+                          <p className="text-gray-600 dark:text-gray-300 text-sm">
+                            Post your first job using the form to get started finding great candidates.
+                          </p>
+                        </div>
+                      ) : (
+                        jobs.map((job) => (
+                          <JobCard key={job.id} job={job} onJobUpdate={fetchJobs} onViewApplicants={handleViewApplicants} />
+                        ))
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  jobs.map((job) => (
-                    <JobCard key={job.id} job={job} onJobUpdate={fetchJobs} onViewApplicants={handleViewApplicants} />
-                  ))
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Applicants Modal */}
       <ApplicantsModal
@@ -1493,22 +1503,7 @@ function JobPostForm() {
   );
 }
 
-// --- FIX 3: Notification Provider Component ---
-const NotificationProvider: React.FC<{ children: React.ReactNode; antTheme: any }> = ({ children, antTheme }) => {
-  const [api, contextHolder] = notification.useNotification();
-  
-  const contextValue = React.useMemo(() => ({ api }), [api]);
-
-  return (
-    <ConfigProvider theme={antTheme}>
-      {contextHolder} {/* This injects the notification service into the DOM */}
-      <NotificationContext.Provider value={contextValue}>
-        {children}
-      </NotificationContext.Provider>
-    </ConfigProvider>
-  );
-};
-// --- END FIX 3 ---
+// NotificationContext is provided at the page root using Ant Design's useNotification()
 
 export default function EmployerJobPostPage() {
   const { resolvedTheme } = useTheme();
@@ -1530,11 +1525,46 @@ export default function EmployerJobPostPage() {
   }, [isDark]);
 
 
+  // Create notification API and contextHolder once at the page level
+  const [notificationApi, notificationContextHolder] = notification.useNotification();
+
+  // Queue to hold notification requests made during render. Each item: { method, args }
+  const queueRef = React.useRef<Array<{ method: string; args: any[] }>>([]);
+
+  // The queued API: methods push to queue (safe to call during render)
+  const queuedApi = React.useMemo(() => {
+    const methods = ['open', 'success', 'error', 'info', 'warning'];
+    const api: any = {};
+    methods.forEach((m) => {
+      api[m] = (...args: any[]) => {
+        queueRef.current.push({ method: m, args });
+      };
+    });
+    return api;
+  }, []);
+
+  // Flush the queued notifications after commit (useEffect runs after paint)
+  React.useEffect(() => {
+    if (!queueRef.current || queueRef.current.length === 0) return;
+    const q = queueRef.current.splice(0);
+    q.forEach((item) => {
+      try {
+        const fn = (notificationApi as any)[item.method];
+        if (typeof fn === 'function') fn(...item.args);
+      } catch (e) {
+        // swallow errors to avoid breaking UI
+        // eslint-disable-next-line no-console
+        console.error('Notification flush error:', e);
+      }
+    });
+  });
+
   return (
     <RoleGuard allowedRole="employer">
-      {/* FIX 5: Wrap the entire content with NotificationProvider */}
-      <NotificationProvider antTheme={antTheme}>
-        <div className="h-screen relative flex overflow-hidden">
+      <ConfigProvider theme={antTheme}>
+        {notificationContextHolder}
+  <NotificationContext.Provider value={{ api: queuedApi }}>
+          <div className="h-screen relative flex overflow-hidden">
           {/* Enhanced Background with Patterns and Gradients */}
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-purple-50/40 to-teal-50 dark:from-gray-900 dark:via-indigo-900/30 dark:to-purple-900/20">
             {/* Geometric Pattern Overlay */}
@@ -1588,7 +1618,8 @@ export default function EmployerJobPostPage() {
             </div>
           </div>
         </div>
-      </NotificationProvider>
+        </NotificationContext.Provider>
+      </ConfigProvider>
     </RoleGuard>
   );
 }
