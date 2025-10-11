@@ -151,6 +151,18 @@ const Navbar = () => {
                   href={item.href}
                   onMouseOver={() => setHoveredPath(item.href)}
                   onMouseLeave={() => setHoveredPath(pathname)}
+                  onClick={(e) => {
+                    // Keep Contact Us as-is (anchor to page section)
+                    if (item.href === '/#contact') return;
+                    e.preventDefault();
+                    // If not authenticated, send to login (idempotent behavior like My Activity)
+                    if (!isAuthenticated) {
+                      window.location.href = '/login';
+                      return;
+                    }
+                    // Otherwise navigate normally
+                    window.location.href = item.href;
+                  }}
                   className={linkClass(item.href)}
                 >
                   {item.href === hoveredPath && (
@@ -225,7 +237,24 @@ const Navbar = () => {
               <div className="flex flex-col gap-2 px-6 py-4">
                 {navItems.map((item) => (
                   <motion.div key={item.href} variants={menuItemVariants}>
-                    <a href={item.href} onClick={() => setMobileOpen(false)} className={mobileLinkClass(item.href)}>
+                    <a
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setMobileOpen(false);
+                        // Allow Contact Us anchor without auth
+                        if (item.href === '/#contact') {
+                          window.location.href = item.href;
+                          return;
+                        }
+                        if (!isAuthenticated) {
+                          window.location.href = '/login';
+                          return;
+                        }
+                        window.location.href = item.href;
+                      }}
+                      className={mobileLinkClass(item.href)}
+                    >
                       <item.icon size={22} />
                       {item.label}
                     </a>
